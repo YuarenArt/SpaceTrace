@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/plugins/Space_trace" >
+        <file>icon.png</file>
+    </qresource>
+</RCC>
