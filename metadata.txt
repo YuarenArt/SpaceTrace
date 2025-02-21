@@ -6,14 +6,14 @@
 name=Space trace
 qgisMinimumVersion=3.0
 description=Draws the spacecraft's flight path over the Earth's surface
-version=0.1
+version=0.2
 author=Yuriy Malyshev
 email=yuaren@yandex.ru
 
 about=Draws the spacecraft's flight path over the Earth's surface
 
 tracker=http://bugs
-repository=http://repo
+repository=https://github.com/YuarenArt/Space-trace
 # End of mandatory metadata
 
 # Recommended items:

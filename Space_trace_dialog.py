@@ -9,7 +9,7 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from Space_trace_dialog_class import Ui_SpaceTracePluginDialogBase
+from .Space_trace_dialog_class import Ui_SpaceTracePluginDialogBase
 
 class SpaceTracePluginDialog(QtWidgets.QDialog, Ui_SpaceTracePluginDialogBase):
     def __init__(self, parent=None):

@@ -29,6 +29,7 @@ from qgis.PyQt.QtWidgets import QAction
 from .resources import *
 # Import the code for the dialog
 from .Space_trace_dialog import SpaceTracePluginDialog
+from . import orbital_logic
 import os.path
 
 
@@ -195,6 +196,28 @@ class SpaceTracePlugin:
         result = self.dlg.exec_()
         # See if OK was pressed
         if result:
-            # Do something useful here - delete the line containing pass and
-            # substitute with your code.
-            pass
+            try:
+                # Извлекаем параметры из диалога
+                sat_id_text = self.dlg.lineEditSatID.text().strip()
+                if not sat_id_text:
+                    raise Exception("Введите NORAD ID спутника")
+                sat_id = int(sat_id_text)
+            
+                track_day = self.dlg.dateEdit.date().toPyDate()
+                step_minutes = self.dlg.spinBoxStepMinutes.value()
+                output_path = self.dlg.lineEditOutputPath.text().strip()
+                if not output_path:
+                    raise Exception("Укажите путь для сохранения шейп-файла")
+                
+                # Вызываем функцию создания шейп-файла из отдельного модуля
+                orbital_logic.create_orbital_track_shapefile_for_day(sat_id, track_day, step_minutes, output_path)
+                
+                line_output_path = output_path.replace('.shp', '_line.shp')
+                orbital_logic.convert_points_shp_to_line(output_path, line_output_path)
+                
+                # Информируем пользователя об успешном выполнении
+                self.iface.messageBar().pushMessage("Успех", "Шейп-файл успешно создан", level=0)
+            except Exception as e:
+                # В случае ошибки выводим сообщение об ошибке
+                self.iface.messageBar().pushMessage("Ошибка", str(e), level=3)
+

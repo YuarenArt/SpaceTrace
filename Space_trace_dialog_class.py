@@ -15,13 +15,20 @@ class Ui_SpaceTracePluginDialogBase(object):
         SpaceTracePluginDialogBase.resize(855, 565)
         self.verticalLayout = QtWidgets.QVBoxLayout(SpaceTracePluginDialogBase)
         self.verticalLayout.setObjectName("verticalLayout")
+        
+        # Поле для ввода NORAD ID спутника
         self.lineEditSatID = QtWidgets.QLineEdit(SpaceTracePluginDialogBase)
         self.lineEditSatID.setObjectName("lineEditSatID")
         self.verticalLayout.addWidget(self.lineEditSatID)
+        
+        # Поле выбора даты с календарём, по умолчанию установлена текущая системная дата
         self.dateEdit = QtWidgets.QDateEdit(SpaceTracePluginDialogBase)
         self.dateEdit.setCalendarPopup(True)
         self.dateEdit.setObjectName("dateEdit")
+        self.dateEdit.setDate(QtCore.QDate.currentDate())  # Установка текущей даты
         self.verticalLayout.addWidget(self.dateEdit)
+        
+        # Поле для выбора шага в минутах
         self.spinBoxStepMinutes = QtWidgets.QDoubleSpinBox(SpaceTracePluginDialogBase)
         self.spinBoxStepMinutes.setMinimum(0.1)
         self.spinBoxStepMinutes.setMaximum(60.0)
@@ -29,14 +36,28 @@ class Ui_SpaceTracePluginDialogBase(object):
         self.spinBoxStepMinutes.setProperty("value", 0.5)
         self.spinBoxStepMinutes.setObjectName("spinBoxStepMinutes")
         self.verticalLayout.addWidget(self.spinBoxStepMinutes)
+        
+        # Горизонтальный layout для поля ввода пути и кнопки "Browse"
+        self.horizontalLayout = QtWidgets.QHBoxLayout()
+        self.horizontalLayout.setObjectName("horizontalLayout")
+        
+        # Поле ввода пути для сохранения shapefile
         self.lineEditOutputPath = QtWidgets.QLineEdit(SpaceTracePluginDialogBase)
         self.lineEditOutputPath.setObjectName("lineEditOutputPath")
-        self.verticalLayout.addWidget(self.lineEditOutputPath)
+        self.horizontalLayout.addWidget(self.lineEditOutputPath)
         
-        # Исправленный код для создания кнопок
+        # Кнопка для открытия диалога выбора файла (с возможностью указания имени файла)
+        self.pushButtonBrowse = QtWidgets.QPushButton(SpaceTracePluginDialogBase)
+        self.pushButtonBrowse.setObjectName("pushButtonBrowse")
+        self.horizontalLayout.addWidget(self.pushButtonBrowse)
+        
+        # Добавление горизонтального layout в основной вертикальный layout
+        self.verticalLayout.addLayout(self.horizontalLayout)
+        
+        # Создание стандартных кнопок (OK/Cancel)
         self.buttonBox = QtWidgets.QDialogButtonBox(SpaceTracePluginDialogBase)
-        self.buttonBox.setOrientation(QtCore.Qt.Horizontal)  # Ориентация кнопок
-        self.buttonBox.setStandardButtons(QtWidgets.QDialogButtonBox.Cancel | QtWidgets.QDialogButtonBox.Ok)  # Использование QDialogButtonBox из QtWidgets
+        self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
+        self.buttonBox.setStandardButtons(QtWidgets.QDialogButtonBox.Cancel | QtWidgets.QDialogButtonBox.Ok)
         self.buttonBox.setObjectName("buttonBox")
         self.verticalLayout.addWidget(self.buttonBox)
 
@@ -44,10 +65,21 @@ class Ui_SpaceTracePluginDialogBase(object):
         self.buttonBox.accepted.connect(SpaceTracePluginDialogBase.accept)  # type: ignore
         self.buttonBox.rejected.connect(SpaceTracePluginDialogBase.reject)  # type: ignore
         QtCore.QMetaObject.connectSlotsByName(SpaceTracePluginDialogBase)
+        
+        # Подключение сигнала кнопки "Browse" к слоту для открытия диалога выбора файла
+        self.pushButtonBrowse.clicked.connect(self.browseFile)
 
     def retranslateUi(self, SpaceTracePluginDialogBase):
         _translate = QtCore.QCoreApplication.translate
         SpaceTracePluginDialogBase.setWindowTitle(_translate("SpaceTracePluginDialogBase", "Space trace"))
         self.lineEditSatID.setPlaceholderText(_translate("SpaceTracePluginDialogBase", "Enter satellite's NORAD ID"))
         self.lineEditOutputPath.setPlaceholderText(_translate("SpaceTracePluginDialogBase", "Specify the path to save the shapefile."))
-
+        self.pushButtonBrowse.setText(_translate("SpaceTracePluginDialogBase", "Browse"))
+    
+    # Слот для открытия диалога выбора файла с возможностью указания имени файла
+    def browseFile(self):
+        # Открываем диалог сохранения файла, который позволяет выбрать папку и указать имя файла.
+        # Фильтр "Shapefiles (*.shp)" помогает сразу задать нужное расширение.
+        file, _ = QtWidgets.QFileDialog.getSaveFileName(None, "Select File", "", "Shapefiles (*.shp);;All Files (*)")
+        if file:
+            self.lineEditOutputPath.setText(file)

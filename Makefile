@@ -38,13 +38,15 @@ LOCALES =
 # translation
 SOURCES = \
 	__init__.py \
-	Space_trace.py Space_trace_dialog.py
+	Space_trace.py \
+	orbital_logic.py \
+	Space_trace_dialog.py
 
-PLUGINNAME = Space_trace
+PLUGINNAME = Space-trace
 
 PY_FILES = \
 	__init__.py \
-	Space_trace.py Space_trace_dialog.py
+	Space_trace.py Space_trace_dialog.py Space_trace_dialog_class.py \
 
 UI_FILES = Space_trace_dialog_base.ui
 
@@ -129,7 +131,6 @@ deploy: compile doc transcompile
 	cp -vfr $(HELP) $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME)/help
 	# Copy extra directories if any
 	(foreach EXTRA_DIR,(EXTRA_DIRS), cp -R (EXTRA_DIR) (HOME)/(QGISDIR)/python/plugins/(PLUGINNAME)/;)
-
 
 # The dclean target removes compiled python files from plugin directory
 # also deletes any .git entry
