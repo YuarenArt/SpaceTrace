@@ -1,42 +1,114 @@
-<html>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Space Trace Plugin for QGIS</title>
+</head>
 <body>
-<h3>Plugin Builder Results</h3>
-
-Congratulations! You just built a plugin for QGIS!<br/><br />
-
-<div id='help' style='font-size:.9em;'>
-Your plugin <b>SpaceTracePlugin</b> was created in:<br>
-&nbsp;&nbsp;<b>C:/Users/HP/Desktop/учеба/вкр/код\space_trace</b>
-<p>
-Your QGIS plugin directory is located at:<br>
-&nbsp;&nbsp;<b>C:/Users/HP/AppData/Roaming/QGIS/QGIS3/profiles/default/python/plugins</b>
-<p>
-<h3>What's Next</h3>
-<ol>
-    <li>If resources.py is not present in your plugin directory, compile the resources file using pyrcc5 (simply use <b>pb_tool</b> or <b>make</b> if you have automake)
-    <li>Optionally, test the generated sources using <b>make test</b> (or run tests from your IDE)
-    <li>Copy the entire directory containing your new plugin to the QGIS plugin directory (see Notes below)
-    <li>Test the plugin by enabling it in the QGIS plugin manager
-    <li>Customize it by editing the implementation file <b>Space_trace.py</b>
-    <li>Create your own custom icon, replacing the default <b>icon.png</b>
-    <li>Modify your user interface by opening <b>Space_trace_dialog_base.ui</b> in Qt Designer
-</ol>
-Notes:
-<ul>
-    <li>You can use <b>pb_tool</b> to compile, deploy, and manage your plugin. Tweak the <i>pb_tool.cfg</i> file included with your plugin as you add files. Install <b>pb_tool</b> using 
-        <i>pip</i> or <i>easy_install</i>. See <b>http://loc8.cc/pb_tool</b> for more information.
-    <li>You can also use the <b>Makefile</b> to compile and deploy when you
-        make changes. This requires GNU make (gmake). The Makefile is ready to use, however you 
-        will have to edit it to add addional Python source files, dialogs, and translations.
-</ul>
-</div>
-<div style='font-size:.9em;'>
-<p>
-For information on writing PyQGIS code, see <b>http://loc8.cc/pyqgis_resources</b> for a list of resources.
-</p>
-</div>
-<p>
-&copy;2011-2019 GeoApt LLC - geoapt.com 
-</p>
+    <h1>Space Trace Plugin for QGIS</h1>
+    
+    <h2>English Version</h2>
+    
+    <h3>Description</h3>
+    <p>This plugin draws the spacecraft's flight path over the Earth's surface.</p>
+    
+    <h3>Dependencies</h3>
+    <p>To use this plugin, the following Python libraries are required:</p>
+    <ul>
+        <li>pyorbital</li>
+        <li>spacetrack</li>
+        <li>shapefile</li>
+    </ul>
+    
+    <h3>Installation of Dependencies</h3>
+    <p>Open OSGeo4W Shell and run the following commands:</p>
+    <pre>
+python3 -m pip install pyorbital -U --user
+python3 -m pip install spacetrack -U --user
+python3 -m pip install shapefile -U --user
+    </pre>
+    
+    <h3>Installation of the Plugin</h3>
+    <ol>
+        <li>Copy the plugin folder to the QGIS plugins directory</li>
+        <li>Open QGIS.</li>
+        <li>Go to Plugins</li>
+    </ol>
+    
+    <h3>Usage</h3>
+    <ol>
+        <li>After installation, the plugin will appear in the <b>Vector</b> menu.</li>
+        <li>Click on <b>Draw flight path lines</b> to open the dialog.</li>
+        <li>In the dialog:
+            <ul>
+                <li>Enter the satellite's NORAD ID.</li>
+                <li>Select the date for which the path is to be drawn.</li>
+                <li>Set the calculation step in minutes.</li>
+                <li>(Optional) Specify the path to save the shapefile.</li>
+                <li>Check <b>Add created layer to project</b> to load the layer into QGIS.</li>
+            </ul>
+        </li>
+        <li>Click <b>OK</b> to generate the orbital path.</li>
+    </ol>
+    
+    <h3>Notes</h3>
+    <ul>
+        <li>If the shapefile path is left empty, the plugin will create temporary layers in memory.</li>
+        <li>The <b>Add created layer to project</b> checkbox automatically adds the created layers to the QGIS project.</li>
+    </ul>
+    
+    <hr>
+    
+    <h2>Русская версия</h2>
+    
+    <h3>Описание</h3>
+    <p>Этот плагин отображает траекторию полёта космического аппарата над поверхностью Земли.</p>
+    
+    <h3>Зависимости</h3>
+    <p>Для работы плагина необходимо установить следующие Python-библиотеки:</p>
+    <ul>
+        <li>pyorbital</li>
+        <li>spacetrack</li>
+        <li>shapefile</li>
+    </ul>
+    
+    <h3>Установка зависимостей</h3>
+    <p>Откройте OSGeo4W Shell и выполните следующие команды:</p>
+    <pre>
+python3 -m pip install pyorbital -U --user
+python3 -m pip install spacetrack -U --user
+python3 -m pip install shapefile -U --user
+    </pre>
+    
+    <h3>Установка плагина</h3>
+    <ol>
+        <li>Откройте QGIS.</li>
+        <li>Перейдите в меню <b>Плагины > Управление и установка плагинов</b>.</li>
+        <li>Найдите "Space Trace" и установите его.</li>
+    </ol>
+    <p>Альтернативно, вы можете вручную скопировать папку плагина в директорию плагинов QGIS.</p>
+    
+    <h3>Использование</h3>
+    <ol>
+        <li>После установки плагин появится в меню <b>Вектор</b>.</li>
+        <li>Нажмите на <b>Draw flight path lines</b> (нарисовать линии траектории полёта), чтобы открыть диалоговое окно.</li>
+        <li>В диалоговом окне:
+            <ul>
+                <li>Введите NORAD ID спутника.</li>
+                <li>Выберите дату, для которой строится траектория.</li>
+                <li>Установите шаг расчёта в минутах.</li>
+                <li>(Опционально) Укажите путь для сохранения shapefile.</li>
+                <li>Установите флажок <b>Добавить созданный слой в проект</b>, чтобы загрузить слой в QGIS.</li>
+            </ul>
+        </li>
+        <li>Нажмите <b>OK</b> для генерации траектории орбиты.</li>
+    </ol>
+    
+    <h3>Примечания</h3>
+    <ul>
+        <li>Если путь к shapefile оставить пустым, плагин создаст временные слои в памяти.</li>
+        <li>Флажок <b>Добавить созданный слой в проект</b> автоматически добавляет созданные слои в проект QGIS.</li>
+    </ul>
 </body>
 </html>
