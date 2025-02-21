@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 # Form implementation generated from reading ui file 'Space_trace_dialog_base.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.11
@@ -46,13 +45,20 @@ class Ui_SpaceTracePluginDialogBase(object):
         self.lineEditOutputPath.setObjectName("lineEditOutputPath")
         self.horizontalLayout.addWidget(self.lineEditOutputPath)
         
-        # Кнопка для открытия диалога выбора файла (с возможностью указания имени файла)
+        # Кнопка для открытия диалога выбора файла
+        # Текст кнопки содержит подсказку: оставьте поле пустым для создания временного слоя
         self.pushButtonBrowse = QtWidgets.QPushButton(SpaceTracePluginDialogBase)
         self.pushButtonBrowse.setObjectName("pushButtonBrowse")
         self.horizontalLayout.addWidget(self.pushButtonBrowse)
         
         # Добавление горизонтального layout в основной вертикальный layout
         self.verticalLayout.addLayout(self.horizontalLayout)
+        
+        # Чекбокс для автоматической загрузки созданного слоя в проект
+        self.checkBoxAddLayer = QtWidgets.QCheckBox(SpaceTracePluginDialogBase)
+        self.checkBoxAddLayer.setObjectName("checkBoxAddLayer")
+        self.checkBoxAddLayer.setChecked(True)
+        self.verticalLayout.addWidget(self.checkBoxAddLayer)
         
         # Создание стандартных кнопок (OK/Cancel)
         self.buttonBox = QtWidgets.QDialogButtonBox(SpaceTracePluginDialogBase)
@@ -74,12 +80,11 @@ class Ui_SpaceTracePluginDialogBase(object):
         SpaceTracePluginDialogBase.setWindowTitle(_translate("SpaceTracePluginDialogBase", "Space trace"))
         self.lineEditSatID.setPlaceholderText(_translate("SpaceTracePluginDialogBase", "Enter satellite's NORAD ID"))
         self.lineEditOutputPath.setPlaceholderText(_translate("SpaceTracePluginDialogBase", "Specify the path to save the shapefile."))
-        self.pushButtonBrowse.setText(_translate("SpaceTracePluginDialogBase", "Browse"))
+        self.pushButtonBrowse.setText(_translate("SpaceTracePluginDialogBase", "Browse (оставьте пустым для временного слоя)"))
+        self.checkBoxAddLayer.setText(_translate("SpaceTracePluginDialogBase", "Добавить созданный слой в проект"))
     
     # Слот для открытия диалога выбора файла с возможностью указания имени файла
     def browseFile(self):
-        # Открываем диалог сохранения файла, который позволяет выбрать папку и указать имя файла.
-        # Фильтр "Shapefiles (*.shp)" помогает сразу задать нужное расширение.
         file, _ = QtWidgets.QFileDialog.getSaveFileName(None, "Select File", "", "Shapefiles (*.shp);;All Files (*)")
         if file:
             self.lineEditOutputPath.setText(file)
