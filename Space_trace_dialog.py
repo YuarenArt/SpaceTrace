@@ -15,3 +15,9 @@ class SpaceTracePluginDialog(QtWidgets.QDialog, Ui_SpaceTracePluginDialogBase):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setupUi(self)
+        
+    def on_pushButtonExecute_clicked(self):
+        self.accept()
+
+    def on_pushButtonClose_clicked(self):
+        self.reject()
