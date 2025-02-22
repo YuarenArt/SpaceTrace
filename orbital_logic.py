@@ -27,12 +27,8 @@ from pyorbital import astronomy
 from qgis.core import QgsVectorLayer, QgsFeature, QgsGeometry, QgsPointXY, QgsFields, QgsField
 from PyQt5.QtCore import QVariant
 
-# User credentials (recommended to move these to a settings file in the future)
-USERNAME = '****'
-PASSWORD = '****'
 
-
-def get_spacetrack_tle(sat_id, start_date, end_date, latest=False):
+def get_spacetrack_tle(sat_id, start_date, end_date, username, password, latest=False):
     """
     Retrieve TLE (Two-Line Element) data for a given satellite.
 
@@ -40,9 +36,11 @@ def get_spacetrack_tle(sat_id, start_date, end_date, latest=False):
     :param start_date: Start date for TLE retrieval.
     :param end_date: End date for TLE retrieval.
     :param latest: If True, retrieve the latest available TLE.
+    :param username: SpaceTrack account login (email).
+    :param password: SpaceTrack account password.
     :return: A tuple (tle_1, tle_2, orb_incl).
     """
-    st = SpaceTrackClient(identity=USERNAME, password=PASSWORD)
+    st = SpaceTrackClient(identity=username, password=password)
     if not latest:
         daterange = op.inclusive_range(start_date, end_date)
         data = st.tle(norad_cat_id=sat_id, orderby='epoch desc', limit=1, format='tle', epoch=daterange)
@@ -56,7 +54,7 @@ def get_spacetrack_tle(sat_id, start_date, end_date, latest=False):
     return tle_1, tle_2, orb_incl
 
 
-def create_orbital_track_shapefile_for_day(sat_id, track_day, step_minutes, output_shapefile):
+def create_orbital_track_shapefile_for_day(sat_id, track_day, step_minutes, output_shapefile, username, password):
     """
     Create a point shapefile representing the orbital track for a given day.
 
@@ -64,12 +62,14 @@ def create_orbital_track_shapefile_for_day(sat_id, track_day, step_minutes, outp
     :param track_day: Date for which the orbital track is computed.
     :param step_minutes: Time step (in minutes) for computing satellite positions.
     :param output_shapefile: Output filename for the point shapefile.
+    :param username: SpaceTrack account login.
+    :param password: SpaceTrack account password.
     """
     if track_day > date.today():
         print('Using the latest TLE data as of UTC {}'.format(datetime.utcnow()))
-        tle_1, tle_2, orb_incl = get_spacetrack_tle(sat_id, None, None, latest=True)
+        tle_1, tle_2, orb_incl = get_spacetrack_tle(sat_id, None, None, latest=True, username=username, password=password)
     else:
-        tle_1, tle_2, orb_incl = get_spacetrack_tle(sat_id, track_day, track_day + timedelta(days=1), latest=False)
+        tle_1, tle_2, orb_incl = get_spacetrack_tle(sat_id, track_day, track_day + timedelta(days=1), latest=False, username=username, password=password)
     if not tle_1 or not tle_2:
         raise Exception('Unable to retrieve TLE for satellite with ID {}'.format(sat_id))
     orb = Orbital("N", line1=tle_1, line2=tle_2)
@@ -171,7 +171,7 @@ def convert_points_shp_to_line(input_shp, output_shp):
     print("Conversion complete. Polyline shapefile created: {}".format(output_shp))
 
 
-def create_persistent_orbital_track(sat_id, track_day, step_minutes, output_shapefile):
+def create_persistent_orbital_track(sat_id, track_day, step_minutes, output_shapefile, username, password):
     """
     Create persistent orbital track shapefiles on disk.
 
@@ -182,13 +182,15 @@ def create_persistent_orbital_track(sat_id, track_day, step_minutes, output_shap
     :param track_day: Date for which the orbital track is computed.
     :param step_minutes: Time step (in minutes) for calculating satellite positions.
     :param output_shapefile: Output filename for the point shapefile.
+    :param username: SpaceTrack account login.
+    :param password: SpaceTrack account password.
     """
-    create_orbital_track_shapefile_for_day(sat_id, track_day, step_minutes, output_shapefile)
+    create_orbital_track_shapefile_for_day(sat_id, track_day, step_minutes, output_shapefile, username, password)
     line_output_path = output_shapefile.replace('.shp', '_line.shp')
     convert_points_shp_to_line(output_shapefile, line_output_path)
 
 
-def create_in_memory_orbital_layers(sat_id, track_day, step_minutes):
+def create_in_memory_orbital_layers(sat_id, track_day, step_minutes, username, password):
     """
     Create temporary in-memory layers representing the orbital track.
 
@@ -198,18 +200,17 @@ def create_in_memory_orbital_layers(sat_id, track_day, step_minutes):
     :param sat_id: Satellite NORAD ID.
     :param track_day: Date for which the orbital track is computed.
     :param step_minutes: Time step (in minutes) for calculating positions.
+    :param username: SpaceTrack account login.
+    :param password: SpaceTrack account password.
     :return: A tuple (point_layer, line_layer) containing the in-memory layers.
     """
-    # Retrieve TLE data based on the track day
     if track_day > date.today():
-        tle_1, tle_2, orb_incl = get_spacetrack_tle(sat_id, None, None, latest=True)
+        tle_1, tle_2, orb_incl = get_spacetrack_tle(sat_id, None, None, latest=True, username=username, password=password)
     else:
-        tle_1, tle_2, orb_incl = get_spacetrack_tle(sat_id, track_day, track_day + timedelta(days=1), latest=False)
+        tle_1, tle_2, orb_incl = get_spacetrack_tle(sat_id, track_day, track_day + timedelta(days=1), latest=False, username=username, password=password)
     if not tle_1 or not tle_2:
         raise Exception("Failed to retrieve TLE for satellite with ID {}".format(sat_id))
-    # Create the orbital model from TLE data
     orb = Orbital("N", line1=tle_1, line2=tle_2)
-    # Create an in-memory point layer with WGS84 coordinate system
     point_layer = QgsVectorLayer("Point?crs=EPSG:4326", "Temporary Orbital Track", "memory")
     provider = point_layer.dataProvider()
     fields = QgsFields()
@@ -234,7 +235,6 @@ def create_in_memory_orbital_layers(sat_id, track_day, step_minutes):
         utc_seconds = int(round((minutes - (utc_hour * 60) - utc_minutes) * 60))
         utc_time = datetime(track_day.year, track_day.month, track_day.day, utc_hour, utc_minutes, utc_seconds)
         utc_string = utc_time.strftime("%Y-%m-%d %H:%M:%S")
-        # Calculate satellite position and parameters
         lon, lat, alt = orb.get_lonlatalt(utc_time)
         orbit_num = orb.get_orbit_number(utc_time, tbus_style=False)
         sun_zenith = astronomy.sun_zenith_angle(utc_time, lon, lat)
@@ -261,7 +261,6 @@ def create_in_memory_orbital_layers(sat_id, track_day, step_minutes):
         minutes += step_minutes
 
     print("Total points created: {}".format(len(features)))
-
     if features:
         provider.addFeatures(features)
         point_layer.updateExtents()
@@ -281,7 +280,6 @@ def create_in_memory_orbital_layers(sat_id, track_day, step_minutes):
                 current_segment.append(pt)
         if current_segment:
             segments.append(current_segment)
-    # Create an in-memory line layer with WGS84 coordinate system
     line_layer = QgsVectorLayer("LineString?crs=EPSG:4326", "Temporary Orbital Track_line", "memory")
     line_provider = line_layer.dataProvider()
     line_provider.addAttributes([QgsField("ID", QVariant.Int)])

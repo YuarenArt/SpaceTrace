@@ -33,9 +33,9 @@ from pyorbital import astronomy
 
 # Initialize Qt resources from file resources.py
 from .resources import *
-# Import the code for the dialog
+# Import the dialog for the plugin
 from .Space_trace_dialog import SpaceTracePluginDialog
-# Import the orbital logic module which encapsulates file creation functions
+# Import the orbital logic module (функции создания слоёв)
 from . import orbital_logic
 
 
@@ -141,10 +141,19 @@ class SpaceTracePlugin:
             step_minutes = self.dlg.spinBoxStepMinutes.value()
             output_path = self.dlg.lineEditOutputPath.text().strip()
             add_layer = self.dlg.checkBoxAddLayer.isChecked()
+            # Retrieve SpaceTrack credentials from the dialog
+            login = self.dlg.lineEditLogin.text().strip()
+            password = self.dlg.lineEditPassword.text().strip()
+            if not login or not password:
+                raise Exception("Please enter your SpaceTrack account login and password.")
 
             if output_path:
-                # Persistent mode: Create shapefiles on disk using orbital_logic functions
-                orbital_logic.create_persistent_orbital_track(sat_id, track_day, step_minutes, output_path)
+                # Persistent mode: Create shapefiles on disk using orbital_logic functions,
+                # passing the provided credentials.
+                orbital_logic.create_persistent_orbital_track(
+                    sat_id, track_day, step_minutes, output_path,
+                    login, password
+                )
                 line_output_path = output_path.replace('.shp', '_line.shp')
                 self.iface.messageBar().pushMessage("Success", "Shapefile created successfully", level=0)
                 if add_layer:
@@ -163,8 +172,11 @@ class SpaceTracePlugin:
                     else:
                         QgsProject.instance().addMapLayer(line_layer)
             else:
-                # Temporary mode: Create in-memory layers using orbital_logic functions
-                point_layer, line_layer = orbital_logic.create_in_memory_orbital_layers(sat_id, track_day, step_minutes)
+                # Temporary mode: Create in-memory layers using orbital_logic functions,
+                # passing the provided credentials.
+                point_layer, line_layer = orbital_logic.create_in_memory_orbital_layers(
+                    sat_id, track_day, step_minutes, login, password
+                )
                 if add_layer:
                     QgsProject.instance().addMapLayer(point_layer)
                     QgsProject.instance().addMapLayer(line_layer)
