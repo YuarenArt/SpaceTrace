@@ -1,4 +1,3 @@
-```markdown
 # Space Trace Plugin for QGIS
 
 ## Description
@@ -13,7 +12,7 @@ To use this plugin, the following Python libraries are required:
 ## Installation of Dependencies
 Open OSGeo4W Shell and run the following commands:
 
-```bash
+```
 python3 -m pip install pyorbital -U --user
 python3 -m pip install spacetrack -U --user
 python3 -m pip install shapefile -U --user
@@ -55,7 +54,7 @@ python3 -m pip install shapefile -U --user
 ## Установка зависимостей
 Откройте OSGeo4W Shell и выполните следующие команды:
 
-```bash
+```
 python3 -m pip install pyorbital -U --user
 python3 -m pip install spacetrack -U --user
 python3 -m pip install shapefile -U --user
@@ -80,4 +79,3 @@ python3 -m pip install shapefile -U --user
 ## Примечания
 - Если путь к shapefile оставить пустым, плагин создаст временные слои в памяти.
 - Флажок **Добавить созданный слой в проект** автоматически добавляет созданные слои в проект QGIS.
-```
