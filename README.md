@@ -15,7 +15,7 @@ Open OSGeo4W Shell and run the following commands:
 ```
 python3 -m pip install pyorbital -U --user
 python3 -m pip install spacetrack -U --user
-python3 -m pip install shapefile -U --user
+python3 -m pip install shp -U --user
 ```
 
 ## Installation of the Plugin
@@ -57,7 +57,7 @@ python3 -m pip install shapefile -U --user
 ```
 python3 -m pip install pyorbital -U --user
 python3 -m pip install spacetrack -U --user
-python3 -m pip install shapefile -U --user
+python3 -m pip install shp -U --user
 ```
 
 ## Установка плагина
