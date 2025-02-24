@@ -18,7 +18,7 @@ Installation of Dependencies
 Open OSGeo4W Shell and run the following commands:
 python3 -m pip install pyorbital -U --user
 python3 -m pip install spacetrack -U --user
-python3 -m pip install shapefile -U --user
+python3 -m pip install pyshp -U --user
 
 Installation of the Plugin
 --------------------------
@@ -63,7 +63,7 @@ Notes
 Откройте OSGeo4W Shell и выполните следующие команды:
 python3 -m pip install pyorbital -U --user
 python3 -m pip install spacetrack -U --user
-python3 -m pip install shapefile -U --user
+python3 -m pip install pyshp -U --user
 
 Установка плагина
 -----------------
