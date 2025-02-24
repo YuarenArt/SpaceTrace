@@ -9,7 +9,7 @@ from .resources import *
 from .Space_trace_dialog import SpaceTracePluginDialog
 
 # Import the refactored orbital logic module
-from . import orbital_logic
+from .src.Logic.orbital_orchestrator import OrbitalOrchestrator
 
 class SpaceTracePlugin:
     """
@@ -114,7 +114,7 @@ class SpaceTracePlugin:
                 raise Exception("Please enter your SpaceTrack account login and password.")
 
             # Initialize the orbital orchestrator with provided data
-            orchestrator = orbital_logic.OrbitalOrchestrator(login, password)
+            orchestrator = OrbitalOrchestrator(login, password)
 
             if output_path:
                 # Persistent mode: create shapefile on disk

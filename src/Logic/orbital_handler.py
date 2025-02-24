@@ -1,67 +1,19 @@
 """
-This module contains the refactored classes for orbital track generation.
-
-Classes:
-- SpacetrackClientWrapper: A subclass that handles SpaceTrack API communication.
-- OrbitalLogicHandler: A subclass that implements the main logic for computing
-  satellite positions, creating shapefiles, and generating in-memory layers.
-- OrbitalOrchestrator: Orchestrates the overall process by combining the
-  client and logic handler.
+This module contains the OrbitalLogicHandler class that implements the core
+logic for orbital track computation and layer creation.
 """
 
-from datetime import datetime, date, timedelta
 import os
+from datetime import datetime
 import shapefile
 import numpy as np
-import spacetrack.operators as op
-from spacetrack import SpaceTrackClient
 from pyorbital.orbital import Orbital
 from pyorbital import astronomy
 
 # QGIS imports for creating in-memory layers
-from qgis.core import QgsVectorLayer, QgsFeature, QgsGeometry, QgsPointXY, QgsFields, QgsField
+from qgis.core import (QgsVectorLayer, QgsFeature, QgsGeometry, QgsPointXY,
+                       QgsFields, QgsField)
 from PyQt5.QtCore import QVariant, QDateTime
-
-class SpacetrackClientWrapper:
-    """
-    Wrapper for SpaceTrack API communication.
-
-    This class encapsulates the logic to retrieve TLE (Two-Line Element) data
-    for a given satellite using SpaceTrackClient.
-    """
-    def __init__(self, username, password):
-        """
-        Initialize the SpaceTrack client with user credentials.
-
-        :param username: SpaceTrack account login (email).
-        :param password: SpaceTrack account password.
-        """
-        self.username = username
-        self.password = password
-        self.client = SpaceTrackClient(identity=username, password=password)
-
-    def get_tle(self, sat_id, track_day=None, latest=False):
-        """
-        Retrieve TLE data for the specified satellite.
-
-        :param sat_id: Satellite NORAD ID.
-        :param track_day: Date for which TLE data is needed. If None or in the future,
-                          the latest TLE data is used.
-        :param latest: Boolean flag to force retrieval of the latest TLE.
-        :return: Tuple (tle_1, tle_2, orb_incl) with TLE lines and orbital inclination.
-        :raises Exception: If TLE data cannot be retrieved.
-        """
-        if latest or (track_day is None or track_day > date.today()):
-            data = self.client.gp(norad_cat_id=sat_id, orderby='epoch desc', limit=1, format='tle')
-        else:
-            daterange = op.inclusive_range(track_day, track_day + timedelta(days=1))
-            data = self.client.gp_history(norad_cat_id=sat_id, orderby='epoch desc', limit=1, format='tle', epoch=daterange)
-        if not data:
-            raise Exception(f'Failed to retrieve TLE for satellite with ID {sat_id}')
-        tle_1 = data[0:69]
-        tle_2 = data[70:139]
-        orb_incl = data[78:86]
-        return tle_1, tle_2, orb_incl
 
 
 class OrbitalLogicHandler:
@@ -71,10 +23,12 @@ class OrbitalLogicHandler:
     Provides methods to create point shapefiles, convert them into polyline shapefiles,
     and generate temporary in-memory QGIS layers.
     """
+
     def __init__(self):
         pass
 
-    def create_point_shapefile_for_day(self, sat_id, track_day, step_minutes, output_shapefile, tle_data):
+    def create_point_shapefile_for_day(self, sat_id, track_day, step_minutes,
+                                       output_shapefile, tle_data):
         """
         Create a point shapefile representing the orbital track for a given day.
 
@@ -88,8 +42,10 @@ class OrbitalLogicHandler:
         tle_1, tle_2, orb_incl = tle_data
         if not tle_1 or not tle_2:
             raise Exception(f'Unable to retrieve valid TLE for satellite with ID {sat_id}')
+
         orb = Orbital("N", line1=tle_1, line2=tle_2)
         writer = shapefile.Writer(output_shapefile, shapefile.POINT)
+
         # Define fields for the shapefile
         writer.field('Point_ID', 'N', 10)
         writer.field('Point_Num', 'N', 10)
@@ -108,18 +64,25 @@ class OrbitalLogicHandler:
             utc_hour = int(minutes // 60)
             utc_minutes = int((minutes - (utc_hour * 60)) // 1)
             utc_seconds = int(round((minutes - (utc_hour * 60) - utc_minutes) * 60))
+
             utc_string = "{:04d}-{:02d}-{:02d} {:02d}:{:02d}:{:02d}".format(
-                track_day.year, track_day.month, track_day.day, utc_hour, utc_minutes, utc_seconds)
-            utc_time = datetime(track_day.year, track_day.month, track_day.day, utc_hour, utc_minutes, utc_seconds)
+                track_day.year, track_day.month, track_day.day,
+                utc_hour, utc_minutes, utc_seconds
+            )
+            utc_time = datetime(track_day.year, track_day.month, track_day.day,
+                                utc_hour, utc_minutes, utc_seconds)
+
             # Compute satellite position and parameters
             lon, lat, alt = orb.get_lonlatalt(utc_time)
             orbit_num = orb.get_orbit_number(utc_time, tbus_style=False)
             sun_zenith = astronomy.sun_zenith_angle(utc_time, lon, lat)
             pos, vel = orb.get_position(utc_time, normalize=False)
-            velocity = np.sqrt(vel[0] ** 2 + vel[1] ** 2 + vel[2] ** 2)
+            velocity = np.sqrt(vel[0]**2 + vel[1]**2 + vel[2]**2)
+
             # Write point and record to shapefile
             writer.point(lon, lat)
-            writer.record(i, i + 1, orbit_num, utc_string, lat, lon, alt, velocity, sun_zenith, orb_incl)
+            writer.record(i, i + 1, orbit_num, utc_string, lat, lon,
+                          alt, velocity, sun_zenith, orb_incl)
             i += 1
             minutes += step_minutes
 
@@ -149,6 +112,7 @@ class OrbitalLogicHandler:
         shapes = reader.shapes()
         if not shapes:
             raise Exception("Input shapefile contains no objects.")
+
         # Extract points from the shapefile
         points = []
         for shp in shapes:
@@ -156,6 +120,7 @@ class OrbitalLogicHandler:
                 points.append(shp.points[0])
             else:
                 raise Exception("Found a record without coordinates in the input shapefile.")
+
         # Split points into segments if a jump in longitude > 180° is detected
         segments = []
         current_segment = [points[0]]
@@ -169,11 +134,13 @@ class OrbitalLogicHandler:
                 current_segment.append(points[i])
         if current_segment:
             segments.append(current_segment)
+
         writer = shapefile.Writer(output_shp, shapeType=shapefile.POLYLINE)
         writer.field("ID", "N", size=10)
         writer.line(segments)
         writer.record(1)
         writer.close()
+
         # Write projection file for WGS84
         prj_filename = os.path.splitext(output_shp)[0] + ".prj"
         with open(prj_filename, "w") as prj_file:
@@ -185,7 +152,8 @@ class OrbitalLogicHandler:
             )
             prj_file.write(wgs84_wkt)
 
-    def create_persistent_orbital_track(self, sat_id, track_day, step_minutes, output_shapefile, tle_data):
+    def create_persistent_orbital_track(self, sat_id, track_day, step_minutes,
+                                        output_shapefile, tle_data):
         """
         High-level method to create persistent orbital track shapefiles on disk.
 
@@ -197,7 +165,9 @@ class OrbitalLogicHandler:
         :param output_shapefile: Output filename for the point shapefile.
         :param tle_data: Tuple containing TLE information.
         """
-        self.create_point_shapefile_for_day(sat_id, track_day, step_minutes, output_shapefile, tle_data)
+        self.create_point_shapefile_for_day(
+            sat_id, track_day, step_minutes, output_shapefile, tle_data
+        )
         line_output_path = output_shapefile.replace('.shp', '_line.shp')
         self.convert_points_shp_to_line(output_shapefile, line_output_path)
         return output_shapefile, line_output_path
@@ -218,7 +188,9 @@ class OrbitalLogicHandler:
         tle_1, tle_2, orb_incl = tle_data
         if not tle_1 or not tle_2:
             raise Exception(f"Failed to retrieve valid TLE for satellite with ID {sat_id}")
+
         orb = Orbital("N", line1=tle_1, line2=tle_2)
+
         # Create the point layer
         point_layer = QgsVectorLayer("Point?crs=EPSG:4326", "Temporary Orbital Track", "memory")
         provider = point_layer.dataProvider()
@@ -243,13 +215,18 @@ class OrbitalLogicHandler:
             utc_hour = int(minutes // 60)
             utc_minutes = int((minutes - (utc_hour * 60)) // 1)
             utc_seconds = int(round((minutes - (utc_hour * 60) - utc_minutes) * 60))
-            utc_time = datetime(track_day.year, track_day.month, track_day.day, utc_hour, utc_minutes, utc_seconds)
-            qdt = QDateTime(utc_time.year, utc_time.month, utc_time.day, utc_time.hour, utc_time.minute, utc_time.second)
+
+            utc_time = datetime(track_day.year, track_day.month, track_day.day,
+                                utc_hour, utc_minutes, utc_seconds)
+            qdt = QDateTime(utc_time.year, utc_time.month, utc_time.day,
+                            utc_time.hour, utc_time.minute, utc_time.second)
+
             lon, lat, alt = orb.get_lonlatalt(utc_time)
             orbit_num = orb.get_orbit_number(utc_time, tbus_style=False)
             sun_zenith = astronomy.sun_zenith_angle(utc_time, lon, lat)
             pos, vel = orb.get_position(utc_time, normalize=False)
             velocity = np.sqrt(vel[0] ** 2 + vel[1] ** 2 + vel[2] ** 2)
+
             feat = QgsFeature()
             feat.setFields(fields)
             feat.setAttribute("Point_ID", i)
@@ -261,10 +238,12 @@ class OrbitalLogicHandler:
             feat.setAttribute("Altitude", alt)
             feat.setAttribute("Velocity", velocity)
             feat.setAttribute("Sun_Zenith", sun_zenith)
+
             try:
                 feat.setAttribute("Orbit_Incl", float(orb_incl))
             except Exception:
                 feat.setAttribute("Orbit_Incl", 0.0)
+
             feat.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(lon, lat)))
             features.append(feat)
             i += 1
@@ -275,7 +254,8 @@ class OrbitalLogicHandler:
             point_layer.updateExtents()
 
         # Build polyline geometry from point features
-        points = [[feat.geometry().asPoint().x(), feat.geometry().asPoint().y()] for feat in features]
+        points = [[feat.geometry().asPoint().x(), feat.geometry().asPoint().y()]
+                  for feat in features]
         segments = []
         if points:
             current_segment = [points[0]]
@@ -287,11 +267,13 @@ class OrbitalLogicHandler:
                     current_segment.append(pt)
             if current_segment:
                 segments.append(current_segment)
+
         # Create the line layer
         line_layer = QgsVectorLayer("LineString?crs=EPSG:4326", "Temporary Orbital Track_line", "memory")
         line_provider = line_layer.dataProvider()
         line_provider.addAttributes([QgsField("ID", QVariant.Int)])
         line_layer.updateFields()
+
         line_feat = QgsFeature()
         if len(segments) == 1:
             line_geom = QgsGeometry.fromPolylineXY([QgsPointXY(x, y) for x, y in segments[0]])
@@ -300,58 +282,10 @@ class OrbitalLogicHandler:
             for seg in segments:
                 parts.append([QgsPointXY(x, y) for x, y in seg])
             line_geom = QgsGeometry.fromMultiPolylineXY(parts)
+
         line_feat.setGeometry(line_geom)
         line_feat.setAttributes([1])
         line_provider.addFeatures([line_feat])
         line_layer.updateExtents()
 
         return point_layer, line_layer
-
-
-class OrbitalOrchestrator:
-    """
-    Orchestrates the overall process of retrieving TLE data and generating orbital track layers.
-
-    It combines a SpaceTrack client (SpacetrackClientWrapper) and a logic handler
-    (OrbitalLogicHandler) to produce either persistent shapefiles on disk or
-    temporary in-memory QGIS layers.
-    """
-    def __init__(self, username, password):
-        """
-        Initialize the orchestrator with SpaceTrack credentials.
-
-        :param username: SpaceTrack account login.
-        :param password: SpaceTrack account password.
-        """
-        self.client = SpacetrackClientWrapper(username, password)
-        self.logic_handler = OrbitalLogicHandler()
-
-    def process_persistent_track(self, sat_id, track_day, step_minutes, output_shapefile):
-        """
-        Generate persistent orbital track shapefiles on disk.
-
-        :param sat_id: Satellite NORAD ID.
-        :param track_day: Date for track computation.
-        :param step_minutes: Time step in minutes.
-        :param output_shapefile: Output filename for the point shapefile.
-        :return: Tuple (point_shapefile, line_shapefile) with file paths.
-        """
-        # Determine whether to use the latest TLE based on the track day.
-        use_latest = track_day > date.today()
-        tle_data = self.client.get_tle(sat_id, track_day, latest=use_latest)
-        return self.logic_handler.create_persistent_orbital_track(
-            sat_id, track_day, step_minutes, output_shapefile, tle_data
-        )
-
-    def process_in_memory_track(self, sat_id, track_day, step_minutes):
-        """
-        Generate temporary in-memory QGIS layers representing the orbital track.
-
-        :param sat_id: Satellite NORAD ID.
-        :param track_day: Date for track computation.
-        :param step_minutes: Time step in minutes.
-        :return: Tuple (point_layer, line_layer) of QGIS in-memory layers.
-        """
-        use_latest = track_day > date.today()
-        tle_data = self.client.get_tle(sat_id, track_day, latest=use_latest)
-        return self.logic_handler.create_in_memory_layers(sat_id, track_day, step_minutes, tle_data)
