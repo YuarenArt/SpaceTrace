@@ -20,8 +20,7 @@ from pyorbital import astronomy
 
 # QGIS imports for creating in-memory layers
 from qgis.core import QgsVectorLayer, QgsFeature, QgsGeometry, QgsPointXY, QgsFields, QgsField
-from PyQt5.QtCore import QVariant
-
+from PyQt5.QtCore import QVariant, QDateTime
 
 class SpacetrackClientWrapper:
     """
@@ -53,11 +52,10 @@ class SpacetrackClientWrapper:
         :raises Exception: If TLE data cannot be retrieved.
         """
         if latest or (track_day is None or track_day > date.today()):
-            # Use the latest available TLE data
-            data = self.client.tle_latest(norad_cat_id=sat_id, orderby='epoch desc', limit=1, format='tle')
+            data = self.client.gp(norad_cat_id=sat_id, orderby='epoch desc', limit=1, format='tle')
         else:
             daterange = op.inclusive_range(track_day, track_day + timedelta(days=1))
-            data = self.client.tle(norad_cat_id=sat_id, orderby='epoch desc', limit=1, format='tle', epoch=daterange)
+            data = self.client.gp_history(norad_cat_id=sat_id, orderby='epoch desc', limit=1, format='tle', epoch=daterange)
         if not data:
             raise Exception(f'Failed to retrieve TLE for satellite with ID {sat_id}')
         tle_1 = data[0:69]
@@ -228,7 +226,7 @@ class OrbitalLogicHandler:
         fields.append(QgsField("Point_ID", QVariant.Int))
         fields.append(QgsField("Point_Num", QVariant.Int))
         fields.append(QgsField("Orbit_Num", QVariant.Int))
-        fields.append(QgsField("Date_Time", QVariant.String))
+        fields.append(QgsField("Date_Time", QVariant.DateTime))
         fields.append(QgsField("Latitude", QVariant.Double))
         fields.append(QgsField("Longitude", QVariant.Double))
         fields.append(QgsField("Altitude", QVariant.Double))
@@ -246,7 +244,7 @@ class OrbitalLogicHandler:
             utc_minutes = int((minutes - (utc_hour * 60)) // 1)
             utc_seconds = int(round((minutes - (utc_hour * 60) - utc_minutes) * 60))
             utc_time = datetime(track_day.year, track_day.month, track_day.day, utc_hour, utc_minutes, utc_seconds)
-            utc_string = utc_time.strftime("%Y-%m-%d %H:%M:%S")
+            qdt = QDateTime(utc_time.year, utc_time.month, utc_time.day, utc_time.hour, utc_time.minute, utc_time.second)
             lon, lat, alt = orb.get_lonlatalt(utc_time)
             orbit_num = orb.get_orbit_number(utc_time, tbus_style=False)
             sun_zenith = astronomy.sun_zenith_angle(utc_time, lon, lat)
@@ -257,7 +255,7 @@ class OrbitalLogicHandler:
             feat.setAttribute("Point_ID", i)
             feat.setAttribute("Point_Num", i + 1)
             feat.setAttribute("Orbit_Num", orbit_num)
-            feat.setAttribute("Date_Time", utc_string)
+            feat.setAttribute("Date_Time", qdt)
             feat.setAttribute("Latitude", lat)
             feat.setAttribute("Longitude", lon)
             feat.setAttribute("Altitude", alt)
