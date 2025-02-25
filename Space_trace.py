@@ -112,6 +112,7 @@ class SpaceTracePlugin:
             password = self.dlg.lineEditPassword.text().strip()
             if not login or not password:
                 raise Exception("Please enter your SpaceTrack account login and password.")
+            data_format = self.dlg.comboBoxDataFormat.currentText()
 
             # Initialize the orbital orchestrator with provided data
             orchestrator = OrbitalOrchestrator(login, password)
@@ -119,7 +120,7 @@ class SpaceTracePlugin:
             if output_path:
                 # Persistent mode: create shapefile on disk
                 point_shp, line_shp = orchestrator.process_persistent_track(
-                    sat_id, track_day, step_minutes, output_path
+                    sat_id, track_day, step_minutes, output_path, data_format=data_format
                 )
                 self.iface.messageBar().pushMessage("Success", "Shapefile created successfully", level=0)
                 # Load and add point layer
@@ -139,7 +140,7 @@ class SpaceTracePlugin:
             else:
                 # Temporary layers mode: create in-memory layers
                 point_layer, line_layer = orchestrator.process_in_memory_track(
-                    sat_id, track_day, step_minutes
+                    sat_id, track_day, step_minutes, data_format=data_format
                 )
                 if add_layer:
                     QgsProject.instance().addMapLayer(point_layer)

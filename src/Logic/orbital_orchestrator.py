@@ -1,62 +1,79 @@
 """
-This module contains the OrbitalOrchestrator class that orchestrates the overall
-process of retrieving TLE data and generating orbital track layers.
+orbital_orchestrator.py
+
+This module contains the OrbitalOrchestrator class that orchestrates the process
+of retrieving TLE/OMM data and generating orbital track layers.
 """
 
 from datetime import date
-# Импортируем классы из локальных модулей:
+import os
+import json
+
 from .spacetrack_client import SpacetrackClientWrapper
 from .orbital_handler import OrbitalLogicHandler
 
 class OrbitalOrchestrator:
     """
-    Orchestrates the overall process of retrieving TLE data and generating orbital track layers.
-
-    It combines a SpaceTrack client (SpacetrackClientWrapper) and a logic handler
-    (OrbitalLogicHandler) to produce either persistent shapefiles on disk or
-    temporary in-memory QGIS layers.
+    Orchestrates the process of retrieving TLE/OMM data and generating orbital tracks.
     """
 
     def __init__(self, username, password):
         """
-        Initialize the orchestrator with SpaceTrack credentials.
-
-        :param username: SpaceTrack account login.
-        :param password: SpaceTrack account password.
+        Initialize with SpaceTrack credentials.
+        
+        :param username: SpaceTrack login.
+        :param password: SpaceTrack password.
         """
         self.client = SpacetrackClientWrapper(username, password)
         self.logic_handler = OrbitalLogicHandler()
 
-    def process_persistent_track(self, sat_id, track_day, step_minutes, output_shapefile):
+    def process_persistent_track(self, sat_id, track_day, step_minutes, output_shapefile, data_format='TLE'):
         """
-        Generate persistent orbital track shapefiles on disk.
-
+        Generate persistent orbital track shapefiles.
+        
         :param sat_id: Satellite NORAD ID.
         :param track_day: Date for track computation.
         :param step_minutes: Time step in minutes.
-        :param output_shapefile: Output filename for the point shapefile.
-        :return: Tuple (point_shapefile, line_shapefile) with file paths.
+        :param output_shapefile: Output point shapefile path.
+        :param data_format: 'TLE' or 'OMM'.
+        :return: Tuple (point_shapefile, line_shapefile).
+        :raises ValueError: If data format is invalid.
         """
-        # Determine whether to use the latest TLE based on the track day.
         use_latest = track_day > date.today()
-        tle_data = self.client.get_tle(sat_id, track_day, latest=use_latest)
-
+        if data_format == 'TLE':
+            data = self.client.get_tle(sat_id, track_day, latest=use_latest)
+        elif data_format == 'OMM':
+            data = self.client.get_omm(sat_id, track_day, latest=use_latest)
+            if isinstance(data, str):
+                data = json.loads(data)
+            json_filename = os.path.splitext(output_shapefile)[0] + '.json'
+            self.client.save_omm_json(data, json_filename)
+        else:
+            raise ValueError("Invalid data format. Choose 'TLE' or 'OMM'.")
         return self.logic_handler.create_persistent_orbital_track(
-            sat_id, track_day, step_minutes, output_shapefile, tle_data
+            data, data_format, sat_id, track_day, step_minutes, output_shapefile
         )
 
-    def process_in_memory_track(self, sat_id, track_day, step_minutes):
+    def process_in_memory_track(self, sat_id, track_day, step_minutes, data_format='TLE'):
         """
-        Generate temporary in-memory QGIS layers representing the orbital track.
-
+        Generate temporary in-memory QGIS layers.
+        
         :param sat_id: Satellite NORAD ID.
         :param track_day: Date for track computation.
         :param step_minutes: Time step in minutes.
-        :return: Tuple (point_layer, line_layer) of QGIS in-memory layers.
+        :param data_format: 'TLE' or 'OMM'.
+        :return: Tuple (point_layer, line_layer).
+        :raises ValueError: If data format is invalid.
         """
         use_latest = track_day > date.today()
-        tle_data = self.client.get_tle(sat_id, track_day, latest=use_latest)
-
+        if data_format == 'TLE':
+            data = self.client.get_tle(sat_id, track_day, latest=use_latest)
+        elif data_format == 'OMM':
+            data = self.client.get_omm(sat_id, track_day, latest=use_latest)
+            if isinstance(data, str):
+                data = json.loads(data)
+        else:
+            raise ValueError("Invalid data format. Choose 'TLE' or 'OMM'.")
         return self.logic_handler.create_in_memory_layers(
-            sat_id, track_day, step_minutes, tle_data
+            data, data_format, sat_id, track_day, step_minutes
         )

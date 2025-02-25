@@ -1,18 +1,18 @@
 """
 This module contains the SpacetrackClientWrapper class for SpaceTrack API communication.
+It provides methods to retrieve TLE and OMM data.
 """
 
 from datetime import date, timedelta
 import spacetrack.operators as op
 from spacetrack import SpaceTrackClient
-
+import json
 
 class SpacetrackClientWrapper:
     """
     Wrapper for SpaceTrack API communication.
 
-    This class encapsulates the logic to retrieve TLE (Two-Line Element) data
-    for a given satellite using SpaceTrackClient.
+    This class encapsulates the logic to retrieve satellite data (TLE or OMM) using the SpaceTrack API.
     """
 
     def __init__(self, username, password):
@@ -34,7 +34,7 @@ class SpacetrackClientWrapper:
         :param track_day: Date for which TLE data is needed. If None or in the future,
                           the latest TLE data is used.
         :param latest: Boolean flag to force retrieval of the latest TLE.
-        :return: Tuple (tle_1, tle_2, orb_incl) with TLE lines and orbital inclination.
+        :return: Tuple (tle_1, tle_2, orb_incl) containing the TLE lines and orbital inclination.
         :raises Exception: If TLE data cannot be retrieved.
         """
         if latest or (track_day is None or track_day > date.today()):
@@ -51,3 +51,34 @@ class SpacetrackClientWrapper:
         tle_2 = data[70:139]
         orb_incl = data[78:86]
         return tle_1, tle_2, orb_incl
+
+    def get_omm(self, sat_id, track_day=None, latest=False):
+        """
+        Retrieve OMM data for the specified satellite in JSON format.
+
+        :param sat_id: Satellite NORAD ID.
+        :param track_day: Date for which OMM data is needed. If None or in the future,
+                          the latest OMM data is used.
+        :param latest: Boolean flag to force retrieval of the latest OMM.
+        :return: OMM data as a JSON object.
+        :raises Exception: If OMM data cannot be retrieved.
+        """
+        if latest or (track_day is None or track_day > date.today()):
+            data = self.client.gp(norad_cat_id=sat_id, orderby='epoch desc',
+                                  limit=1, format='json')
+        else:
+            daterange = op.inclusive_range(track_day, track_day + timedelta(days=1))
+            data = self.client.gp_history(norad_cat_id=sat_id, orderby='epoch desc',
+                                          limit=1, format='json', epoch=daterange)
+
+        if not data:
+            raise Exception(f'Failed to retrieve OMM data for satellite {sat_id}')
+
+        return data
+
+    def save_omm_json(self, omm_data, filename):
+        """
+        Saves the OMM data for the specified satellite to a JSON file.
+        """
+        with open(filename, "w") as f:
+            json.dump(omm_data, f, indent=4)
