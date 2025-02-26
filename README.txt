@@ -11,7 +11,7 @@ Dependencies
 To use this plugin, the following Python libraries are required:
 - pyorbital
 - spacetrack
-- shapefile
+- pyshp
 
 Installation of Dependencies
 ----------------------------
@@ -56,7 +56,7 @@ Notes
 Для работы плагина необходимо установить следующие Python-библиотеки:
 - pyorbital
 - spacetrack
-- shapefile
+- pyshp
 
 Установка зависимостей
 ----------------------

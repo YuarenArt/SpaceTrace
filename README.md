@@ -7,7 +7,7 @@ This plugin draws the spacecraft's flight path over the Earth's surface.
 To use this plugin, the following Python libraries are required:
 - pyorbital
 - spacetrack
-- shapefile
+- pyshp
 
 ## Installation of Dependencies
 Open OSGeo4W Shell and run the following commands:
@@ -49,7 +49,7 @@ python3 -m pip install pyshp -U --user
 Для работы плагина необходимо установить следующие Python-библиотеки:
 - pyorbital
 - spacetrack
-- shapefile
+- pyshp
 
 ## Установка зависимостей
 Откройте OSGeo4W Shell и выполните следующие команды:
