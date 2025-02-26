@@ -21,3 +21,6 @@ class SpaceTracePluginDialog(QtWidgets.QDialog, Ui_SpaceTracePluginDialogBase):
 
     def on_pushButtonClose_clicked(self):
         self.reject()
+        
+    def appendLog(self, message):
+        self.textEditLog.append(message)

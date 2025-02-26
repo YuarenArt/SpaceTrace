@@ -3,6 +3,8 @@ from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
 from qgis.core import QgsVectorLayer, QgsProject
 import os.path
+import time
+from datetime import datetime
 
 # Import Qt resources and the dialog for the plugin
 from .resources import *
@@ -83,6 +85,14 @@ class SpaceTracePlugin:
         for action in self.actions:
             self.iface.removePluginVectorMenu(self.tr('&Space trace'), action)
             self.iface.removeToolBarIcon(action)
+            
+    def log_message(self, message):
+        """
+        Log a message with a timestamp.
+        """
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        log_entry = f"[{timestamp}] {message}"
+        self.dlg.appendLog(log_entry)
 
     def run(self):
         """
@@ -95,9 +105,13 @@ class SpaceTracePlugin:
         self.dlg.show()
         # exec_() returns True if the Execute (Accept) button is clicked
         if not self.dlg.exec_():
+            self.log_message("User closed the dialog without executing.")
             return  # User closed the dialog without executing
 
         try:
+            start_time = time.time()
+            self.log_message("Process started.")
+
             # Retrieve and validate user input data
             sat_id_text = self.dlg.lineEditSatID.text().strip()
             if not sat_id_text:
@@ -114,29 +128,37 @@ class SpaceTracePlugin:
                 raise Exception("Please enter your SpaceTrack account login and password.")
             data_format = self.dlg.comboBoxDataFormat.currentText()
 
+            self.log_message(f"Retrieved user input: Sat ID={sat_id}, Track Day={track_day}, Step Minutes={step_minutes}, Output Path={output_path}, Data Format={data_format}")
+
             # Initialize the orbital orchestrator with provided data
             orchestrator = OrbitalOrchestrator(login, password)
+            self.log_message("Orbital orchestrator initialized.")
 
             if output_path:
                 # Persistent mode: create shapefile on disk
                 point_shp, line_shp = orchestrator.process_persistent_track(
                     sat_id, track_day, step_minutes, output_path, data_format=data_format
                 )
+                self.log_message(f"Shapefiles created: Point={point_shp}, Line={line_shp}")
                 self.iface.messageBar().pushMessage("Success", "Shapefile created successfully", level=0)
                 # Load and add point layer
                 point_layer_name = os.path.splitext(os.path.basename(point_shp))[0]
                 point_layer = QgsVectorLayer(point_shp, point_layer_name, "ogr")
                 if not point_layer.isValid():
                     self.iface.messageBar().pushMessage("Error", "Failed to load point layer", level=3)
+                    self.log_message("Failed to load point layer.")
                 else:
                     QgsProject.instance().addMapLayer(point_layer)
+                    self.log_message("Point layer added to the project.")
                 # Load and add line layer
                 line_layer_name = os.path.splitext(os.path.basename(line_shp))[0]
                 line_layer = QgsVectorLayer(line_shp, line_layer_name, "ogr")
                 if not line_layer.isValid():
                     self.iface.messageBar().pushMessage("Error", "Failed to load line layer", level=3)
+                    self.log_message("Failed to load line layer.")
                 else:
                     QgsProject.instance().addMapLayer(line_layer)
+                    self.log_message("Line layer added to the project.")
             else:
                 # Temporary layers mode: create in-memory layers
                 point_layer, line_layer = orchestrator.process_in_memory_track(
@@ -145,6 +167,13 @@ class SpaceTracePlugin:
                 if add_layer:
                     QgsProject.instance().addMapLayer(point_layer)
                     QgsProject.instance().addMapLayer(line_layer)
+                    self.log_message("Temporary layers added to the project.")
                 self.iface.messageBar().pushMessage("Success", "Temporary layers created successfully", level=0)
+
+            end_time = time.time()
+            duration = end_time - start_time
+            self.log_message(f"Process completed in {duration:.2f} seconds.")
+
         except Exception as e:
             self.iface.messageBar().pushMessage("Error", str(e), level=3)
+            self.log_message(f"Error: {str(e)}")
