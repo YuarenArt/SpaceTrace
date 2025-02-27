@@ -132,7 +132,6 @@ class SpaceTracePlugin:
 
             # Initialize the orbital orchestrator with provided data
             orchestrator = OrbitalOrchestrator(login, password)
-            self.log_message("Orbital orchestrator initialized.")
 
             if output_path:
                 # Persistent mode: create shapefile on disk
