@@ -26,101 +26,6 @@ class OrbitalLogicHandler:
     def __init__(self):
         pass
 
-    # ---------------- Helper Functions ----------------
-
-    def julian_date(self, dt):
-        """
-        Convert a datetime object to Julian Date.
-        
-        :param dt: datetime instance.
-        :return: Julian Date (float).
-        """
-        year = dt.year
-        month = dt.month
-        day = dt.day
-        hour = dt.hour
-        minute = dt.minute
-        second = dt.second + dt.microsecond / 1e6
-
-        if month <= 2:
-            year -= 1
-            month += 12
-
-        A = int(year / 100)
-        B = 2 - A + int(A / 4)
-        JD = int(365.25 * (year + 4716)) + int(30.6001 * (month + 1)) + day + B - 1524.5
-        JD += (hour + minute / 60.0 + second / 3600.0) / 24.0
-        return JD
-
-    def gmst_from_jd(self, JD):
-        """
-        Compute the Greenwich Mean Sidereal Time (GMST) in radians from a Julian Date.
-        
-        :param JD: Julian Date.
-        :return: GMST in radians.
-        """
-        T = (JD - 2451545.0) / 36525.0
-        GMST_deg = 280.46061837 + 360.98564736629 * (JD - 2451545.0) + 0.000387933 * T**2 - (T**3) / 38710000.0
-        GMST_deg = GMST_deg % 360.0
-        return np.radians(GMST_deg)
-
-    def get_position_from_omm(self, omm_record, current_time):
-        """
-        Compute the satellite's geodetic position from OMM data at the specified time.
-        
-        :param omm_record: Dictionary containing OMM orbital elements.
-        :param current_time: datetime object for the desired propagation time.
-        :return: Tuple (longitude in degrees, latitude in degrees, altitude in km).
-        :raises ValueError: If required OMM fields are missing or invalid.
-        """
-        epoch_str = omm_record.get("EPOCH")
-        if not epoch_str:
-            raise ValueError("OMM record missing EPOCH field.")
-        try:
-            epoch = datetime.strptime(epoch_str, "%Y-%m-%dT%H:%M:%S.%f")
-        except ValueError:
-            epoch = datetime.strptime(epoch_str, "%Y-%m-%dT%H:%M:%S")
-
-        dt = (current_time - epoch).total_seconds()
-        mean_motion = float(omm_record.get("MEAN_MOTION", 0))
-        eccentricity = float(omm_record.get("ECCENTRICITY", 0))
-        inclination = np.radians(float(omm_record.get("INCLINATION", 0)))
-        raan = np.radians(float(omm_record.get("RA_OF_ASC_NODE", 0)))
-        arg_perigee = np.radians(float(omm_record.get("ARG_OF_PERICENTER", 0)))
-        mean_anomaly = np.radians(float(omm_record.get("MEAN_ANOMALY", 0)))
-
-        n_rad = (mean_motion * 2 * np.pi) / 86400.0
-        M = mean_anomaly + n_rad * dt
-        E = M
-        for _ in range(10):
-            E = M + eccentricity * np.sin(E)
-        f = 2 * np.arctan2(np.sqrt(1 + eccentricity) * np.sin(E / 2),
-                           np.sqrt(1 - eccentricity) * np.cos(E / 2))
-        mu = 398600.4418
-        a = (mu / (n_rad ** 2)) ** (1 / 3) if n_rad != 0 else 0
-        r = a * (1 - eccentricity * np.cos(E))
-
-        arg_sum = arg_perigee + f
-        x_eci = r * (np.cos(raan) * np.cos(arg_sum) - np.sin(raan) * np.sin(arg_sum) * np.cos(inclination))
-        y_eci = r * (np.sin(raan) * np.cos(arg_sum) + np.cos(raan) * np.sin(arg_sum) * np.cos(inclination))
-        z_eci = r * (np.sin(arg_sum) * np.sin(inclination))
-
-        JD = self.julian_date(current_time)
-        GMST = self.gmst_from_jd(JD)
-        x_ecef = x_eci * np.cos(GMST) + y_eci * np.sin(GMST)
-        y_ecef = -x_eci * np.sin(GMST) + y_eci * np.cos(GMST)
-        z_ecef = z_eci
-
-        r_norm = np.sqrt(x_ecef ** 2 + y_ecef ** 2 + z_ecef ** 2)
-        earth_radius = 6371.0
-        altitude = r_norm - earth_radius if r_norm > 0 else 0
-        lat = np.arcsin(z_ecef / r_norm) if r_norm > 0 else 0
-        lon = np.arctan2(y_ecef, x_ecef) if r_norm > 0 else 0
-
-        return np.degrees(lon), np.degrees(lat), altitude
-
-    # ---------------- Common Methods ----------------
-
     def generate_points(self, data, data_format, track_day, step_minutes):
         """
         Generate a list of points (time, lon, lat, alt) based on data format.
@@ -146,15 +51,22 @@ class OrbitalLogicHandler:
                 lon, lat, alt = orb.get_lonlatalt(current_time)
                 points.append((current_time, lon, lat, alt))
                 current_time += timedelta(minutes=step_minutes)
+                
         elif data_format == 'OMM':
             if not isinstance(data, list) or not data:
                 raise ValueError("OMM data must be a non-empty list of records.")
             record = data[0]
-            
+            tle_line1 = record.get("TLE_LINE1")
+            tle_line2 = record.get("TLE_LINE2")
+            if not tle_line1 or not tle_line2:
+                raise ValueError("OMM record missing TLE data.")
+            orb = Orbital("N", line1=tle_line1, line2=tle_line2)
+
             while current_time < end_time:
-                lon, lat, alt = self.get_position_from_omm(record, current_time)
+                lon, lat, alt = orb.get_lonlatalt(current_time)
                 points.append((current_time, lon, lat, alt))
                 current_time += timedelta(minutes=step_minutes)
+                
         else:
             raise ValueError("Data format must be 'TLE' or 'OMM'.")
         return points
