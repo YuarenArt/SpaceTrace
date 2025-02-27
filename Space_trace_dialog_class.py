@@ -81,9 +81,27 @@ class Ui_SpaceTracePluginDialogBase(object):
         self.comboBoxDataFormat.addItems(["TLE", "OMM"])
         self.comboBoxDataFormat.setObjectName("comboBoxDataFormat")
         self.verticalLayoutMain.addWidget(self.comboBoxDataFormat)
-
+        
+        # Add combo box for selecting split type
+        self.comboBoxSplitType = QtWidgets.QComboBox(self.tabMain)
+        self.comboBoxSplitType.addItems(["Solid line", "Split by antimeridian", "Set the number of splits"])
+        self.comboBoxSplitType.setObjectName("comboBoxSplitType")
+        self.verticalLayoutMain.addWidget(self.comboBoxSplitType)
+        
+        # Add spin box for custom split count
+        self.spinBoxSplitCount = QtWidgets.QSpinBox(self.tabMain)
+        self.spinBoxSplitCount.setMinimum(1)
+        self.spinBoxSplitCount.setMaximum(1000)
+        self.spinBoxSplitCount.setValue(1)
+        self.spinBoxSplitCount.setObjectName("spinBoxSplitCount")
+        self.spinBoxSplitCount.setEnabled(False)  # Disabled by default
+        self.verticalLayoutMain.addWidget(self.spinBoxSplitCount)
+        # Connect combo box to enable/disable spin box
+        self.comboBoxSplitType.currentIndexChanged.connect(self.toggleSplitCount)
+        
         # Add the Main tab to the tab widget
         self.tabWidget.addTab(self.tabMain, "")
+    
 
         # ======================
         # Second Tab: Program Log
@@ -143,7 +161,16 @@ class Ui_SpaceTracePluginDialogBase(object):
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tabLog), _translate("SpaceTracePluginDialogBase", "Log"))
         self.pushButtonExecute.setText(_translate("SpaceTracePluginDialogBase", "Execute"))
         self.pushButtonClose.setText(_translate("SpaceTracePluginDialogBase", "Close"))
+        self.comboBoxSplitType.setToolTip(_translate("SpaceTracePluginDialogBase", "Select how to split the orbital track line"))
+        self.spinBoxSplitCount.setToolTip(_translate("SpaceTracePluginDialogBase", "Number of segments for custom splitting"))
 
+    def toggleSplitCount(self):
+        """Enable or disable split count spin box based on selected split type."""
+        if self.comboBoxSplitType.currentText() == "Set the number of splits":
+            self.spinBoxSplitCount.setEnabled(True)
+        else:
+            self.spinBoxSplitCount.setEnabled(False)
+    
     def browseFile(self):
         # Open file dialog for selecting output file path
         file, _ = QtWidgets.QFileDialog.getSaveFileName(None, "Select File", "", "Shapefiles (*.shp);;All Files (*)")

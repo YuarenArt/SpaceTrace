@@ -95,18 +95,13 @@ class SpaceTracePlugin:
         self.dlg.appendLog(log_entry)
 
     def run(self):
-        """
-        Main method to run the plugin.
-        Displays the dialog and, upon confirmation, processes the orbital data.
-        """
         if self.first_start:
             self.first_start = False
             self.dlg = SpaceTracePluginDialog()
         self.dlg.show()
-        # exec_() returns True if the Execute (Accept) button is clicked
         if not self.dlg.exec_():
             self.log_message("User closed the dialog without executing.")
-            return  # User closed the dialog without executing
+            return
 
         try:
             start_time = time.time()
@@ -121,47 +116,55 @@ class SpaceTracePlugin:
             step_minutes = self.dlg.spinBoxStepMinutes.value()
             output_path = self.dlg.lineEditOutputPath.text().strip()
             add_layer = self.dlg.checkBoxAddLayer.isChecked()
-            # Retrieve SpaceTrack login credentials
             login = self.dlg.lineEditLogin.text().strip()
             password = self.dlg.lineEditPassword.text().strip()
             if not login or not password:
                 raise Exception("Please enter your SpaceTrack account login and password.")
             data_format = self.dlg.comboBoxDataFormat.currentText()
 
-            self.log_message(f"Retrieved user input: Sat ID={sat_id}, Track Day={track_day}, Step Minutes={step_minutes}, Output Path={output_path}, Data Format={data_format}")
+            # Get split type and count from UI
+            split_type_text = self.dlg.comboBoxSplitType.currentText()
+            if split_type_text == "Solid line":
+                split_type = 'none'
+            elif split_type_text == "Split by antimeridian":
+                split_type = 'antimeridian'
+            elif split_type_text == "Set the number of splits":
+                split_type = 'custom'
+                split_count = self.dlg.spinBoxSplitCount.value()
+            else:
+                raise ValueError("Invalid split type selected")
+            split_count = split_count if split_type == 'custom' else 0
 
-            # Initialize the orbital orchestrator with provided data
+            self.log_message(f"Retrieved user input: Sat ID={sat_id}, Track Day={track_day}, Step Minutes={step_minutes}, Output Path={output_path}, Data Format={data_format}, Split Type={split_type}, Split Count={split_count}")
+
+            # Initialize the orbital orchestrator
             orchestrator = OrbitalOrchestrator(login, password)
 
             if output_path:
-                # Persistent mode: create shapefile on disk
+                # Persistent mode
                 point_shp, line_shp = orchestrator.process_persistent_track(
-                    sat_id, track_day, step_minutes, output_path, data_format=data_format
+                    sat_id, track_day, step_minutes, output_path, data_format=data_format,
+                    split_type=split_type, split_count=split_count
                 )
                 self.log_message(f"Shapefiles created: Point={point_shp}, Line={line_shp}")
                 self.iface.messageBar().pushMessage("Success", "Shapefile created successfully", level=0)
-                # Load and add point layer
                 point_layer_name = os.path.splitext(os.path.basename(point_shp))[0]
                 point_layer = QgsVectorLayer(point_shp, point_layer_name, "ogr")
                 if not point_layer.isValid():
                     self.iface.messageBar().pushMessage("Error", "Failed to load point layer", level=3)
-                    self.log_message("Failed to load point layer.")
                 else:
                     QgsProject.instance().addMapLayer(point_layer)
-                    self.log_message("Point layer added to the project.")
-                # Load and add line layer
                 line_layer_name = os.path.splitext(os.path.basename(line_shp))[0]
                 line_layer = QgsVectorLayer(line_shp, line_layer_name, "ogr")
                 if not line_layer.isValid():
                     self.iface.messageBar().pushMessage("Error", "Failed to load line layer", level=3)
-                    self.log_message("Failed to load line layer.")
                 else:
                     QgsProject.instance().addMapLayer(line_layer)
-                    self.log_message("Line layer added to the project.")
             else:
-                # Temporary layers mode: create in-memory layers
+                # Temporary layers mode
                 point_layer, line_layer = orchestrator.process_in_memory_track(
-                    sat_id, track_day, step_minutes, data_format=data_format
+                    sat_id, track_day, step_minutes, data_format=data_format,
+                    split_type=split_type, split_count=split_count
                 )
                 if add_layer:
                     QgsProject.instance().addMapLayer(point_layer)
