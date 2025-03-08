@@ -30,9 +30,25 @@ class OrbitalLogicHandler:
         """
         Generates line geometries based on a list of points and the type of split
         """
+        if not points:
+            raise ValueError("Points list is empty.")
+        
         if split_type == 'none':
-            # One solid line
-            return [QgsGeometry.fromPolylineXY([QgsPointXY(lon, lat) for lon, lat in points])]
+            segments = []
+            current_segment = [points[0]]
+            for pt in points[1:]:
+                prev_lon = current_segment[-1][0]
+                curr_lon = pt[0]
+                if abs(curr_lon - prev_lon) > 180:
+                    segments.append(current_segment)
+                    current_segment = [pt]
+                else:
+                    current_segment.append(pt)
+            if current_segment:
+                segments.append(current_segment)
+            
+            return [QgsGeometry.fromPolylineXY([QgsPointXY(lon, lat) for lon, lat in seg]) for seg in segments]
+        
         elif split_type == 'antimeridian':
             segments = []
             current_segment = [points[0]]
@@ -46,15 +62,20 @@ class OrbitalLogicHandler:
                     current_segment.append(points[i])
             if current_segment:
                 segments.append(current_segment)
+            
             return [QgsGeometry.fromPolylineXY([QgsPointXY(lon, lat) for lon, lat in seg]) for seg in segments]
+        
         elif split_type == 'custom':
             if split_count < 1:
                 raise ValueError("Split count must be at least 1")
             segment_size = max(1, len(points) // split_count)
             segments = [points[i:i + segment_size] for i in range(0, len(points), segment_size) if points[i:i + segment_size]]
+            
             return [QgsGeometry.fromPolylineXY([QgsPointXY(lon, lat) for lon, lat in seg]) for seg in segments]
+        
         else:
             raise ValueError("Invalid split type")
+
 
     def generate_points(self, data, data_format, track_day, step_minutes):
         """
@@ -214,7 +235,25 @@ class OrbitalLogicHandler:
         points = [shp.points[0] for shp in shapes if shp.points]
         
         if split_type == 'none':
-            segments = [points]
+            segments = []
+            current_segment = [points[0]]
+            for pt in points[1:]:
+                prev_lon = current_segment[-1][0]
+                curr_lon = pt[0]
+                if abs(curr_lon - prev_lon) > 180:
+                    segments.append(current_segment)
+                    current_segment = [pt]
+                else:
+                    current_segment.append(pt)
+            if current_segment:
+                segments.append(current_segment)
+            
+            writer = shapefile.Writer(output_shp, shapeType=shapefile.POLYLINE)
+            writer.field("ID", "N", size=10)
+            writer.line(segments)
+            writer.record(1)
+            writer.close()
+            
         elif split_type == 'antimeridian':
             segments = []
             current_segment = [points[0]]
@@ -228,20 +267,28 @@ class OrbitalLogicHandler:
                     current_segment.append(points[i])
             if current_segment:
                 segments.append(current_segment)
+            
+            writer = shapefile.Writer(output_shp, shapeType=shapefile.POLYLINE)
+            writer.field("ID", "N", size=10)
+            for i, seg in enumerate(segments):
+                writer.line([seg])
+                writer.record(i + 1)
+            writer.close()
         elif split_type == 'custom':
             if split_count < 1:
                 raise ValueError("Split count must be at least 1")
             segment_size = max(1, len(points) // split_count)
             segments = [points[i:i + segment_size] for i in range(0, len(points), segment_size) if points[i:i + segment_size]]
+            
+            writer = shapefile.Writer(output_shp, shapeType=shapefile.POLYLINE)
+            writer.field("ID", "N", size=10)
+            for i, seg in enumerate(segments):
+                writer.line([seg])
+                writer.record(i + 1)
+            writer.close()
+            
         else:
             raise ValueError("Invalid split type")
-
-        writer = shapefile.Writer(output_shp, shapeType=shapefile.POLYLINE)
-        writer.field("ID", "N", size=10)
-        for i, seg in enumerate(segments):
-            writer.line([seg])
-            writer.record(i + 1)
-        writer.close()
 
         prj_filename = os.path.splitext(output_shp)[0] + ".prj"
         with open(prj_filename, "w") as prj_file:

@@ -4,9 +4,9 @@
 
 [general]
 name=Space trace
-qgisMinimumVersion=3.0
+qgisMinimumVersion=3.34.0
 description=Draws the spacecraft's flight path over the Earth's surface
-version=0.5
+version=0.51
 author=Yuriy Malyshev
 email=yuaren@yandex.ru
 
@@ -23,7 +23,7 @@ hasProcessingProvider=no
 # changelog=
 
 # Tags are comma separated with spaces allowed
-tags=python
+tags=python space orbit trace earth 
 
 homepage=http://homepage
 category=Vector
