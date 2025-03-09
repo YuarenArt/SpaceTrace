@@ -25,15 +25,21 @@ class OrbitalLogicHandler:
 
     def __init__(self):
         pass
-    
-    def generate_line_geometries(self, points, split_type, split_count=0):
+
+    def get_line_segments(self, points, split_type, split_count=0):
         """
-        Generates line geometries based on a list of points and the type of split
+        Generate line segments from a list of points based on the split type.
+
+        :param points: List of (lon, lat) tuples.
+        :param split_type: 'none', 'antimeridian', 'custom' - type of track splitting.
+        :param split_count: Number of segments for 'custom' splitting.
+        :return: List of segments, each segment is a list of (lon, lat) tuples.
+        :raises ValueError: If split_type is invalid or split_count is less than 1 for 'custom'.
         """
         if not points:
             raise ValueError("Points list is empty.")
-        
-        if split_type == 'none':
+
+        if split_type in ['none', 'antimeridian']:
             segments = []
             current_segment = [points[0]]
             for pt in points[1:]:
@@ -46,36 +52,71 @@ class OrbitalLogicHandler:
                     current_segment.append(pt)
             if current_segment:
                 segments.append(current_segment)
-            
-            return [QgsGeometry.fromPolylineXY([QgsPointXY(lon, lat) for lon, lat in seg]) for seg in segments]
-        
-        elif split_type == 'antimeridian':
-            segments = []
-            current_segment = [points[0]]
-            for i in range(1, len(points)):
-                prev_lon = current_segment[-1][0]
-                curr_lon = points[i][0]
-                if abs(curr_lon - prev_lon) > 180:
-                    segments.append(current_segment)
-                    current_segment = [points[i]]
-                else:
-                    current_segment.append(points[i])
-            if current_segment:
-                segments.append(current_segment)
-            
-            return [QgsGeometry.fromPolylineXY([QgsPointXY(lon, lat) for lon, lat in seg]) for seg in segments]
-        
+            return segments
         elif split_type == 'custom':
             if split_count < 1:
                 raise ValueError("Split count must be at least 1")
             segment_size = max(1, len(points) // split_count)
             segments = [points[i:i + segment_size] for i in range(0, len(points), segment_size) if points[i:i + segment_size]]
-            
-            return [QgsGeometry.fromPolylineXY([QgsPointXY(lon, lat) for lon, lat in seg]) for seg in segments]
-        
+            return segments
         else:
             raise ValueError("Invalid split type")
 
+    def generate_line_geometries(self, points, split_type, split_count=0):
+        """
+        Generates line geometries based on a list of points and the type of split.
+
+        :param points: List of (lon, lat) tuples.
+        :param split_type: 'none', 'antimeridian', 'custom' - type of track splitting.
+        :param split_count: Number of segments for 'custom' splitting.
+        :return: List of QgsGeometry objects representing line segments.
+        :raises ValueError: If points list is empty or split_type is invalid.
+        """
+        segments = self.get_line_segments(points, split_type, split_count)
+        return [QgsGeometry.fromPolylineXY([QgsPointXY(lon, lat) for lon, lat in seg]) for seg in segments]
+
+    def convert_points_shp_to_line(self, input_shp, output_shp, split_type='none', split_count=0):
+        """
+        Convert a point shapefile to a polyline shapefile.
+
+        :param input_shp: Input point shapefile path.
+        :param output_shp: Output polyline shapefile path.
+        :param split_type: 'none', 'antimeridian', 'custom' - type of track splitting.
+        :param split_count: Number of segments for 'custom' splitting.
+        :raises ValueError: If input shapefile is empty or split_type is invalid.
+        """
+        reader = shapefile.Reader(input_shp)
+        shapes = reader.shapes()
+        if not shapes:
+            raise ValueError("Input shapefile contains no objects.")
+
+        points = [shp.points[0] for shp in shapes if shp.points]
+        segments = self.get_line_segments(points, split_type, split_count)
+
+        writer = shapefile.Writer(output_shp, shapeType=shapefile.POLYLINE)
+        writer.field("ID", "N", size=10)
+
+        if split_type == 'none':
+            # Write all segments as a single multi-part polyline
+            writer.line(segments)
+            writer.record(1)
+        else:  # 'antimeridian' or 'custom'
+            # Write each segment as a separate polyline
+            for i, seg in enumerate(segments):
+                writer.line([seg])
+                writer.record(i + 1)
+        writer.close()
+
+        # Write .prj file for WGS84 projection
+        prj_filename = os.path.splitext(output_shp)[0] + ".prj"
+        with open(prj_filename, "w") as prj_file:
+            wgs84_wkt = (
+                'GEOGCS["WGS 84",DATUM["WGS_1984",'
+                'SPHEROID["WGS 84",6378137,298.257223563]],'
+                'PRIMEM["Greenwich",0],'
+                'UNIT["degree",0.0174532925199433]]'
+            )
+            prj_file.write(wgs84_wkt)
 
     def generate_points(self, data, data_format, track_day, step_minutes):
         """
@@ -217,98 +258,14 @@ class OrbitalLogicHandler:
             line_layer.updateExtents()
         return line_layer
 
-    def convert_points_shp_to_line(self, input_shp, output_shp, split_type='none', split_count=0):
-        """
-        Convert a point shapefile to a polyline shapefile.
-        
-        :param input_shp: Input point shapefile path.
-        :param output_shp: Output polyline shapefile path.
-        :param split_type: 'none', 'antimeridian', 'custom'
-        :param split_count: Number of segments for 'custom'
-        :raises ValueError: If input shapefile is empty or split_type invalid.
-        """
-        reader = shapefile.Reader(input_shp)
-        shapes = reader.shapes()
-        if not shapes:
-            raise ValueError("Input shapefile contains no objects.")
-
-        points = [shp.points[0] for shp in shapes if shp.points]
-        
-        if split_type == 'none':
-            segments = []
-            current_segment = [points[0]]
-            for pt in points[1:]:
-                prev_lon = current_segment[-1][0]
-                curr_lon = pt[0]
-                if abs(curr_lon - prev_lon) > 180:
-                    segments.append(current_segment)
-                    current_segment = [pt]
-                else:
-                    current_segment.append(pt)
-            if current_segment:
-                segments.append(current_segment)
-            
-            writer = shapefile.Writer(output_shp, shapeType=shapefile.POLYLINE)
-            writer.field("ID", "N", size=10)
-            writer.line(segments)
-            writer.record(1)
-            writer.close()
-            
-        elif split_type == 'antimeridian':
-            segments = []
-            current_segment = [points[0]]
-            for i in range(1, len(points)):
-                prev_lon = current_segment[-1][0]
-                curr_lon = points[i][0]
-                if abs(curr_lon - prev_lon) > 180:
-                    segments.append(current_segment)
-                    current_segment = [points[i]]
-                else:
-                    current_segment.append(points[i])
-            if current_segment:
-                segments.append(current_segment)
-            
-            writer = shapefile.Writer(output_shp, shapeType=shapefile.POLYLINE)
-            writer.field("ID", "N", size=10)
-            for i, seg in enumerate(segments):
-                writer.line([seg])
-                writer.record(i + 1)
-            writer.close()
-        elif split_type == 'custom':
-            if split_count < 1:
-                raise ValueError("Split count must be at least 1")
-            segment_size = max(1, len(points) // split_count)
-            segments = [points[i:i + segment_size] for i in range(0, len(points), segment_size) if points[i:i + segment_size]]
-            
-            writer = shapefile.Writer(output_shp, shapeType=shapefile.POLYLINE)
-            writer.field("ID", "N", size=10)
-            for i, seg in enumerate(segments):
-                writer.line([seg])
-                writer.record(i + 1)
-            writer.close()
-            
-        else:
-            raise ValueError("Invalid split type")
-
-        prj_filename = os.path.splitext(output_shp)[0] + ".prj"
-        with open(prj_filename, "w") as prj_file:
-            wgs84_wkt = (
-                'GEOGCS["WGS 84",DATUM["WGS_1984",'
-                'SPHEROID["WGS 84",6378137,298.257223563]],'
-                'PRIMEM["Greenwich",0],'
-                'UNIT["degree",0.0174532925199433]]'
-            )
-            prj_file.write(wgs84_wkt)
-
     # ---------------- Unified High-Level Methods ----------------
 
-    def create_persistent_orbital_track(self, data, data_format, sat_id, track_day, step_minutes, output_shapefile, split_type='none', split_count=0):
+    def create_persistent_orbital_track(self, data, data_format, track_day, step_minutes, output_shapefile, split_type='none', split_count=0):
         """
         Create persistent orbital track shapefiles on disk.
         
         :param data: TLE or OMM data.
         :param data_format: 'TLE' or 'OMM'.
-        :param sat_id: Satellite NORAD ID.
         :param track_day: Date for track computation.
         :param step_minutes: Time step in minutes.
         :param output_shapefile: Output point shapefile path.
@@ -322,13 +279,12 @@ class OrbitalLogicHandler:
         self.convert_points_shp_to_line(output_shapefile, line_output_path, split_type, split_count)
         return output_shapefile, line_output_path
 
-    def create_in_memory_layers(self, data, data_format, sat_id, track_day, step_minutes, split_type='antimeridian', split_count=0):
+    def create_in_memory_layers(self, data, data_format, track_day, step_minutes, split_type='antimeridian', split_count=0):
         """
         Create temporary in-memory QGIS layers.
         
         :param data: TLE or OMM data.
         :param data_format: 'TLE' or 'OMM'.
-        :param sat_id: Satellite NORAD ID.
         :param track_day: Date for track computation.
         :param step_minutes: Time step in minutes.
         :param split_type: 'none', 'antimeridian', 'custom'

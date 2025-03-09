@@ -1,6 +1,4 @@
 """
-orbital_orchestrator.py
-
 This module contains the OrbitalOrchestrator class that orchestrates the process
 of retrieving TLE/OMM data and generating orbital track layers.
 """
@@ -36,7 +34,7 @@ class OrbitalOrchestrator:
         :param step_minutes: Time step in minutes.
         :param output_shapefile: Output point shapefile path.
         :param data_format: 'TLE' or 'OMM'.
-        :param split_type: 'none', 'antimeridian', 'custom' - type of track splitting.
+        :param split_type: 'none', 'antimeridian', or 'custom' - type of track splitting.
         :param split_count: Number of segments for 'custom' splitting.
         :return: Tuple (point_shapefile, line_shapefile).
         :raises ValueError: If data format is invalid.
@@ -53,7 +51,7 @@ class OrbitalOrchestrator:
         else:
             raise ValueError("Invalid data format. Choose 'TLE' or 'OMM'.")
         return self.logic_handler.create_persistent_orbital_track(
-            data, data_format, sat_id, track_day, step_minutes, output_shapefile, split_type, split_count
+            data, data_format, track_day, step_minutes, output_shapefile, split_type, split_count
         )
 
     def process_in_memory_track(self, sat_id, track_day, step_minutes, data_format='TLE', split_type='antimeridian', split_count=0):
@@ -64,7 +62,7 @@ class OrbitalOrchestrator:
         :param track_day: Date for track computation.
         :param step_minutes: Time step in minutes.
         :param data_format: 'TLE' or 'OMM'.
-        :param split_type: 'none', 'antimeridian', 'custom' - type of track splitting.
+        :param split_type: 'none', 'antimeridian', or 'custom' - type of track splitting.
         :param split_count: Number of segments for 'custom' splitting.
         :return: Tuple (point_layer, line_layer).
         :raises ValueError: If data format is invalid.
@@ -79,5 +77,5 @@ class OrbitalOrchestrator:
         else:
             raise ValueError("Invalid data format. Choose 'TLE' or 'OMM'.")
         return self.logic_handler.create_in_memory_layers(
-            data, data_format, sat_id, track_day, step_minutes, split_type, split_count
+            data, data_format, track_day, step_minutes, split_type, split_count
         )
