@@ -39,17 +39,29 @@ class OrbitalLogicHandler:
         if not points:
             raise ValueError("Points list is empty.")
 
-        if split_type in ['none', 'antimeridian']:
+
+        if split_type in ['antimeridian', 'none']:
             segments = []
             current_segment = [points[0]]
-            for pt in points[1:]:
-                prev_lon = current_segment[-1][0]
-                curr_lon = pt[0]
-                if abs(curr_lon - prev_lon) > 180:
-                    segments.append(current_segment)
-                    current_segment = [pt]
+            for i in range(len(points) - 1):
+                p1 = points[i]
+                p2 = points[i + 1]
+                delta_lon = p2[0] - p1[0]
+                if abs(delta_lon) <= 180:
+                    current_segment.append(p2)
                 else:
-                    current_segment.append(pt)
+                    if delta_lon < -180:
+                        t = (180 - p1[0]) / (p2[0] + 360 - p1[0])
+                        lat_interp = p1[1] + t * (p2[1] - p1[1])
+                        current_segment.append((180, lat_interp))
+                        segments.append(current_segment)
+                        current_segment = [(-180, lat_interp), p2]
+                    elif delta_lon > 180:
+                        t = (-180 - p1[0]) / (p2[0] - 360 - p1[0])
+                        lat_interp = p1[1] + t * (p2[1] - p1[1])
+                        current_segment.append((-180, lat_interp))
+                        segments.append(current_segment)
+                        current_segment = [(180, lat_interp), p2]
             if current_segment:
                 segments.append(current_segment)
             return segments
