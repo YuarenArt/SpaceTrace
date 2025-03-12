@@ -25,7 +25,7 @@ class OrbitalOrchestrator:
         self.client = SpacetrackClientWrapper(username, password)
         self.logic_handler = OrbitalLogicHandler()
 
-    def process_persistent_track(self, sat_id, track_day, step_minutes, output_shapefile, data_format='TLE', split_type='none', split_count=0):
+    def process_persistent_track(self, sat_id, track_day, step_minutes, output_path, data_format='TLE', file_format='shp', split_type='none', split_count=0):
         """
         Generate persistent orbital track shapefiles.
         
@@ -40,19 +40,21 @@ class OrbitalOrchestrator:
         :raises ValueError: If data format is invalid.
         """
         use_latest = track_day > date.today()
+        
         if data_format == 'TLE':
             data = self.client.get_tle(sat_id, track_day, latest=use_latest)
         elif data_format == 'OMM':
             data = self.client.get_omm(sat_id, track_day, latest=use_latest)
             if isinstance(data, str):
                 data = json.loads(data)
-            json_filename = os.path.splitext(output_shapefile)[0] + '.json'
+            json_filename = os.path.splitext(output_path)[0] + '.json'
             self.client.save_omm_json(data, json_filename)
         else:
             raise ValueError("Invalid data format. Choose 'TLE' or 'OMM'.")
+        
         return self.logic_handler.create_persistent_orbital_track(
-            data, data_format, track_day, step_minutes, output_shapefile, split_type, split_count
-        )
+        data, data_format, track_day, step_minutes, output_path, file_format, split_type, split_count
+    )
 
     def process_in_memory_track(self, sat_id, track_day, step_minutes, data_format='TLE', split_type='antimeridian', split_count=0):
         """

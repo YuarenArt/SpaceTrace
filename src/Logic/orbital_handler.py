@@ -14,6 +14,8 @@ from qgis.core import (QgsVectorLayer, QgsFeature, QgsGeometry, QgsPointXY,
 from PyQt5.QtCore import QVariant, QDateTime
 from pyorbital.orbital import Orbital
 
+from .file_saver import ShpSaver, GpkgSaver, GeoJsonSaver
+
 
 class OrbitalLogicHandler:
     """
@@ -269,10 +271,19 @@ class OrbitalLogicHandler:
             provider.addFeatures(line_features)
             line_layer.updateExtents()
         return line_layer
+    
+    def _adjust_output_path(self, output_path, file_format):
+        base, ext = os.path.splitext(output_path)
+        if file_format == 'shp':
+            return f"{base}_line.shp"
+        elif file_format == 'geopackage':
+            return output_path  
+        elif file_format == 'geojson':
+            return f"{base}_line.geojson"
 
     # ---------------- Unified High-Level Methods ----------------
 
-    def create_persistent_orbital_track(self, data, data_format, track_day, step_minutes, output_shapefile, split_type='none', split_count=0):
+    def create_persistent_orbital_track(self, data, data_format, track_day, step_minutes, output_path, file_format='shp', split_type='none', split_count=0):
         """
         Create persistent orbital track shapefiles on disk.
         
@@ -286,10 +297,22 @@ class OrbitalLogicHandler:
         :return: Tuple (point_shapefile, line_shapefile).
         """
         points = self.generate_points(data, data_format, track_day, step_minutes)
-        self.create_point_shapefile(points, output_shapefile)
-        line_output_path = output_shapefile.replace('.shp', '_line.shp')
-        self.convert_points_shp_to_line(output_shapefile, line_output_path, split_type, split_count)
-        return output_shapefile, line_output_path
+        geometries = self.generate_line_geometries([(lon, lat) for _, lon, lat, _ in points], split_type, split_count)
+        
+        if file_format == 'shp':
+            saver = ShpSaver()
+        elif file_format == 'geopackage':
+            saver = GpkgSaver()
+        elif file_format == 'geojson':
+            saver = GeoJsonSaver()
+        else:
+            raise ValueError("Unsupported file format")
+        
+        saver.save_points(points, output_path)
+        line_output_path = self._adjust_output_path(output_path, file_format)
+        saver.save_lines(geometries, line_output_path)
+    
+        return output_path, line_output_path
 
     def create_in_memory_layers(self, data, data_format, track_day, step_minutes, split_type='antimeridian', split_count=0):
         """

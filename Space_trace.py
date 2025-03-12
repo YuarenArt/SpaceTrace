@@ -135,31 +135,33 @@ class SpaceTracePlugin:
                 raise ValueError("Invalid split type selected")
             split_count = split_count if split_type == 'custom' else 0
 
-            self.log_message(f"Retrieved user input: Sat ID={sat_id}, Track Day={track_day}, Step Minutes={step_minutes}, Output Path={output_path}, Data Format={data_format}, Split Type={split_type}, Split Count={split_count}")
+            file_format = self.dlg.comboBoxFileFormat.currentText()
+            
+            self.log_message(f"Retrieved user input: Sat ID={sat_id}, Track Day={track_day}, File Format={file_format}, Step Minutes={step_minutes}, Output Path={output_path}, Data Format={data_format}, Split Type={split_type}, Split Count={split_count}")
 
             # Initialize the orbital orchestrator
             orchestrator = OrbitalOrchestrator(login, password)
 
             if output_path:
-                # Persistent mode
-                point_shp, line_shp = orchestrator.process_persistent_track(
+                point_file, line_file = orchestrator.process_persistent_track(
                     sat_id, track_day, step_minutes, output_path, data_format=data_format,
-                    split_type=split_type, split_count=split_count
+                    file_format=file_format, split_type=split_type, split_count=split_count
                 )
-                self.log_message(f"Shapefiles created: Point={point_shp}, Line={line_shp}")
-                self.iface.messageBar().pushMessage("Success", "Shapefile created successfully", level=0)
-                point_layer_name = os.path.splitext(os.path.basename(point_shp))[0]
-                point_layer = QgsVectorLayer(point_shp, point_layer_name, "ogr")
+                self.log_message(f"Files created: Point={point_file}, Line={line_file}")
+                self.iface.messageBar().pushMessage("Success", f"{file_format.capitalize()} created successfully", level=0)
+                point_layer_name = os.path.splitext(os.path.basename(point_file))[0]
+                point_layer = QgsVectorLayer(point_file, point_layer_name, "ogr")
                 if not point_layer.isValid():
                     self.iface.messageBar().pushMessage("Error", "Failed to load point layer", level=3)
                 else:
                     QgsProject.instance().addMapLayer(point_layer)
-                line_layer_name = os.path.splitext(os.path.basename(line_shp))[0]
-                line_layer = QgsVectorLayer(line_shp, line_layer_name, "ogr")
+                line_layer_name = os.path.splitext(os.path.basename(line_file))[0]
+                line_layer = QgsVectorLayer(line_file, line_layer_name, "ogr")
                 if not line_layer.isValid():
                     self.iface.messageBar().pushMessage("Error", "Failed to load line layer", level=3)
                 else:
                     QgsProject.instance().addMapLayer(line_layer)
+
             else:
                 # Temporary layers mode
                 point_layer, line_layer = orchestrator.process_in_memory_track(

@@ -58,6 +58,11 @@ class Ui_SpaceTracePluginDialogBase(object):
         self.spinBoxStepMinutes.setValue(0.5)
         self.spinBoxStepMinutes.setObjectName("spinBoxStepMinutes")
         self.verticalLayoutMain.addWidget(self.spinBoxStepMinutes)
+        
+        self.comboBoxFileFormat = QtWidgets.QComboBox(self.tabMain)
+        self.comboBoxFileFormat.addItems(["shp", "geopackage", "geojson"])
+        self.comboBoxFileFormat.setObjectName("comboBoxFileFormat")
+        self.verticalLayoutMain.addWidget(self.comboBoxFileFormat)
 
         # Create horizontal layout for file path input and Browse button
         self.horizontalLayout = QtWidgets.QHBoxLayout()
@@ -172,8 +177,13 @@ class Ui_SpaceTracePluginDialogBase(object):
             self.spinBoxSplitCount.setEnabled(False)
     
     def browseFile(self):
-        # Open file dialog for selecting output file path
-        file, _ = QtWidgets.QFileDialog.getSaveFileName(None, "Select File", "", "Shapefiles (*.shp);;All Files (*)")
+        file_format = self.comboBoxFileFormat.currentText()
+        if file_format == 'shp':
+            file, _ = QtWidgets.QFileDialog.getSaveFileName(None, "Select File", "", "Shapefiles (*.shp);;All Files (*)")
+        elif file_format == 'geopackage':
+            file, _ = QtWidgets.QFileDialog.getSaveFileName(None, "Select File", "", "GeoPackage (*.gpkg);;All Files (*)")
+        elif file_format == 'geojson':
+            file, _ = QtWidgets.QFileDialog.getSaveFileName(None, "Select File", "", "GeoJSON (*.geojson);;All Files (*)")
         if file:
             self.lineEditOutputPath.setText(file)
 
