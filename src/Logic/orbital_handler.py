@@ -277,7 +277,7 @@ class OrbitalLogicHandler:
         if file_format == 'shp':
             return f"{base}_line.shp"
         elif file_format == 'geopackage':
-            return output_path  
+            return f"{base}_line.gpkg"
         elif file_format == 'geojson':
             return f"{base}_line.geojson"
 
