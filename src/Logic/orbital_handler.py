@@ -89,49 +89,6 @@ class OrbitalLogicHandler:
         segments = self.get_line_segments(points, split_type, split_count)
         return [QgsGeometry.fromPolylineXY([QgsPointXY(lon, lat) for lon, lat in seg]) for seg in segments]
 
-    def convert_points_shp_to_line(self, input_shp, output_shp, split_type='none', split_count=0):
-        """
-        Convert a point shapefile to a polyline shapefile.
-
-        :param input_shp: Input point shapefile path.
-        :param output_shp: Output polyline shapefile path.
-        :param split_type: 'none', 'antimeridian', 'custom' - type of track splitting.
-        :param split_count: Number of segments for 'custom' splitting.
-        :raises ValueError: If input shapefile is empty or split_type is invalid.
-        """
-        reader = shapefile.Reader(input_shp)
-        shapes = reader.shapes()
-        if not shapes:
-            raise ValueError("Input shapefile contains no objects.")
-
-        points = [shp.points[0] for shp in shapes if shp.points]
-        segments = self.get_line_segments(points, split_type, split_count)
-
-        writer = shapefile.Writer(output_shp, shapeType=shapefile.POLYLINE)
-        writer.field("ID", "N", size=10)
-
-        if split_type == 'none':
-            # Write all segments as a single multi-part polyline
-            writer.line(segments)
-            writer.record(1)
-        else:  # 'antimeridian' or 'custom'
-            # Write each segment as a separate polyline
-            for i, seg in enumerate(segments):
-                writer.line([seg])
-                writer.record(i + 1)
-        writer.close()
-
-        # Write .prj file for WGS84 projection
-        prj_filename = os.path.splitext(output_shp)[0] + ".prj"
-        with open(prj_filename, "w") as prj_file:
-            wgs84_wkt = (
-                'GEOGCS["WGS 84",DATUM["WGS_1984",'
-                'SPHEROID["WGS 84",6378137,298.257223563]],'
-                'PRIMEM["Greenwich",0],'
-                'UNIT["degree",0.0174532925199433]]'
-            )
-            prj_file.write(wgs84_wkt)
-
     def generate_points(self, data, data_format, track_day, step_minutes):
         """
         Generate a list of points (time, lon, lat, alt) based on data format.
@@ -176,35 +133,6 @@ class OrbitalLogicHandler:
         else:
             raise ValueError("Data format must be 'TLE' or 'OMM'.")
         return points
-
-    def create_point_shapefile(self, points, output_shapefile):
-        """
-        Create a point shapefile from a list of points.
-        
-        :param points: List of tuples (datetime, lon, lat, alt).
-        :param output_shapefile: Output shapefile path.
-        """
-        writer = shapefile.Writer(output_shapefile, shapefile.POINT)
-        writer.field('Point_ID', 'N', 10)
-        writer.field('Date_Time', 'C', 19)
-        writer.field('Latitude', 'F', 10, 6)
-        writer.field('Longitude', 'F', 11, 6)
-        writer.field('Altitude', 'F', 20, 3)
-
-        for i, (current_time, lon, lat, alt) in enumerate(points):
-            utc_string = current_time.strftime("%Y-%m-%d %H:%M:%S")
-            writer.point(lon, lat)
-            writer.record(i, utc_string, lat, lon, alt)
-
-        prj_filename = output_shapefile.replace('.shp', '.prj')
-        with open(prj_filename, "w") as prj:
-            wgs84_wkt = (
-                'GEOGCS["WGS 84",DATUM["WGS_1984",'
-                'SPHEROID["WGS 84",6378137,298.257223563]],'
-                'PRIMEM["Greenwich",0],'
-                'UNIT["degree",0.0174532925199433]]'
-            )
-            prj.write(wgs84_wkt)
 
     def create_in_memory_point_layer(self, points, layer_name):
         """
