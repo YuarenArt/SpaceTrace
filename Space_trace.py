@@ -122,22 +122,15 @@ class SpaceTracePlugin:
                 raise Exception("Please enter your SpaceTrack account login and password.")
             data_format = self.dlg.comboBoxDataFormat.currentText()
 
-            # Get split type and count from UI
-            split_type_text = self.dlg.comboBoxSplitType.currentText()
-            if split_type_text == "Solid line":
-                split_type = 'none'
-            elif split_type_text == "Split by antimeridian":
-                split_type = 'antimeridian'
-            elif split_type_text == "Set the number of splits":
-                split_type = 'custom'
-                split_count = self.dlg.spinBoxSplitCount.value()
+            if output_path:
+                _, ext = os.path.splitext(output_path)
+                file_format = ext[1:].lower()  # Remove the dot and convert to lowercase
+                if file_format not in ['shp', 'gpkg', 'geojson']:
+                    raise Exception("Unsupported file format. Use .shp, .gpkg, or .geojson.")
             else:
-                raise ValueError("Invalid split type selected")
-            split_count = split_count if split_type == 'custom' else 0
-
-            file_format = self.dlg.comboBoxFileFormat.currentText()
+                file_format = None
             
-            self.log_message(f"Retrieved user input: Sat ID={sat_id}, Track Day={track_day}, File Format={file_format}, Step Minutes={step_minutes}, Output Path={output_path}, Data Format={data_format}, Split Type={split_type}, Split Count={split_count}")
+            self.log_message(f"Retrieved user input: Sat ID={sat_id}, Track Day={track_day}, File Format={file_format}, Step Minutes={step_minutes}, Output Path={output_path}, Data Format={data_format}")
 
             # Initialize the orbital orchestrator
             orchestrator = OrbitalOrchestrator(login, password)
@@ -145,8 +138,9 @@ class SpaceTracePlugin:
             if output_path:
                 point_file, line_file = orchestrator.process_persistent_track(
                     sat_id, track_day, step_minutes, output_path, data_format=data_format,
-                    file_format=file_format, split_type=split_type, split_count=split_count
+                    file_format=file_format
                 )
+                
                 self.log_message(f"Files created: Point={point_file}, Line={line_file}")
                 self.iface.messageBar().pushMessage("Success", f"{file_format.capitalize()} created successfully", level=0)
                 point_layer_name = os.path.splitext(os.path.basename(point_file))[0]
@@ -166,8 +160,7 @@ class SpaceTracePlugin:
                 # Temporary layers mode
                 point_layer, line_layer = orchestrator.process_in_memory_track(
                     sat_id, track_day, step_minutes, data_format=data_format,
-                    split_type=split_type, split_count=split_count
-                )
+                    )
                 if add_layer:
                     QgsProject.instance().addMapLayer(point_layer)
                     QgsProject.instance().addMapLayer(line_layer)

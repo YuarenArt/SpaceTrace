@@ -28,65 +28,48 @@ class OrbitalLogicHandler:
     def __init__(self):
         pass
 
-    def get_line_segments(self, points, split_type, split_count=0):
+    def get_line_segments(self, points):
         """
         Generate line segments from a list of points based on the split type.
 
         :param points: List of (lon, lat) tuples.
-        :param split_type: 'none', 'antimeridian', 'custom' - type of track splitting.
-        :param split_count: Number of segments for 'custom' splitting.
         :return: List of segments, each segment is a list of (lon, lat) tuples.
-        :raises ValueError: If split_type is invalid or split_count is less than 1 for 'custom'.
         """
         if not points:
             raise ValueError("Points list is empty.")
 
+        segments = []
+        current_segment = [points[0]]
+        for i in range(len(points) - 1):
+            p1 = points[i]
+            p2 = points[i + 1]
+            delta_lon = p2[0] - p1[0]
+            if abs(delta_lon) <= 180:
+                current_segment.append(p2)
+            else:
+                if delta_lon < -180:
+                    t = (180 - p1[0]) / (p2[0] + 360 - p1[0])
+                    lat_interp = p1[1] + t * (p2[1] - p1[1])
+                    current_segment.append((180, lat_interp))
+                    segments.append(current_segment)
+                    current_segment = [(-180, lat_interp), p2]
+                elif delta_lon > 180:
+                    t = (-180 - p1[0]) / (p2[0] - 360 - p1[0])
+                    lat_interp = p1[1] + t * (p2[1] - p1[1])
+                    current_segment.append((-180, lat_interp))
+                    segments.append(current_segment)
+                    current_segment = [(180, lat_interp), p2]
+        if current_segment:
+            segments.append(current_segment)
+        return segments                      
 
-        if split_type in ['antimeridian', 'none']:
-            segments = []
-            current_segment = [points[0]]
-            for i in range(len(points) - 1):
-                p1 = points[i]
-                p2 = points[i + 1]
-                delta_lon = p2[0] - p1[0]
-                if abs(delta_lon) <= 180:
-                    current_segment.append(p2)
-                else:
-                    if delta_lon < -180:
-                        t = (180 - p1[0]) / (p2[0] + 360 - p1[0])
-                        lat_interp = p1[1] + t * (p2[1] - p1[1])
-                        current_segment.append((180, lat_interp))
-                        segments.append(current_segment)
-                        current_segment = [(-180, lat_interp), p2]
-                    elif delta_lon > 180:
-                        t = (-180 - p1[0]) / (p2[0] - 360 - p1[0])
-                        lat_interp = p1[1] + t * (p2[1] - p1[1])
-                        current_segment.append((-180, lat_interp))
-                        segments.append(current_segment)
-                        current_segment = [(180, lat_interp), p2]
-            if current_segment:
-                segments.append(current_segment)
-            return segments
-        elif split_type == 'custom':
-            if split_count < 1:
-                raise ValueError("Split count must be at least 1")
-            segment_size = max(1, len(points) // split_count)
-            segments = [points[i:i + segment_size] for i in range(0, len(points), segment_size) if points[i:i + segment_size]]
-            return segments
-        else:
-            raise ValueError("Invalid split type")
-
-    def generate_line_geometries(self, points, split_type, split_count=0):
+    def generate_line_geometries(self, points):
         """
         Generates line geometries based on a list of points and the type of split.
 
         :param points: List of (lon, lat) tuples.
-        :param split_type: 'none', 'antimeridian', 'custom' - type of track splitting.
-        :param split_count: Number of segments for 'custom' splitting.
-        :return: List of QgsGeometry objects representing line segments.
-        :raises ValueError: If points list is empty or split_type is invalid.
         """
-        segments = self.get_line_segments(points, split_type, split_count)
+        segments = self.get_line_segments(points)
         return [QgsGeometry.fromPolylineXY([QgsPointXY(lon, lat) for lon, lat in seg]) for seg in segments]
 
     def generate_points(self, data, data_format, track_day, step_minutes):
@@ -172,7 +155,7 @@ class OrbitalLogicHandler:
             point_layer.updateExtents()
         return point_layer
 
-    def create_line_layer_from_points(self, points, layer_name, split_type='antimeridian', split_count=0):
+    def create_line_layer_from_points(self, points, layer_name):
         """
         Create an in-memory line layer from a list of points.
         
@@ -186,7 +169,7 @@ class OrbitalLogicHandler:
         line_layer.updateFields()
 
         point_coords = [(lon, lat) for _, lon, lat, _ in points]
-        geometries = self.generate_line_geometries(point_coords, split_type, split_count)
+        geometries = self.generate_line_geometries(point_coords)
 
         line_features = []
         for i, geom in enumerate(geometries):
@@ -211,7 +194,7 @@ class OrbitalLogicHandler:
 
     # ---------------- Unified High-Level Methods ----------------
 
-    def create_persistent_orbital_track(self, data, data_format, track_day, step_minutes, output_path, file_format='shp', split_type='none', split_count=0):
+    def create_persistent_orbital_track(self, data, data_format, track_day, step_minutes, output_path, file_format='shp'):
         """
         Create persistent orbital track shapefiles on disk.
         
@@ -220,12 +203,10 @@ class OrbitalLogicHandler:
         :param track_day: Date for track computation.
         :param step_minutes: Time step in minutes.
         :param output_shapefile: Output point shapefile path.
-        :param split_type: 'none', 'antimeridian', 'custom'
-        :param split_count: Number of segments for 'custom'
         :return: Tuple (point_shapefile, line_shapefile).
         """
         points = self.generate_points(data, data_format, track_day, step_minutes)
-        geometries = self.generate_line_geometries([(lon, lat) for _, lon, lat, _ in points], split_type, split_count)
+        geometries = self.generate_line_geometries([(lon, lat) for _, lon, lat, _ in points])
         
         if file_format == 'shp':
             saver = ShpSaver()
@@ -242,7 +223,7 @@ class OrbitalLogicHandler:
     
         return output_path, line_output_path
 
-    def create_in_memory_layers(self, data, data_format, track_day, step_minutes, split_type='antimeridian', split_count=0):
+    def create_in_memory_layers(self, data, data_format, track_day, step_minutes):
         """
         Create temporary in-memory QGIS layers.
         
@@ -250,11 +231,9 @@ class OrbitalLogicHandler:
         :param data_format: 'TLE' or 'OMM'.
         :param track_day: Date for track computation.
         :param step_minutes: Time step in minutes.
-        :param split_type: 'none', 'antimeridian', 'custom'
-        :param split_count: Number of segments for 'custom'
         :return: Tuple (point_layer, line_layer).
         """
         points = self.generate_points(data, data_format, track_day, step_minutes)
         point_layer = self.create_in_memory_point_layer(points, f"Orbital Track {data_format}")
-        line_layer = self.create_line_layer_from_points(points, f"Orbital Track {data_format} Line", split_type, split_count)
+        line_layer = self.create_line_layer_from_points(points, f"Orbital Track {data_format} Line")
         return point_layer, line_layer

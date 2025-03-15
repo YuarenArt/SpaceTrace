@@ -25,7 +25,7 @@ class OrbitalOrchestrator:
         self.client = SpacetrackClientWrapper(username, password)
         self.logic_handler = OrbitalLogicHandler()
 
-    def process_persistent_track(self, sat_id, track_day, step_minutes, output_path, data_format='TLE', file_format='shp', split_type='none', split_count=0):
+    def process_persistent_track(self, sat_id, track_day, step_minutes, output_path, data_format='TLE', file_format='shp'):
         """
         Generate persistent orbital track shapefiles.
         
@@ -34,8 +34,6 @@ class OrbitalOrchestrator:
         :param step_minutes: Time step in minutes.
         :param output_shapefile: Output point shapefile path.
         :param data_format: 'TLE' or 'OMM'.
-        :param split_type: 'none', 'antimeridian', or 'custom' - type of track splitting.
-        :param split_count: Number of segments for 'custom' splitting.
         :return: Tuple (point_shapefile, line_shapefile).
         :raises ValueError: If data format is invalid.
         """
@@ -53,10 +51,9 @@ class OrbitalOrchestrator:
             raise ValueError("Invalid data format. Choose 'TLE' or 'OMM'.")
         
         return self.logic_handler.create_persistent_orbital_track(
-        data, data_format, track_day, step_minutes, output_path, file_format, split_type, split_count
-    )
+        data, data_format, track_day, step_minutes, output_path, file_format)
 
-    def process_in_memory_track(self, sat_id, track_day, step_minutes, data_format='TLE', split_type='antimeridian', split_count=0):
+    def process_in_memory_track(self, sat_id, track_day, step_minutes, data_format='TLE'):
         """
         Generate temporary in-memory QGIS layers.
         
@@ -64,8 +61,6 @@ class OrbitalOrchestrator:
         :param track_day: Date for track computation.
         :param step_minutes: Time step in minutes.
         :param data_format: 'TLE' or 'OMM'.
-        :param split_type: 'none', 'antimeridian', or 'custom' - type of track splitting.
-        :param split_count: Number of segments for 'custom' splitting.
         :return: Tuple (point_layer, line_layer).
         :raises ValueError: If data format is invalid.
         """
@@ -78,6 +73,4 @@ class OrbitalOrchestrator:
                 data = json.loads(data)
         else:
             raise ValueError("Invalid data format. Choose 'TLE' or 'OMM'.")
-        return self.logic_handler.create_in_memory_layers(
-            data, data_format, track_day, step_minutes, split_type, split_count
-        )
+        return self.logic_handler.create_in_memory_layers(data, data_format, track_day, step_minutes)
