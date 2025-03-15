@@ -1,6 +1,6 @@
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
 from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import QAction
+from qgis.PyQt.QtWidgets import QAction, QApplication
 from qgis.core import QgsVectorLayer, QgsProject
 import os.path
 import time
@@ -94,15 +94,14 @@ class SpaceTracePlugin:
         log_entry = f"[{timestamp}] {message}"
         self.dlg.appendLog(log_entry)
 
-    def run(self):
-        if self.first_start:
-            self.first_start = False
-            self.dlg = SpaceTracePluginDialog()
-        self.dlg.show()
-        if not self.dlg.exec_():
-            self.log_message("User closed the dialog without executing.")
-            return
-
+    def execute_logic(self):
+        """
+        Execute the main plugin logic for generating orbital tracks.
+        """
+        
+        self.dlg.switch_to_log_tab()
+        QApplication.processEvents()
+        
         try:
             start_time = time.time()
             self.log_message("Process started.")
@@ -124,7 +123,7 @@ class SpaceTracePlugin:
 
             if output_path:
                 _, ext = os.path.splitext(output_path)
-                file_format = ext[1:].lower()  # Remove the dot and convert to lowercase
+                file_format = ext[1:].lower()  # Remove dot and convert to lowercase
                 if file_format not in ['shp', 'gpkg', 'geojson']:
                     raise Exception("Unsupported file format. Use .shp, .gpkg, or .geojson.")
             else:
@@ -140,7 +139,6 @@ class SpaceTracePlugin:
                     sat_id, track_day, step_minutes, output_path, data_format=data_format,
                     file_format=file_format
                 )
-                
                 self.log_message(f"Files created: Point={point_file}, Line={line_file}")
                 self.iface.messageBar().pushMessage("Success", f"{file_format.capitalize()} created successfully", level=0)
                 point_layer_name = os.path.splitext(os.path.basename(point_file))[0]
@@ -155,12 +153,10 @@ class SpaceTracePlugin:
                     self.iface.messageBar().pushMessage("Error", "Failed to load line layer", level=3)
                 else:
                     QgsProject.instance().addMapLayer(line_layer)
-
             else:
-                # Temporary layers mode
                 point_layer, line_layer = orchestrator.process_in_memory_track(
-                    sat_id, track_day, step_minutes, data_format=data_format,
-                    )
+                    sat_id, track_day, step_minutes, data_format=data_format
+                )
                 if add_layer:
                     QgsProject.instance().addMapLayer(point_layer)
                     QgsProject.instance().addMapLayer(line_layer)
@@ -174,3 +170,15 @@ class SpaceTracePlugin:
         except Exception as e:
             self.iface.messageBar().pushMessage("Error", str(e), level=3)
             self.log_message(f"Error: {str(e)}")
+
+    def run(self):
+        """
+        Launch the plugin and display the dialog.
+        """
+        if self.first_start:
+            self.first_start = False
+            self.dlg = SpaceTracePluginDialog()
+            # Connect buttons to their respective actions
+            self.dlg.pushButtonExecute.clicked.connect(self.execute_logic)
+            self.dlg.pushButtonClose.clicked.connect(self.dlg.close)
+        self.dlg.show()  # Show the dialog as a non-modal window

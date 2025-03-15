@@ -16,11 +16,11 @@ class SpaceTracePluginDialog(QtWidgets.QDialog, Ui_SpaceTracePluginDialogBase):
         super().__init__(parent)
         self.setupUi(self)
         
-    def on_pushButtonExecute_clicked(self):
-        self.accept()
-
-    def on_pushButtonClose_clicked(self):
-        self.reject()
-        
     def appendLog(self, message):
         self.textEditLog.append(message)
+        
+    def switch_to_log_tab(self):
+        """
+        Switch the tab widget to the Log tab.
+        """
+        self.tabWidget.setCurrentIndex(1)
