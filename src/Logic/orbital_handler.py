@@ -15,7 +15,7 @@ from qgis.core import (QgsVectorLayer, QgsFeature, QgsGeometry, QgsPointXY,
 from PyQt5.QtCore import QVariant, QDateTime
 from pyorbital.orbital import Orbital
 
-from .file_saver import ShpSaver, GpkgSaver, GeoJsonSaver
+from .file_saver import ShpSaver, GpkgSaver, GeoJsonSaver, MemoryLayerSaver
 
 
 class OrbitalLogicHandler:
@@ -27,7 +27,7 @@ class OrbitalLogicHandler:
     """
 
     def __init__(self):
-        pass
+        self.memory_saver = MemoryLayerSaver()
 
     def get_line_segments(self, points):
         """
@@ -190,85 +190,6 @@ class OrbitalLogicHandler:
             raise ValueError("Data format must be 'TLE' or 'OMM'.")
         return points
 
-    def create_in_memory_point_layer(self, points, layer_name):
-        """
-        Create an in-memory point layer from a list of points.
-
-        :param points: List of tuples (datetime, lon, lat, alt, velocity, azimuth, elevation, true_anomaly).
-        :param layer_name: Name of the layer.
-        :return: QgsVectorLayer containing the points.
-        """
-        point_layer = QgsVectorLayer("Point?crs=EPSG:4326", layer_name, "memory")
-        provider = point_layer.dataProvider()
-        fields = QgsFields()
-        fields.append(QgsField("Point_ID", QVariant.Int))
-        fields.append(QgsField("Date_Time", QVariant.DateTime))
-        fields.append(QgsField("Latitude", QVariant.Double))
-        fields.append(QgsField("Longitude", QVariant.Double))
-        fields.append(QgsField("Altitude", QVariant.Double))
-        fields.append(QgsField("Velocity", QVariant.Double))
-        fields.append(QgsField("Azimuth", QVariant.Double))
-        fields.append(QgsField("Elevation", QVariant.Double))
-        fields.append(QgsField("TrueAnomaly", QVariant.Double))
-        fields.append(QgsField("Inclination", QVariant.Double))
-        provider.addAttributes(fields)
-        point_layer.updateFields()
-
-        features = []
-        for i, point in enumerate(points):
-            # Unpack the tuple.
-            current_time, lon, lat, alt, velocity, azimuth, elevation, true_anom, inc = point
-            qdt = QDateTime(current_time.year, current_time.month, current_time.day,
-                            current_time.hour, current_time.minute, current_time.second)
-            feat = QgsFeature()
-            feat.setFields(fields)
-            feat.setAttribute("Point_ID", i)
-            feat.setAttribute("Date_Time", qdt)
-            feat.setAttribute("Latitude", lat)
-            feat.setAttribute("Longitude", lon)
-            feat.setAttribute("Altitude", alt)
-            feat.setAttribute("Velocity", velocity)
-            feat.setAttribute("Azimuth", azimuth)
-            feat.setAttribute("Elevation", elevation)
-            feat.setAttribute("TrueAnom", true_anom)
-            feat.setAttribute("Inclination", inc)
-            feat.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(lon, lat)))
-            features.append(feat)
-
-        if features:
-            provider.addFeatures(features)
-            point_layer.updateExtents()
-        return point_layer
-
-    def create_line_layer_from_points(self, points, layer_name):
-        """
-        Create an in-memory line layer from a list of points.
-
-        :param points: List of tuples (datetime, lon, lat, alt, ...).
-        :param layer_name: Name of the layer.
-        :return: QgsVectorLayer containing the lines.
-        """
-        line_layer = QgsVectorLayer("LineString?crs=EPSG:4326", layer_name, "memory")
-        provider = line_layer.dataProvider()
-        provider.addAttributes([QgsField("ID", QVariant.Int)])
-        line_layer.updateFields()
-
-        # Extract only the coordinates (lon, lat).
-        point_coords = [(pt[1], pt[2]) for pt in points]
-        geometries = self.generate_line_geometries(point_coords)
-
-        line_features = []
-        for i, geom in enumerate(geometries):
-            feat = QgsFeature()
-            feat.setGeometry(geom)
-            feat.setAttributes([i + 1])
-            line_features.append(feat)
-
-        if line_features:
-            provider.addFeatures(line_features)
-            line_layer.updateExtents()
-        return line_layer
-
     def _adjust_output_path(self, output_path, file_format):
         """
         Adjust the output file path based on the file format.
@@ -328,6 +249,7 @@ class OrbitalLogicHandler:
         :return: Tuple (point_layer, line_layer).
         """
         points = self.generate_points(data, data_format, track_day, step_minutes)
-        point_layer = self.create_in_memory_point_layer(points, f"Orbital Track {data_format}")
-        line_layer = self.create_line_layer_from_points(points, f"Orbital Track {data_format} Line")
+        geometries = self.generate_line_geometries([(pt[1], pt[2]) for pt in points])
+        point_layer = self.memory_saver.save_points(points, f"Orbital Track {data_format}")
+        line_layer = self.memory_saver.save_lines(geometries, f"Orbital Track {data_format} Line")
         return point_layer, line_layer
