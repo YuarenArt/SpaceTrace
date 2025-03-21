@@ -163,7 +163,8 @@ class SpaceTracePlugin:
             if not login or not password:
                 raise Exception("Please enter your SpaceTrack account login and password.")
             data_format = self.dlg.comboBoxDataFormat.currentText()
-
+            create_line_layer = self.dlg.checkBoxCreateLineLayer.isChecked()
+            
             if output_path:
                 _, ext = os.path.splitext(output_path)
                 file_format = ext[1:].lower()  
@@ -184,8 +185,8 @@ class SpaceTracePlugin:
 
             if output_path:
                 point_file, line_file = orchestrator.process_persistent_track(
-                    sat_id, track_day, step_minutes, output_path, data_format=data_format,
-                    file_format=file_format
+                    sat_id, track_day, step_minutes, output_path, data_format,
+                    file_format, create_line_layer
                 )
                 self.log_message(f"Files created: Point={point_file}, Line={line_file}", "INFO")
                 self.iface.messageBar().pushMessage("Success", f"{file_format.capitalize()} created successfully", level=0)
@@ -211,7 +212,7 @@ class SpaceTracePlugin:
                     self.log_message(f"Line layer loaded with {num_lines} features.", "INFO")
             else:
                 point_layer, line_layer = orchestrator.process_in_memory_track(
-                    sat_id, track_day, step_minutes, data_format=data_format
+                    sat_id, track_day, step_minutes, data_format, create_line_layer
                 )
                 if add_layer:
                     QgsProject.instance().addMapLayer(point_layer)

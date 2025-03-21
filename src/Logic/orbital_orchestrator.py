@@ -79,7 +79,7 @@ class OrbitalOrchestrator:
         self._log(f"Successfully received data for format: {data_format}", "INFO")
         return True
 
-    def process_persistent_track(self, sat_id, track_day, step_minutes, output_path, data_format='TLE', file_format='shp'):
+    def process_persistent_track(self, sat_id, track_day, step_minutes, output_path, data_format, file_format, create_line_layer):
         """
         Generate persistent orbital track shapefiles.
         
@@ -109,9 +109,9 @@ class OrbitalOrchestrator:
             return None
         
         return self.logic_handler.create_persistent_orbital_track(
-        data, data_format, track_day, step_minutes, output_path, file_format)
+        data, data_format, track_day, step_minutes, output_path, file_format, create_line_layer)
 
-    def process_in_memory_track(self, sat_id, track_day, step_minutes, data_format='TLE'):
+    def process_in_memory_track(self, sat_id, track_day, step_minutes, data_format, create_line_layer):
         """
         Generate temporary in-memory QGIS layers.
         
@@ -137,4 +137,4 @@ class OrbitalOrchestrator:
         if not self._verify_data(data, data_format):
             return None
         
-        return self.logic_handler.create_in_memory_layers(data, data_format, track_day, step_minutes)
+        return self.logic_handler.create_in_memory_layers(data, data_format, track_day, step_minutes, create_line_layer)

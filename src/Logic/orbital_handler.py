@@ -208,7 +208,7 @@ class OrbitalLogicHandler:
 
     # ---------------- Unified High-Level Methods ----------------
 
-    def create_persistent_orbital_track(self, data, data_format, track_day, step_minutes, output_path, file_format='shp'):
+    def create_persistent_orbital_track(self, data, data_format, track_day, step_minutes, output_path, file_format, create_line_layer):
         """
         Create persistent orbital track shapefiles on disk.
 
@@ -221,7 +221,6 @@ class OrbitalLogicHandler:
         :return: Tuple (points_file, line_file).
         """
         points = self.generate_points(data, data_format, track_day, step_minutes)
-        geometries = self.generate_line_geometries([(pt[1], pt[2]) for pt in points])
 
         if file_format == 'shp':
             saver = ShpSaver()
@@ -233,12 +232,17 @@ class OrbitalLogicHandler:
             raise ValueError("Unsupported file format")
 
         saver.save_points(points, output_path)
-        line_output_path = self._adjust_output_path(output_path, file_format)
-        saver.save_lines(geometries, line_output_path)
+        
+        line_file = None
+        if create_line_layer:
+            geometries = self.generate_line_geometries([(pt[1], pt[2]) for pt in points])
+            line_output_path = self._adjust_output_path(output_path, file_format)
+            saver.save_lines(geometries, line_output_path)
+            line_file = line_output_path
 
-        return output_path, line_output_path
+        return output_path, line_file
 
-    def create_in_memory_layers(self, data, data_format, track_day, step_minutes):
+    def create_in_memory_layers(self, data, data_format, track_day, step_minutes, create_line_layer):
         """
         Create temporary in-memory QGIS layers.
 
@@ -249,7 +253,9 @@ class OrbitalLogicHandler:
         :return: Tuple (point_layer, line_layer).
         """
         points = self.generate_points(data, data_format, track_day, step_minutes)
-        geometries = self.generate_line_geometries([(pt[1], pt[2]) for pt in points])
         point_layer = self.memory_saver.save_points(points, f"Orbital Track {data_format}")
-        line_layer = self.memory_saver.save_lines(geometries, f"Orbital Track {data_format} Line")
+        line_layer = None
+        if create_line_layer:
+            geometries = self.generate_line_geometries([(pt[1], pt[2]) for pt in points])
+            line_layer = self.memory_saver.save_lines(geometries, f"Orbital Track {data_format} Line")
         return point_layer, line_layer
