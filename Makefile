@@ -38,28 +38,19 @@ LOCALES =
 # translation
 SOURCES = \
 	__init__.py \
-	Space_trace.py \
-	orbital_logic.py \
-	Space_trace_dialog.py \
-	Space_trace_dialog_class.py \ 
-	orbital_logic.py \
-	spacetrack_client.py \
-	orbital_handler.py \
-	orbital_orchestrator.py
 
 PLUGINNAME = Space-trace
 
 PY_FILES = \
 	__init__.py \
-	Space_trace.py Space_trace_dialog.py Space_trace_dialog_class.py \
+	
 
 UI_FILES = Space_trace_dialog_base.ui
 
 EXTRAS = metadata.txt icon.png
 
 EXTRA_DIRS = src \ 
-			 Logic
-
+			 
 COMPILED_RESOURCE_FILES = resources.py
 
 PEP8EXCLUDE=pydev,resources.py,conf.py,third_party,ui

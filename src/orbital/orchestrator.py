@@ -10,7 +10,7 @@ import logging
 
 
 from .spacetrack_client import SpacetrackClientWrapper
-from .orbital_handler import OrbitalLogicHandler
+from .handler import OrbitalLogicHandler
 
 class OrbitalOrchestrator:
     """

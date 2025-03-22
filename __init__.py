@@ -32,5 +32,5 @@ def classFactory(iface):  # pylint: disable=invalid-name
     :type iface: QgsInterface
     """
     #
-    from .Space_trace import SpaceTracePlugin
+    from .src.Space_trace.Space_trace import SpaceTracePlugin
     return SpaceTracePlugin(iface)

@@ -9,9 +9,9 @@ import time
 from datetime import datetime
 import logging
 
-from .resources import *
+from ...resources import *
 from .Space_trace_dialog import SpaceTracePluginDialog
-from .src.Logic.orbital_orchestrator import OrbitalOrchestrator
+from ..orbital.orchestrator import OrbitalOrchestrator
 
 class SpaceTracePlugin:
     """
@@ -30,12 +30,7 @@ class SpaceTracePlugin:
         self.iface = iface
         self.plugin_dir = os.path.dirname(__file__)
         # Initialize localization settings
-        locale = QSettings().value('locale/userLocale')[0:2]
-        locale_path = os.path.join(self.plugin_dir, 'i18n', f'SpaceTracePlugin_{locale}.qm')
-        if os.path.exists(locale_path):
-            self.translator = QTranslator()
-            self.translator.load(locale_path)
-            QCoreApplication.installTranslator(self.translator)
+        self._init_localization()
         # Initialize plugin attributes
         self.actions = []
         self.menu = self.tr('&Space trace')
@@ -60,8 +55,7 @@ class SpaceTracePlugin:
                                           datefmt="%Y-%m-%d %H:%M:%S")
             fh.setFormatter(formatter)
             self.logger.addHandler(fh)
-            
-            
+                     
     def _init_localization(self):
         """
         Initialize localization settings.

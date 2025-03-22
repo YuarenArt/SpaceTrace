@@ -10,7 +10,7 @@ import json
 
 class SpacetrackClientWrapper:
     """
-    Wrapper for SpaceTrack API communication.
+    Wrapper for SpaceTrack API.
 
     This class encapsulates the logic to retrieve satellite data (TLE or OMM) using the SpaceTrack API.
     """
