@@ -34,8 +34,8 @@ class ShpSaver(FileSaver):
             writer.field('Velocity', 'F', 15, 3)
             writer.field('Azimuth', 'F', 10, 3)
             writer.field('Elevation', 'F', 10, 3)
-            writer.field('TrueAnomaly', 'F', 12, 3)
-            writer.field('Inclination', 'F', 12, 3)
+            writer.field('TrueAnomaly', 'F', 13, 3)
+            writer.field('Inclination', 'F', 13, 3)
 
             for i, point in enumerate(points):
                 current_time, lon, lat, alt, velocity, azimuth, elevation, true_anomaly, inc = point

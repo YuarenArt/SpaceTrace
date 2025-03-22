@@ -15,7 +15,7 @@ from qgis.core import (QgsVectorLayer, QgsFeature, QgsGeometry, QgsPointXY,
 from PyQt5.QtCore import QVariant, QDateTime
 from pyorbital.orbital import Orbital
 
-from .file_saver import ShpSaver, GpkgSaver, GeoJsonSaver, MemoryLayerSaver
+from .saver import ShpSaver, GpkgSaver, GeoJsonSaver, MemoryLayerSaver
 
 
 class OrbitalLogicHandler:
@@ -75,72 +75,51 @@ class OrbitalLogicHandler:
         return [QgsGeometry.fromPolylineXY([QgsPointXY(lon, lat) for lon, lat in seg])
                 for seg in segments]
 
-    def _compute_orbital_parameters(self, orb, current_time):
+    def compute_orbital_parameters(self, orb, times, inc):
         """
-        Compute orbital parameters for a given time.
+        Compute orbital parameters for given times.
 
-        Calculates longitude, latitude, altitude, velocity, azimuth, elevation,
-        and true anomaly for the provided orbital object at the specified time.
-
-        :param orb: Instance of Orbital.
-        :param current_time: Datetime object for computation.
-        :return: Tuple (lon, lat, alt, velocity, azimuth, elevation, true_anomaly).
-        :raises NotImplementedError: If the orbital object does not support get_position_velocity.
+        :param orb: Orbital object initialized with TLE data.
+        :param times: Array of numpy.datetime64 times.
+        :param inc: Orbital inclination (degrees).
+        :return: List of tuples (datetime, lon, lat, alt, velocity, azimuth, elevation, true_anomaly, inc).
         """
-        # Get geodetic coordinates: longitude, latitude, altitude.
-        lon, lat, alt = orb.get_lonlatalt(current_time)
+        positions, velocities = orb.get_position(times, normalize=False)
+        lons, lats, alts = orb.get_lonlatalt(times)
+        velocity_norms = np.linalg.norm(velocities, axis=0)
 
-        # Get position and velocity vectors.
-        try:
-            position, velocity_vector = orb.get_position(current_time, normalize=False)
-        except AttributeError:
-            raise NotImplementedError("Orbital object does not support get_position_velocity. "
-                                      "Numerical differentiation is not implemented.")
+        lats_rad = np.radians(lats)
+        lons_rad = np.radians(lons)
+        vx, vy, vz = velocities
 
-        # Compute velocity as the norm of the velocity vector.
-        velocity = math.sqrt(sum(v ** 2 for v in velocity_vector))
+        east = -np.sin(lons_rad) * vx + np.cos(lons_rad) * vy
+        north = (-np.sin(lats_rad) * np.cos(lons_rad) * vx -
+                np.sin(lats_rad) * np.sin(lons_rad) * vy +
+                np.cos(lats_rad) * vz)
+        up = (np.cos(lats_rad) * np.cos(lons_rad) * vx +
+            np.cos(lats_rad) * np.sin(lons_rad) * vy +
+            np.sin(lats_rad) * vz)
 
-        # Convert velocity from ECEF to local ENU coordinates for azimuth and elevation calculations.
-        lat_rad = math.radians(lat)
-        lon_rad = math.radians(lon)
-        vx, vy, vz = velocity_vector
+        azimuth = (np.degrees(np.arctan2(east, north)) + 360) % 360
+        horizontal_speed = np.sqrt(east ** 2 + north ** 2)
+        elevation = np.degrees(np.arctan2(up, horizontal_speed))
 
-        east = -math.sin(lon_rad) * vx + math.cos(lon_rad) * vy
-        north = (-math.sin(lat_rad) * math.cos(lon_rad) * vx -
-                 math.sin(lat_rad) * math.sin(lon_rad) * vy +
-                 math.cos(lat_rad) * vz)
-        up = (math.cos(lat_rad) * math.cos(lon_rad) * vx +
-              math.cos(lat_rad) * math.sin(lon_rad) * vy +
-              math.sin(lat_rad) * vz)
+        e = orb.tle.excentricity  
+        M0 = orb.tle.mean_anomaly
+        n = orb.tle.mean_motion
+        t0 = orb.tle.epoch
+        M = M0 + n * ((times - t0) / np.timedelta64(1, 's'))
+        E = solve_kepler_newton(M, e)
 
-        azimuth = (math.degrees(math.atan2(east, north)) + 360) % 360
-        horizontal_speed = math.sqrt(east ** 2 + north ** 2)
-        elevation = math.degrees(math.atan2(up, horizontal_speed))
+        true_anomaly = 2 * np.arctan2(np.sqrt(1 + e) * np.sin(E / 2),
+                                  np.sqrt(1 - e) * np.cos(E / 2))
+        true_anomaly = (np.degrees(true_anomaly) + 360) % 360
 
-        # Compute true anomaly.
-        try:
-            true_anomaly = orb.get_true_anomaly(current_time)
-        except AttributeError:
-            # Compute using the eccentricity vector if get_true_anomaly is not available.
-            mu = getattr(orb, 'mu', 398600.4418)  # Earth's gravitational parameter in km^3/s^2.
-            r_norm = math.sqrt(sum(r ** 2 for r in position))
-            r_dot_v = sum(r * v for r, v in zip(position, velocity_vector))
-            h_vec = np.cross(position, velocity_vector)
-            h_norm = np.linalg.norm(h_vec)
-            v_squared = velocity ** 2
-            e_vec = [((v_squared - mu / r_norm) * r_i - r_dot_v * v_i) / mu
-                     for r_i, v_i in zip(position, velocity_vector)]
-            e = math.sqrt(sum(comp ** 2 for comp in e_vec))
-            dot_e_r = sum(ei * ri for ei, ri in zip(e_vec, position))
-            if e > 1e-8 and r_norm > 1e-8:
-                cos_nu = max(min(dot_e_r / (e * r_norm), 1.0), -1.0)
-                true_anomaly = math.degrees(math.acos(cos_nu))
-                if r_dot_v < 0:
-                    true_anomaly = 360 - true_anomaly
-            else:
-                true_anomaly = 0.0
+        points = [(times[i].astype('datetime64[ms]').astype(datetime), lons[i], lats[i], alts[i],
+                velocity_norms[i], azimuth[i], elevation[i], true_anomaly[i], inc)
+                for i in range(len(times))]
 
-        return lon, lat, alt, velocity, azimuth, elevation, true_anomaly
+        return points
 
     def generate_points(self, data, data_format, track_day, step_minutes):
         """
@@ -153,22 +132,18 @@ class OrbitalLogicHandler:
         :return: List of tuples (datetime, lon, lat, alt, velocity, azimuth, elevation, true_anomaly).
         :raises ValueError: If data format is invalid or data is malformed.
         """
-        points = []
-        current_time = datetime(track_day.year, track_day.month, track_day.day)
-        end_time = current_time + timedelta(days=1)
+        start_time = datetime(track_day.year, track_day.month, track_day.day)
+        end_time = start_time + timedelta(days=1)
+        step = timedelta(minutes=step_minutes)
+        num_steps = int((end_time - start_time) / step)
+        start_time_np = np.datetime64(start_time)
+        step_np = np.timedelta64(int(step_minutes * 60 * 1e6), 'us')
+        times = start_time_np + np.arange(num_steps) * step_np
 
         if data_format == 'TLE':
             if not isinstance(data, tuple) or len(data) != 3:
                 raise ValueError("TLE data must be a tuple of (tle_1, tle_2, orb_incl).")
             tle_1, tle_2, inc = data
-            orb = Orbital("N", line1=tle_1, line2=tle_2)
-
-            while current_time < end_time:
-                lon, lat, alt, velocity, azimuth, elevation, true_anomaly = \
-                    self._compute_orbital_parameters(orb, current_time)
-                points.append((current_time, lon, lat, alt, velocity, azimuth, elevation, true_anomaly, inc))
-                current_time += timedelta(minutes=step_minutes)
-
         elif data_format == 'OMM':
             if not isinstance(data, list) or not data:
                 raise ValueError("OMM data must be a non-empty list of records.")
@@ -178,17 +153,13 @@ class OrbitalLogicHandler:
             inc = record.get("INCLINATION")
             if not tle_line1 or not tle_line2:
                 raise ValueError("OMM record missing TLE data.")
-            orb = Orbital("N", line1=tle_line1, line2=tle_line2)
-
-            while current_time < end_time:
-                lon, lat, alt, velocity, azimuth, elevation, true_anomaly = \
-                    self._compute_orbital_parameters(orb, current_time)
-                points.append((current_time, lon, lat, alt, velocity, azimuth, elevation, true_anomaly, inc))
-                current_time += timedelta(minutes=step_minutes)
-
         else:
             raise ValueError("Data format must be 'TLE' or 'OMM'.")
+        
+        orb = Orbital("N", line1=tle_1, line2=tle_2)
+        points = self.compute_orbital_parameters(orb, times, inc)
         return points
+    
 
     def _adjust_output_path(self, output_path, file_format):
         """
@@ -259,3 +230,15 @@ class OrbitalLogicHandler:
             geometries = self.generate_line_geometries([(pt[1], pt[2]) for pt in points])
             line_layer = self.memory_saver.save_lines(geometries, f"Orbital Track {data_format} Line")
         return point_layer, line_layer
+
+def solve_kepler_newton(M, e, tol=1e-6, max_iter=100):
+    M = np.asarray(M)
+    E = M.copy() 
+
+    for _ in range(max_iter):
+        delta_E = (E - e * np.sin(E) - M) / (1 - e * np.cos(E))
+        E -= delta_E
+        if np.all(np.abs(delta_E) < tol):
+            break
+
+    return E
