@@ -29,7 +29,7 @@ class OrbitalOrchestrator:
         
         self.log_callback = log_callback
         self._init_logger()
-        self._log("OrbitalOrchestrator initialized with provided credentials.", "INFO")
+        self._log("OrbitalOrchestrator initialized", "DEBUG")
         
     def _init_logger(self):
         """

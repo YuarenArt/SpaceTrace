@@ -141,7 +141,7 @@ class Ui_SpaceTracePluginDialogBase(object):
         self.lineEditSatID.setPlaceholderText(_translate("SpaceTracePluginDialogBase", "Enter satellite's NORAD ID"))
         self.lineEditLogin.setPlaceholderText(_translate("SpaceTracePluginDialogBase", "Enter your SpaceTrack account email"))
         self.lineEditPassword.setPlaceholderText(_translate("SpaceTracePluginDialogBase", "Enter your SpaceTrack account password"))
-        self.lineEditOutputPath.setPlaceholderText(_translate("SpaceTracePluginDialogBase", "Specify the path to save the shapefile (leave empty for temporary layer)"))
+        self.lineEditOutputPath.setPlaceholderText(_translate("SpaceTracePluginDialogBase", "Specify the path to save file (leave empty for temporary layer)"))
         self.pushButtonBrowse.setText(_translate("SpaceTracePluginDialogBase", "Browse"))
         self.checkBoxAddLayer.setText(_translate("SpaceTracePluginDialogBase", "Add created layer to project"))
         self.comboBoxDataFormat.setToolTip(_translate("SpaceTracePluginDialogBase", "Select data format: TLE or OMM"))

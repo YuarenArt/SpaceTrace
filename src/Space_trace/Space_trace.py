@@ -28,16 +28,13 @@ class SpaceTracePlugin:
         :param iface: QGIS interface instance.
         """
         self.iface = iface
-        self.plugin_dir = os.path.dirname(__file__)
-        # Initialize localization settings
-        self._init_localization()
-        # Initialize plugin attributes
+        self.plugin_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
         self.actions = []
-        self.menu = self.tr('&Space trace')
+        self.menu = self.tr('Space trace')
         self.first_start = None
         
-        self._init_localization()
         self._init_logger()
+        self._init_localization()
         self.logger.info("SpaceTracePlugin initialized.")
         
     def _init_logger(self):
@@ -46,7 +43,7 @@ class SpaceTracePlugin:
         """
         self.logger = logging.getLogger("SpaceTracePlugin")
         self.logger.setLevel(logging.DEBUG)
-        # Avoid duplicate handlers
+
         if not self.logger.handlers:
             log_file = os.path.join(self.plugin_dir, "SpaceTracePlugin.log")
             fh = logging.FileHandler(log_file, encoding="utf-8")
@@ -62,10 +59,21 @@ class SpaceTracePlugin:
         """
         locale = QSettings().value('locale/userLocale')[0:2]
         locale_path = os.path.join(self.plugin_dir, 'i18n', f'SpaceTracePlugin_{locale}.qm')
+
+        self.logger.debug(f"Detected locale: {locale}")
+        self.logger.debug(f"Expected translation file path: {locale_path}")
+
         if os.path.exists(locale_path):
             self.translator = QTranslator()
-            self.translator.load(locale_path)
+            loaded = self.translator.load(locale_path)
             QCoreApplication.installTranslator(self.translator)
+            
+            if loaded:
+                self.logger.debug(f"Successfully loaded translation file: {locale_path}")
+            else:
+                self.logger.warning(f"Failed to load translation file: {locale_path}")
+        else:
+            self.logger.warning(f"Translation file does not exist: {locale_path}")
 
     def tr(self, message):
         """
@@ -99,7 +107,7 @@ class SpaceTracePlugin:
         """
         icon_path = ':/plugins/Space_trace/icon.png'
         self.add_action(icon_path,
-                        text=self.tr('Draw flight path lines'),
+                        text=self.tr('Draw flight path'),
                         callback=self.run,
                         parent=self.iface.mainWindow())
         self.first_start = True
@@ -119,6 +127,8 @@ class SpaceTracePlugin:
         :param message: The log message.
         :param level: Log level ("INFO", "DEBUG", "WARNING", "ERROR").
         """
+        message = self.tr(message)
+        
         if level.upper() == "DEBUG":
             self.logger.debug(message)
         elif level.upper() == "WARNING":
@@ -146,7 +156,7 @@ class SpaceTracePlugin:
 
             sat_id_text = self.dlg.lineEditSatID.text().strip()
             if not sat_id_text:
-                raise Exception("Please enter the satellite NORAD ID.")
+                raise Exception(self.tr("Please enter the satellite NORAD ID."))
             sat_id = int(sat_id_text)
             track_day = self.dlg.dateEdit.date().toPyDate()
             step_minutes = self.dlg.spinBoxStepMinutes.value()
@@ -155,7 +165,7 @@ class SpaceTracePlugin:
             login = self.dlg.lineEditLogin.text().strip()
             password = self.dlg.lineEditPassword.text().strip()
             if not login or not password:
-                raise Exception("Please enter your SpaceTrack account login and password.")
+                raise Exception(self.tr("Please enter your SpaceTrack account login and password."))
             data_format = self.dlg.comboBoxDataFormat.currentText()
             create_line_layer = self.dlg.checkBoxCreateLineLayer.isChecked()
             
@@ -163,7 +173,7 @@ class SpaceTracePlugin:
                 _, ext = os.path.splitext(output_path)
                 file_format = ext[1:].lower()  
                 if file_format not in ['shp', 'gpkg', 'geojson']:
-                    raise Exception("Unsupported file format. Use .shp, .gpkg, or .geojson.")
+                    raise Exception(self.tr("Unsupported file format. Use .shp, .gpkg, or .geojson."))
             else:
                 file_format = None
             
@@ -183,7 +193,7 @@ class SpaceTracePlugin:
                     file_format, create_line_layer
                 )
                 self.log_message(f"Files created: Point={point_file}, Line={line_file}", "INFO")
-                self.iface.messageBar().pushMessage("Success", f"{file_format.capitalize()} created successfully", level=0)
+                elf.iface.messageBar().pushMessage(self.tr("Success"), self.tr("%1 created successfully").arg(file_format.capitalize()), level=0)
                 
                 point_layer_name = os.path.splitext(os.path.basename(point_file))[0]
                 point_layer = QgsVectorLayer(point_file, point_layer_name, "ogr")
@@ -198,7 +208,7 @@ class SpaceTracePlugin:
                 line_layer_name = os.path.splitext(os.path.basename(line_file))[0]
                 line_layer = QgsVectorLayer(line_file, line_layer_name, "ogr")
                 if not line_layer.isValid():
-                    self.iface.messageBar().pushMessage("Error", "Failed to load line layer", level=3)
+                    self.iface.messageBar().pushMessage(self.tr("Error"), str(e), level=3)
                     self.log_message("Failed to load line layer from persistent file.", "ERROR")
                 else:
                     QgsProject.instance().addMapLayer(line_layer)
