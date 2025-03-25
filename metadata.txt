@@ -21,7 +21,7 @@ repository=https://github.com/YuarenArt/Space-trace
 hasProcessingProvider=no
 # Uncomment the following line and add your changelog:
 changelog= 
-            Version 0.72 
+            Version 0.8 
             * refactored project's structure 
 
 
