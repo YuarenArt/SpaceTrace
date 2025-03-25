@@ -75,10 +75,3 @@ class SpacetrackClientWrapper:
             raise Exception(f'Failed to retrieve OMM data for satellite {sat_id}')
 
         return data
-
-    def save_omm_json(self, omm_data, filename):
-        """
-        Saves the OMM data for the specified satellite to a JSON file.
-        """
-        with open(filename, "w") as f:
-            json.dump(omm_data, f, indent=4)

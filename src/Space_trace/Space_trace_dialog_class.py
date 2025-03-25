@@ -81,6 +81,13 @@ class Ui_SpaceTracePluginDialogBase(object):
         self.checkBoxCreateLineLayer.setText("Create line layer")
         self.checkBoxCreateLineLayer.setChecked(True)  
         self.verticalLayoutMain.addWidget(self.checkBoxCreateLineLayer)
+        
+        # Add checkbox for saving TLE/OMM data
+        self.checkBoxSaveData = QtWidgets.QCheckBox(self.tabMain)
+        self.checkBoxSaveData.setObjectName("checkBoxSaveData")
+        self.checkBoxSaveData.setText("Save TLE/OMM data")
+        self.checkBoxSaveData.setChecked(False)  # По умолчанию выключен
+        self.verticalLayoutMain.addWidget(self.checkBoxSaveData)
 
         # Add combo box for selecting data format (TLE or OMM)
         self.comboBoxDataFormat = QtWidgets.QComboBox(self.tabMain)
@@ -150,6 +157,7 @@ class Ui_SpaceTracePluginDialogBase(object):
         self.pushButtonExecute.setText(_translate("SpaceTracePluginDialogBase", "Execute"))
         self.pushButtonClose.setText(_translate("SpaceTracePluginDialogBase", "Close"))
         self.checkBoxCreateLineLayer.setText(_translate("SpaceTracePluginDialogBase", "Create line layer"))
+        self.checkBoxSaveData.setText(_translate("SpaceTracePluginDialogBase", "Save received data"))
     
     def browseFile(self):
         file, _ = QtWidgets.QFileDialog.getSaveFileName(None, "Select File", "", "Shapefiles (*.shp);;GeoPackage (*.gpkg);;GeoJSON (*.geojson);;All Files (*)")

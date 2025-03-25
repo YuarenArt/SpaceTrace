@@ -8,9 +8,9 @@ import os
 import json
 import logging
 
-
 from .spacetrack_client import SpacetrackClientWrapper
 from .handler import OrbitalLogicHandler
+
 
 class OrbitalOrchestrator:
     """
@@ -26,11 +26,10 @@ class OrbitalOrchestrator:
         """
         self.client = SpacetrackClientWrapper(username, password)
         self.logic_handler = OrbitalLogicHandler()
-        
         self.log_callback = log_callback
         self._init_logger()
         self._log("OrbitalOrchestrator initialized", "DEBUG")
-        
+
     def _init_logger(self):
         """
         Initialize the file logger for the orchestrator.
@@ -45,7 +44,7 @@ class OrbitalOrchestrator:
                                           datefmt="%Y-%m-%d %H:%M:%S")
             fh.setFormatter(formatter)
             self.logger.addHandler(fh)
-            
+
     def _log(self, message, level="INFO"):
         """
         Log a message to both the file and the UI log window via the callback, if available.
@@ -53,88 +52,90 @@ class OrbitalOrchestrator:
         :param message: The log message.
         :param level: Log level ("INFO", "DEBUG", "WARNING", "ERROR").
         """
-        if level.upper() == "DEBUG":
-            self.logger.debug(message)
-        elif level.upper() == "WARNING":
-            self.logger.warning(message)
-        elif level.upper() == "ERROR":
-            self.logger.error(message)
-        else:
-            self.logger.info(message)
+        getattr(self.logger, level.lower(), self.logger.info)(message)
         if self.log_callback:
             self.log_callback(message, level)
 
+    def _retrieve_data(self, sat_id, track_day, data_format, save_data, output_path):
+        """
+        Retrieve TLE or OMM data from SpaceTrack and optionally save it.
+        
+        :param sat_id: Satellite NORAD ID.
+        :param track_day: Date for track computation.
+        :param data_format: 'TLE' or 'OMM'.
+        :param save_data: Whether to save the retrieved data.
+        :param output_path: Path to save the data.
+        :return: Retrieved data or None if invalid.
+        """
+        use_latest = track_day > date.today()
+        
+        if data_format == 'TLE':
+            data = self.client.get_tle(sat_id, track_day, latest=use_latest)
+            if save_data and data:
+                self._save_tle_data(data, output_path)
+        elif data_format == 'OMM':
+            data = self.client.get_omm(sat_id, track_day, latest=use_latest)
+            if isinstance(data, str):
+                data = json.loads(data)
+            if save_data and data:
+                self._save_omm_data(data, output_path)
+        else:
+            raise ValueError("Invalid data format. Choose 'TLE' or 'OMM'.")
+        
+        return data if self._verify_data(data, data_format) else None
+    
     def _verify_data(self, data, data_format):
         """
-        Verify that data was successfully retrieved and log the result.
+        Verify that data was retrieved successfully and log the result.
 
-        :param data: The data retrieved from SpaceTrack.
-        :param data_format: The format of the data (TLE or OMM).
-        :return: Boolean indicating data validity.
+        :param data: Retrieved TLE or OMM data.
+        :param data_format: Data format ("TLE" or "OMM").
+        :return: True if data is valid, False otherwise.
         """
         if not data:
             self._log(f"No data received for format: {data_format}", "ERROR")
             return False
-
         self._log(f"Successfully received data for format: {data_format}", "INFO")
         return True
 
-    def process_persistent_track(self, sat_id, track_day, step_minutes, output_path, data_format, file_format, create_line_layer):
+    def _save_tle_data(self, tle_data, output_path):
+        """
+        Save TLE data to a file.
+        """
+        output_path = os.path.splitext(output_path)[0]
+        tle_filename = f"{output_path}_tle.txt"
+        with open(tle_filename, 'w') as f:
+            f.write(f"{tle_data[0]}\n{tle_data[1]}\n")
+        self._log(f"TLE data saved to {tle_filename}", "INFO")
+
+    def _save_omm_data(self, omm_data, output_path):
+        """
+        Save OMM data to a JSON file.
+        """
+        output_path = os.path.splitext(output_path)[0]
+        json_filename = f"{output_path}_omm.json"
+        with open(json_filename, "w") as f:
+            json.dump(omm_data, f, indent=4)
+        self._log(f"OMM data saved to {json_filename}", "INFO")
+
+    def process_persistent_track(self, sat_id, track_day, step_minutes, output_path, data_format, file_format, create_line_layer, save_data):
         """
         Generate persistent orbital track shapefiles.
-        
-        :param sat_id: Satellite NORAD ID.
-        :param track_day: Date for track computation.
-        :param step_minutes: Time step in minutes.
-        :param output_shapefile: Output point shapefile path.
-        :param data_format: 'TLE' or 'OMM'.
-        :return: Tuple (point_shapefile, line_shapefile).
-        :raises ValueError: If data format is invalid.
         """
-        self._log(f"Starting persistent track processing for SatID: {sat_id}, Date: {track_day}, Format: {data_format}", "INFO")
-        use_latest = track_day > date.today()
-        
-        if data_format == 'TLE':
-            data = self.client.get_tle(sat_id, track_day, latest=use_latest)
-        elif data_format == 'OMM':
-            data = self.client.get_omm(sat_id, track_day, latest=use_latest)
-            if isinstance(data, str):
-                data = json.loads(data)
-            json_filename = os.path.splitext(output_path)[0] + '.json'
-            self.client.save_omm_json(data, json_filename)
-        else:
-            raise ValueError("Invalid data format. Choose 'TLE' or 'OMM'.")
-        
-        if not self._verify_data(data, data_format):
+        self._log(f"Processing persistent track for SatID: {sat_id}, Date: {track_day}, Format: {data_format}", "INFO")
+        data = self._retrieve_data(sat_id, track_day, data_format, save_data, output_path)
+        if not data:
             return None
-        
         return self.logic_handler.create_persistent_orbital_track(
-        data, data_format, track_day, step_minutes, output_path, file_format, create_line_layer)
+            data, data_format, track_day, step_minutes, output_path, file_format, create_line_layer)
 
-    def process_in_memory_track(self, sat_id, track_day, step_minutes, data_format, create_line_layer):
+    def process_in_memory_track(self, sat_id, track_day, step_minutes, data_format, create_line_layer, save_data):
         """
         Generate temporary in-memory QGIS layers.
-        
-        :param sat_id: Satellite NORAD ID.
-        :param track_day: Date for track computation.
-        :param step_minutes: Time step in minutes.
-        :param data_format: 'TLE' or 'OMM'.
-        :return: Tuple (point_layer, line_layer).
-        :raises ValueError: If data format is invalid.
         """
-        self._log(f"Starting in-memory track processing for SatID: {sat_id}, Date: {track_day}, Format: {data_format}", "INFO")
-        
-        use_latest = track_day > date.today()
-        if data_format == 'TLE':
-            data = self.client.get_tle(sat_id, track_day, latest=use_latest)
-        elif data_format == 'OMM':
-            data = self.client.get_omm(sat_id, track_day, latest=use_latest)
-            if isinstance(data, str):
-                data = json.loads(data)
-        else:
-            raise ValueError("Invalid data format. Choose 'TLE' or 'OMM'.")
-        
-        if not self._verify_data(data, data_format):
+        self._log(f"Processing in-memory track for SatID: {sat_id}, Date: {track_day}, Format: {data_format}", "INFO")
+        output_path = f"{sat_id}_{track_day.strftime('%Y%m%d')}"
+        data = self._retrieve_data(sat_id, track_day, data_format, save_data, output_path)
+        if not data:
             return None
-        
         return self.logic_handler.create_in_memory_layers(data, data_format, track_day, step_minutes, create_line_layer)
