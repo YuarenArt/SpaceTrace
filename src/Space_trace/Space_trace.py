@@ -193,7 +193,11 @@ class SpaceTracePlugin:
                     file_format, create_line_layer
                 )
                 self.log_message(f"Files created: Point={point_file}, Line={line_file}", "INFO")
-                elf.iface.messageBar().pushMessage(self.tr("Success"), self.tr("%1 created successfully").arg(file_format.capitalize()), level=0)
+                self.iface.messageBar().pushMessage(
+                    self.tr("Success"), 
+                    self.tr("{} created successfully").format(file_format.capitalize()), 
+                    level=0
+                )
                 
                 point_layer_name = os.path.splitext(os.path.basename(point_file))[0]
                 point_layer = QgsVectorLayer(point_file, point_layer_name, "ogr")

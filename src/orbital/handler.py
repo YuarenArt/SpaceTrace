@@ -148,10 +148,10 @@ class OrbitalLogicHandler:
             if not isinstance(data, list) or not data:
                 raise ValueError("OMM data must be a non-empty list of records.")
             record = data[0]
-            tle_line1 = record.get("TLE_LINE1")
-            tle_line2 = record.get("TLE_LINE2")
+            tle_1 = record.get("TLE_LINE1")
+            tle_2 = record.get("TLE_LINE2")
             inc = record.get("INCLINATION")
-            if not tle_line1 or not tle_line2:
+            if not tle_1 or not tle_2:
                 raise ValueError("OMM record missing TLE data.")
         else:
             raise ValueError("Data format must be 'TLE' or 'OMM'.")
