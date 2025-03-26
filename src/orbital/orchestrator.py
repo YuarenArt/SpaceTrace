@@ -164,7 +164,14 @@ class OrbitalOrchestrator:
         Generate temporary in-memory QGIS layers.
         """
         self._log(f"Processing in-memory track for SatID: {config.sat_id}, Date: {config.track_day}, Format: {config.data_format}", "INFO")
-        output_path = f"{config.sat_id}_{config.track_day.strftime('%Y%m%d')}"
+        plugin_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        
+        data_folder = os.path.join(plugin_dir, "data")
+        if not os.path.exists(data_folder):
+            os.makedirs(data_folder)
+            self._log(f"Created data folder at: {data_folder}", "INFO")
+        
+        output_path = os.path.join(data_folder, f"{config.sat_id}_{config.track_day.strftime('%Y%m%d')}")
         data = self._retrieve_data(config.sat_id, config.track_day, config.data_format, config.save_data, output_path, config.data_file_path)
         if not data:
             return None
