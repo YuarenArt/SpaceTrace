@@ -21,6 +21,8 @@ repository=https://github.com/YuarenArt/Space-trace
 hasProcessingProvider=no
 # Uncomment the following line and add your changelog:
 changelog=  
+            Version 0.9
+            * Updated ui and logic
             Version 0.81 
             * Added the ability to select local data TLE/OMM
             Version 0.8 

@@ -1,188 +1,264 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QDialogButtonBox, QPushButton
+from PyQt5.QtWidgets import QDialogButtonBox, QPushButton, QGroupBox, QRadioButton, QButtonGroup
 from PyQt5.QtCore import Qt
 
 class Ui_SpaceTracePluginDialogBase(object):
+
     def setupUi(self, Dialog):
-        # Set up the dialog window properties
+        """
+        Set up the UI for the dialog window.
+        
+        Args:
+            Dialog (QtWidgets.QDialog): The dialog window that will contain all UI elements.
+        """
+        # Set dialog properties
         Dialog.setObjectName("SpaceTracePluginDialogBase")
         Dialog.resize(600, 450)
 
-        # Create main vertical layout for the dialog
+        # Create the main vertical layout for the dialog
         self.verticalLayout = QtWidgets.QVBoxLayout(Dialog)
         self.verticalLayout.setObjectName("verticalLayout")
 
-        # Create tab widget with two tabs: Main and Log
+        # Create the tab widget for different settings
         self.tabWidget = QtWidgets.QTabWidget(Dialog)
         self.tabWidget.setObjectName("tabWidget")
         self.verticalLayout.addWidget(self.tabWidget)
 
         # ========================
-        # First Tab: Main Settings
+        # Main Settings Tab
         # ========================
         self.tabMain = QtWidgets.QWidget()
         self.tabMain.setObjectName("tabMain")
         self.verticalLayoutMain = QtWidgets.QVBoxLayout(self.tabMain)
         self.verticalLayoutMain.setObjectName("verticalLayoutMain")
 
-        # Add input field for satellite NORAD ID
-        self.lineEditSatID = QtWidgets.QLineEdit(self.tabMain)
-        self.lineEditSatID.setObjectName("lineEditSatID")
-        self.verticalLayoutMain.addWidget(self.lineEditSatID)
-
-        # Add input field for SpaceTrack login
-        self.lineEditLogin = QtWidgets.QLineEdit(self.tabMain)
-        self.lineEditLogin.setObjectName("lineEditLogin")
-        self.lineEditLogin.setPlaceholderText("Enter your SpaceTrack account email")
-        self.verticalLayoutMain.addWidget(self.lineEditLogin)
-
-        # Add input field for SpaceTrack password
-        self.lineEditPassword = QtWidgets.QLineEdit(self.tabMain)
-        self.lineEditPassword.setObjectName("lineEditPassword")
-        self.lineEditPassword.setPlaceholderText("Enter your SpaceTrack account password")
-        self.lineEditPassword.setEchoMode(QtWidgets.QLineEdit.Password)
-        self.verticalLayoutMain.addWidget(self.lineEditPassword)
+        # Data source group box: Allows the user to choose between loading data from a file or SpaceTrack API
+        self.groupBoxDataSource = QGroupBox("Data Source", self.tabMain)
+        self.verticalLayoutDataSource = QtWidgets.QVBoxLayout(self.groupBoxDataSource)
         
+        self.radioLocalFile = QRadioButton("Load from local file", self.groupBoxDataSource)
+        self.radioSpaceTrack = QRadioButton("Fetch from SpaceTrack API", self.groupBoxDataSource)
+        self.radioSpaceTrack.setChecked(True)  # Default to SpaceTrack API
+        self.verticalLayoutDataSource.addWidget(self.radioLocalFile)
+        self.verticalLayoutDataSource.addWidget(self.radioSpaceTrack)
+
+        # Add buttons to a button group for exclusive selection
+        self.buttonGroupDataSource = QButtonGroup(self.groupBoxDataSource)
+        self.buttonGroupDataSource.addButton(self.radioLocalFile)
+        self.buttonGroupDataSource.addButton(self.radioSpaceTrack)
+        self.verticalLayoutMain.addWidget(self.groupBoxDataSource)
+
+        # Local file settings group box
+        self.groupBoxLocalFile = QGroupBox("Local File Settings", self.tabMain)
+        self.verticalLayoutLocalFile = QtWidgets.QVBoxLayout(self.groupBoxLocalFile)
+
+        # Layout for selecting data file path
         self.horizontalLayoutData = QtWidgets.QHBoxLayout()
-        self.horizontalLayoutData.setObjectName("horizontalLayoutData")
-        self.lineEditDataPath = QtWidgets.QLineEdit(self.tabMain)
-        self.lineEditDataPath.setObjectName("lineEditDataPath")
+        self.lineEditDataPath = QtWidgets.QLineEdit(self.groupBoxLocalFile)
         self.lineEditDataPath.setPlaceholderText("Specify the path to the TLE/OMM data file")
         self.horizontalLayoutData.addWidget(self.lineEditDataPath)
-        self.pushButtonBrowseData = QtWidgets.QPushButton(self.tabMain)
-        self.pushButtonBrowseData.setObjectName("pushButtonBrowseData")
-        self.pushButtonBrowseData.setText("Browse")
+        self.pushButtonBrowseData = QtWidgets.QPushButton("Browse", self.groupBoxLocalFile)
         self.horizontalLayoutData.addWidget(self.pushButtonBrowseData)
-        self.verticalLayoutMain.addLayout(self.horizontalLayoutData)
+        self.verticalLayoutLocalFile.addLayout(self.horizontalLayoutData)
 
-        self.pushButtonBrowseData.clicked.connect(self.browseDataFile)
+        # Combo box for selecting data format (TLE/OMM)
+        self.comboBoxDataFormatLocal = QtWidgets.QComboBox(self.groupBoxLocalFile)
+        self.comboBoxDataFormatLocal.addItems(["TLE", "OMM"])
+        self.verticalLayoutLocalFile.addWidget(self.comboBoxDataFormatLocal)
+        self.verticalLayoutMain.addWidget(self.groupBoxLocalFile)
         
-        # Add date picker for selecting the track day
-        self.dateEdit = QtWidgets.QDateEdit(self.tabMain)
-        self.dateEdit.setCalendarPopup(True)
-        self.dateEdit.setObjectName("dateEdit")
-        self.dateEdit.setDate(QtCore.QDate.currentDate())
-        self.verticalLayoutMain.addWidget(self.dateEdit)
+        self.groupBoxLocalFile.setEnabled(False)  # Disable the group by default
+        self.groupBoxLocalFile.hide()  # Hide the group by default
 
-        # Add spinner for time step (in minutes)
-        self.spinBoxStepMinutes = QtWidgets.QDoubleSpinBox(self.tabMain)
+        # SpaceTrack API settings group box
+        self.groupBoxSpaceTrack = QGroupBox("SpaceTrack API Settings", self.tabMain)
+        self.verticalLayoutSpaceTrack = QtWidgets.QVBoxLayout(self.groupBoxSpaceTrack)
+
+        # Input fields for SpaceTrack API settings
+        self.lineEditSatID = QtWidgets.QLineEdit(self.groupBoxSpaceTrack)
+        self.lineEditSatID.setPlaceholderText("Enter satellite's NORAD ID")
+        self.verticalLayoutSpaceTrack.addWidget(self.lineEditSatID)
+
+        self.lineEditLogin = QtWidgets.QLineEdit(self.groupBoxSpaceTrack)
+        self.lineEditLogin.setPlaceholderText("Enter your SpaceTrack account email")
+        self.verticalLayoutSpaceTrack.addWidget(self.lineEditLogin)
+
+        self.lineEditPassword = QtWidgets.QLineEdit(self.groupBoxSpaceTrack)
+        self.lineEditPassword.setPlaceholderText("Enter your SpaceTrack account password")
+        self.lineEditPassword.setEchoMode(QtWidgets.QLineEdit.Password)
+        self.verticalLayoutSpaceTrack.addWidget(self.lineEditPassword)
+
+        # Combo box for selecting data format (TLE/OMM)
+        self.comboBoxDataFormatSpaceTrack = QtWidgets.QComboBox(self.groupBoxSpaceTrack)
+        self.comboBoxDataFormatSpaceTrack.addItems(["TLE", "OMM"])
+        self.verticalLayoutSpaceTrack.addWidget(self.comboBoxDataFormatSpaceTrack)
+        self.verticalLayoutMain.addWidget(self.groupBoxSpaceTrack)
+
+        # Connect radio buttons for toggling data source
+        self.radioLocalFile.toggled.connect(self.toggle_data_source)
+        self.radioSpaceTrack.toggled.connect(self.toggle_data_source)
+
+        # Track settings group box
+        self.groupBoxTrackSettings = QGroupBox("Track Settings", self.tabMain)
+        self.verticalLayoutTrackSettings = QtWidgets.QVBoxLayout(self.groupBoxTrackSettings)
+
+        # Date edit for selecting tracking date
+        self.dateEdit = QtWidgets.QDateEdit(self.groupBoxTrackSettings)
+        self.dateEdit.setCalendarPopup(True)
+        self.dateEdit.setDate(QtCore.QDate.currentDate())
+        self.verticalLayoutTrackSettings.addWidget(self.dateEdit)
+
+        # Spin box for selecting time step (in minutes)
+        self.spinBoxStepMinutes = QtWidgets.QDoubleSpinBox(self.groupBoxTrackSettings)
         self.spinBoxStepMinutes.setMinimum(0.1)
         self.spinBoxStepMinutes.setMaximum(60.0)
         self.spinBoxStepMinutes.setSingleStep(5.0)
         self.spinBoxStepMinutes.setValue(0.5)
-        self.spinBoxStepMinutes.setObjectName("spinBoxStepMinutes")
-        self.verticalLayoutMain.addWidget(self.spinBoxStepMinutes)
+        self.verticalLayoutTrackSettings.addWidget(self.spinBoxStepMinutes)
+        self.verticalLayoutMain.addWidget(self.groupBoxTrackSettings)
 
-        # Create horizontal layout for file path input and Browse button
-        self.horizontalLayout = QtWidgets.QHBoxLayout()
-        self.horizontalLayout.setObjectName("horizontalLayout")
-        self.lineEditOutputPath = QtWidgets.QLineEdit(self.tabMain)
-        self.lineEditOutputPath.setObjectName("lineEditOutputPath")
-        self.horizontalLayout.addWidget(self.lineEditOutputPath)
-        self.pushButtonBrowse = QtWidgets.QPushButton(self.tabMain)
-        self.pushButtonBrowse.setObjectName("pushButtonBrowse")
-        self.horizontalLayout.addWidget(self.pushButtonBrowse)
-        self.verticalLayoutMain.addLayout(self.horizontalLayout)
+        # Output settings group box
+        self.groupBoxOutput = QGroupBox("Output Settings", self.tabMain)
+        self.verticalLayoutOutput = QtWidgets.QVBoxLayout(self.groupBoxOutput)
 
-        # Add checkbox for adding the created layer to the project
-        self.checkBoxAddLayer = QtWidgets.QCheckBox(self.tabMain)
-        self.checkBoxAddLayer.setObjectName("checkBoxAddLayer")
+        # Layout for selecting output file path
+        self.horizontalLayoutOutput = QtWidgets.QHBoxLayout()
+        self.lineEditOutputPath = QtWidgets.QLineEdit(self.groupBoxOutput)
+        self.lineEditOutputPath.setPlaceholderText("Specify the path to save file (leave empty for temporary layer)")
+        self.horizontalLayoutOutput.addWidget(self.lineEditOutputPath)
+        self.pushButtonBrowseOutput = QtWidgets.QPushButton("Browse", self.groupBoxOutput)
+        self.horizontalLayoutOutput.addWidget(self.pushButtonBrowseOutput)
+        self.verticalLayoutOutput.addLayout(self.horizontalLayoutOutput)
+
+        # Checkboxes for additional output options
+        self.checkBoxAddLayer = QtWidgets.QCheckBox("Add created layer to project", self.groupBoxOutput)
         self.checkBoxAddLayer.setChecked(True)
-        self.verticalLayoutMain.addWidget(self.checkBoxAddLayer)
-        
-        self.checkBoxCreateLineLayer = QtWidgets.QCheckBox(self.tabMain)
-        self.checkBoxCreateLineLayer.setObjectName("checkBoxCreateLineLayer")
-        self.checkBoxCreateLineLayer.setText("Create line layer")
-        self.checkBoxCreateLineLayer.setChecked(True)  
-        self.verticalLayoutMain.addWidget(self.checkBoxCreateLineLayer)
-        
-        # Add checkbox for saving TLE/OMM data
-        self.checkBoxSaveData = QtWidgets.QCheckBox(self.tabMain)
-        self.checkBoxSaveData.setObjectName("checkBoxSaveData")
-        self.checkBoxSaveData.setText("Save TLE/OMM data")
-        self.checkBoxSaveData.setChecked(False)  # По умолчанию выключен
-        self.verticalLayoutMain.addWidget(self.checkBoxSaveData)
+        self.verticalLayoutOutput.addWidget(self.checkBoxAddLayer)
 
-        # Add combo box for selecting data format (TLE or OMM)
-        self.comboBoxDataFormat = QtWidgets.QComboBox(self.tabMain)
-        self.comboBoxDataFormat.addItems(["TLE", "OMM"])
-        self.comboBoxDataFormat.setObjectName("comboBoxDataFormat")
-        self.verticalLayoutMain.addWidget(self.comboBoxDataFormat)
-        
-        # Add the Main tab to the tab widget
+        self.checkBoxCreateLineLayer = QtWidgets.QCheckBox("Create line layer", self.groupBoxOutput)
+        self.checkBoxCreateLineLayer.setChecked(True)
+        self.verticalLayoutOutput.addWidget(self.checkBoxCreateLineLayer)
+        self.verticalLayoutMain.addWidget(self.groupBoxOutput)
+
+        # Save data settings group box
+        self.groupBoxSaveData = QGroupBox("Save Received Data", self.tabMain)
+        self.verticalLayoutSaveData = QtWidgets.QVBoxLayout(self.groupBoxSaveData)
+
+        # Checkbox for saving received data
+        self.checkBoxSaveData = QtWidgets.QCheckBox("Save TLE/OMM data", self.groupBoxSaveData)
+        self.checkBoxSaveData.setChecked(False)
+        self.verticalLayoutSaveData.addWidget(self.checkBoxSaveData)
+
+        # Layout for saving received data
+        self.horizontalLayoutSaveData = QtWidgets.QHBoxLayout()
+        self.lineEditSaveDataPath = QtWidgets.QLineEdit(self.groupBoxSaveData)
+        self.lineEditSaveDataPath.setPlaceholderText("Specify the path to save received data")
+        self.lineEditSaveDataPath.setEnabled(False)
+        self.horizontalLayoutSaveData.addWidget(self.lineEditSaveDataPath)
+        self.pushButtonBrowseSaveData = QtWidgets.QPushButton("Browse", self.groupBoxSaveData)
+        self.pushButtonBrowseSaveData.setEnabled(False)
+        self.horizontalLayoutSaveData.addWidget(self.pushButtonBrowseSaveData)
+        self.verticalLayoutSaveData.addLayout(self.horizontalLayoutSaveData)
+        self.verticalLayoutMain.addWidget(self.groupBoxSaveData)
+
+        # Connect the checkbox to toggle the save data path
+        self.checkBoxSaveData.toggled.connect(self.toggle_save_data_path)
+
         self.tabWidget.addTab(self.tabMain, "")
-    
+
         # ======================
-        # Second Tab: Program Log
+        # Program Log Tab
         # ======================
         self.tabLog = QtWidgets.QWidget()
-        self.tabLog.setObjectName("tabLog")
         self.verticalLayoutLog = QtWidgets.QVBoxLayout(self.tabLog)
-        self.verticalLayoutLog.setObjectName("verticalLayoutLog")
 
-        # Add read-only text edit widget for displaying logs
+        # Text edit for displaying log messages
         self.textEditLog = QtWidgets.QTextEdit(self.tabLog)
-        self.textEditLog.setObjectName("textEditLog")
         self.textEditLog.setReadOnly(True)
         self.verticalLayoutLog.addWidget(self.textEditLog)
-
-        # Add the Log tab to the tab widget
         self.tabWidget.addTab(self.tabLog, "")
 
-        # =========================
-        # Custom Dialog Button Box
-        # =========================
+        # Buttons for dialog actions
         self.buttonBox = QDialogButtonBox(Dialog)
         self.buttonBox.setOrientation(Qt.Horizontal)
         self.buttonBox.setStandardButtons(QDialogButtonBox.NoButton)
-        self.buttonBox.setObjectName("buttonBox")
         self.verticalLayout.addWidget(self.buttonBox)
 
-        # Add custom "Execute" button: triggers all main operations
-        self.pushButtonExecute = QPushButton(Dialog)
-        self.pushButtonExecute.setObjectName("pushButtonExecute")
+        self.pushButtonExecute = QPushButton("Execute", Dialog)
         self.buttonBox.addButton(self.pushButtonExecute, QDialogButtonBox.AcceptRole)
 
-        self.pushButtonClose = QPushButton(Dialog)
-        self.pushButtonClose.setObjectName("pushButtonClose")
+        self.pushButtonClose = QPushButton("Close", Dialog)
         self.buttonBox.addButton(self.pushButtonClose, QDialogButtonBox.RejectRole)
 
-        # Set up translations and connections
         self.retranslateUi(Dialog)
         self.tabWidget.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(Dialog)
 
-        # Connect the "Browse" button to open the file dialog
-        self.pushButtonBrowse.clicked.connect(self.browseFile)
+        # Connect buttons to browse file dialogs
+        self.pushButtonBrowseData.clicked.connect(self.browseDataFile)
+        self.pushButtonBrowseOutput.clicked.connect(self.browseOutputFile)
+        self.pushButtonBrowseSaveData.clicked.connect(self.browseSaveDataFile)
 
     def retranslateUi(self, Dialog):
-        # Set up translations for UI elements
         _translate = QtCore.QCoreApplication.translate
         Dialog.setWindowTitle(_translate("SpaceTracePluginDialogBase", "Space Trace"))
+        self.groupBoxDataSource.setTitle(_translate("SpaceTracePluginDialogBase", "Data Source"))
+        self.radioLocalFile.setText(_translate("SpaceTracePluginDialogBase", "Load from local file"))
+        self.radioSpaceTrack.setText(_translate("SpaceTracePluginDialogBase", "Fetch from SpaceTrack API"))
+        self.groupBoxLocalFile.setTitle(_translate("SpaceTracePluginDialogBase", "Local File Settings"))
+        self.lineEditDataPath.setPlaceholderText(_translate("SpaceTracePluginDialogBase", "Specify the path to the TLE/OMM data file"))
+        self.pushButtonBrowseData.setText(_translate("SpaceTracePluginDialogBase", "Browse"))
+        self.groupBoxSpaceTrack.setTitle(_translate("SpaceTracePluginDialogBase", "SpaceTrack API Settings"))
         self.lineEditSatID.setPlaceholderText(_translate("SpaceTracePluginDialogBase", "Enter satellite's NORAD ID"))
         self.lineEditLogin.setPlaceholderText(_translate("SpaceTracePluginDialogBase", "Enter your SpaceTrack account email"))
         self.lineEditPassword.setPlaceholderText(_translate("SpaceTracePluginDialogBase", "Enter your SpaceTrack account password"))
+        self.groupBoxTrackSettings.setTitle(_translate("SpaceTracePluginDialogBase", "Track Settings"))
+        self.groupBoxOutput.setTitle(_translate("SpaceTracePluginDialogBase", "Output Settings"))
         self.lineEditOutputPath.setPlaceholderText(_translate("SpaceTracePluginDialogBase", "Specify the path to save file (leave empty for temporary layer)"))
-        self.pushButtonBrowse.setText(_translate("SpaceTracePluginDialogBase", "Browse"))
+        self.pushButtonBrowseOutput.setText(_translate("SpaceTracePluginDialogBase", "Browse"))
         self.checkBoxAddLayer.setText(_translate("SpaceTracePluginDialogBase", "Add created layer to project"))
-        self.comboBoxDataFormat.setToolTip(_translate("SpaceTracePluginDialogBase", "Select data format: TLE or OMM"))
+        self.checkBoxCreateLineLayer.setText(_translate("SpaceTracePluginDialogBase", "Create line layer"))
+        self.groupBoxSaveData.setTitle(_translate("SpaceTracePluginDialogBase", "Save Received Data"))
+        self.checkBoxSaveData.setText(_translate("SpaceTracePluginDialogBase", "Save TLE/OMM data"))
+        self.lineEditSaveDataPath.setPlaceholderText(_translate("SpaceTracePluginDialogBase", "Specify the path to save received data"))
+        self.pushButtonBrowseSaveData.setText(_translate("SpaceTracePluginDialogBase", "Browse"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tabMain), _translate("SpaceTracePluginDialogBase", "Main"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tabLog), _translate("SpaceTracePluginDialogBase", "Log"))
         self.pushButtonExecute.setText(_translate("SpaceTracePluginDialogBase", "Execute"))
         self.pushButtonClose.setText(_translate("SpaceTracePluginDialogBase", "Close"))
-        self.checkBoxCreateLineLayer.setText(_translate("SpaceTracePluginDialogBase", "Create line layer"))
-        self.checkBoxSaveData.setText(_translate("SpaceTracePluginDialogBase", "Save received data"))
-        self.lineEditDataPath.setPlaceholderText(_translate("SpaceTracePluginDialogBase", "Specify the path to the TLE/OMM data file"))
+        
+    def toggle_save_data_path(self):
+        enabled = self.checkBoxSaveData.isChecked()
+        self.lineEditSaveDataPath.setEnabled(enabled)
+        self.pushButtonBrowseSaveData.setEnabled(enabled)
+        
+    def toggle_data_source(self):
+        if self.radioLocalFile.isChecked():
+            self.groupBoxLocalFile.setEnabled(True)
+            self.groupBoxLocalFile.show()
+            self.groupBoxSpaceTrack.setEnabled(False)
+            self.groupBoxSpaceTrack.hide()
+        else:
+            self.groupBoxLocalFile.setEnabled(False)
+            self.groupBoxLocalFile.hide()
+            self.groupBoxSpaceTrack.setEnabled(True)
+            self.groupBoxSpaceTrack.show()
 
-    def browseFile(self):
-        file, _ = QtWidgets.QFileDialog.getSaveFileName(None, "Select File", "", "Shapefiles (*.shp);;GeoPackage (*.gpkg);;GeoJSON (*.geojson);;All Files (*)")
-        if file:
-            self.lineEditOutputPath.setText(file)
-            
+    
     def browseDataFile(self):
-        file, _ = QtWidgets.QFileDialog.getOpenFileName(None, "Select File", "", "Text Files (*.txt);;JSON Files (*.json);;All Files (*)")
+        file, _ = QtWidgets.QFileDialog.getOpenFileName(None, "Select Data File", "", "Text Files (*.txt);;JSON Files (*.json);;All Files (*)")
         if file:
             self.lineEditDataPath.setText(file)
+
+    def browseOutputFile(self):
+        file, _ = QtWidgets.QFileDialog.getSaveFileName(None, "Select Output File", "", "Shapefiles (*.shp);;GeoPackage (*.gpkg);;GeoJSON (*.geojson);;All Files (*)")
+        if file:
+            self.lineEditOutputPath.setText(file)
+
+    def browseSaveDataFile(self):
+        file, _ = QtWidgets.QFileDialog.getSaveFileName(None, "Select Save Path", "", "Text Files (*.txt);;JSON Files (*.json);;All Files (*)")
+        if file:
+            self.lineEditSaveDataPath.setText(file)
 
     def appendLog(self, message):
         # Append message to the log widget

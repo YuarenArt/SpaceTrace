@@ -151,7 +151,7 @@ class OrbitalOrchestrator:
         :return: Tuple (points_file, line_file).
         """
         self._log(f"Processing persistent track for SatID: {config.sat_id}, Date: {config.track_day}, Format: {config.data_format}", "INFO")
-        data = self._retrieve_data(config.sat_id, config.track_day, config.data_format, config.save_data, config.output_path, config.data_file_path)
+        data = self._retrieve_data(config.sat_id, config.track_day, config.data_format, config.save_data_path, config.output_path, config.data_file_path)
         if not data:
             return None
         return self.logic_handler.create_persistent_orbital_track(
@@ -171,8 +171,8 @@ class OrbitalOrchestrator:
             os.makedirs(data_folder)
             self._log(f"Created data folder at: {data_folder}", "INFO")
         
-        output_path = os.path.join(data_folder, f"{config.sat_id}_{config.track_day.strftime('%Y%m%d')}")
-        data = self._retrieve_data(config.sat_id, config.track_day, config.data_format, config.save_data, output_path, config.data_file_path)
+        default_output_path = os.path.join(data_folder, f"{config.sat_id or 'local'}_{config.track_day.strftime('%Y%m%d')}")
+        data = self._retrieve_data(config.sat_id, config.track_day, config.data_format, config.save_data, config.save_data_path or default_output_path, config.data_file_path)
         if not data:
             return None
         return self.logic_handler.create_in_memory_layers(data, config.data_format, config.track_day, config.step_minutes, config.create_line_layer)

@@ -152,19 +152,39 @@ class SpaceTracePlugin:
 
         :return: A dictionary containing all user input values.
         """
+
+        data_file_path = self.dlg.lineEditDataPath.text().strip() if  self.dlg.radioLocalFile.isChecked() else ''
+        sat_id_text = self.dlg.lineEditSatID.text().strip()
+        track_day = self.dlg.dateEdit.date().toPyDate()
+        step_minutes = self.dlg.spinBoxStepMinutes.value()
+        output_path = self.dlg.lineEditOutputPath.text().strip()
+        add_layer = self.dlg.checkBoxAddLayer.isChecked()
+        
+        login = '' if self.dlg.radioLocalFile.isChecked() else self.dlg.lineEditLogin.text().strip()
+        password = '' if self.dlg.radioLocalFile.isChecked() else self.dlg.lineEditPassword.text().strip()
+        data_format = (self.dlg.comboBoxDataFormatLocal.currentText() if self.dlg.radioLocalFile.isChecked() 
+                    else self.dlg.comboBoxDataFormatSpaceTrack.currentText())
+        
+        create_line_layer = self.dlg.checkBoxCreateLineLayer.isChecked()
+        save_data = self.dlg.checkBoxSaveData.isChecked()
+        save_data_path = self.dlg.lineEditSaveDataPath.text().strip() if self.dlg.checkBoxSaveData.isChecked() else None
+        
         return {
-            'data_file_path': self.dlg.lineEditDataPath.text().strip(),
-            'sat_id_text': self.dlg.lineEditSatID.text().strip(),
-            'track_day': self.dlg.dateEdit.date().toPyDate(),
-            'step_minutes': self.dlg.spinBoxStepMinutes.value(),
-            'output_path': self.dlg.lineEditOutputPath.text().strip(),
-            'add_layer': self.dlg.checkBoxAddLayer.isChecked(),
-            'login': self.dlg.lineEditLogin.text().strip(),
-            'password': self.dlg.lineEditPassword.text().strip(),
-            'data_format': self.dlg.comboBoxDataFormat.currentText(),
-            'create_line_layer': self.dlg.checkBoxCreateLineLayer.isChecked(),
-            'save_data': self.dlg.checkBoxSaveData.isChecked()
+        'data_file_path': data_file_path,
+        'sat_id_text': sat_id_text,
+        'track_day': track_day,
+        'step_minutes': step_minutes,
+        'output_path': output_path,
+        'add_layer': add_layer,
+        'login': login,
+        'password': password,
+        'data_format': data_format,
+        'create_line_layer': create_line_layer,
+        'save_data': save_data,
+        'save_data_path': save_data_path
         }
+        
+        
 
     def _validate_inputs(self, inputs):
         """
@@ -174,7 +194,7 @@ class SpaceTracePlugin:
         :return: Tuple (sat_id, file_format) after validation.
         :raises Exception: When validation fails.
         """
-        # Validate satellite ID only if no local file path is provided.
+        # Validate satellite ID only if no local file path is provided
         if not inputs['data_file_path']:
             if not inputs['sat_id_text']:
                 raise Exception(self.tr("Please enter a satellite NORAD ID."))
@@ -187,12 +207,6 @@ class SpaceTracePlugin:
         else:
             sat_id = None  # Skip validation if local file is provided
 
-        # Validate that either a local file path or credentials are provided, but not both
-        if inputs['data_file_path'] and (inputs['login'] or inputs['password']):
-            raise Exception(self.tr("Please provide either a local data file path or SpaceTrack credentials, not both."))
-        if not inputs['data_file_path'] and not (inputs['login'] and inputs['password']):
-            raise Exception(self.tr("Please provide either a local data file path or SpaceTrack account login and password."))
-
         # Validate output file format if provided
         if inputs['output_path']:
             _, ext = os.path.splitext(inputs['output_path'])
@@ -201,6 +215,12 @@ class SpaceTracePlugin:
                 raise Exception(self.tr("Unsupported file format. Use .shp, .gpkg, or .geojson."))
         else:
             file_format = None
+
+        if inputs['save_data'] and inputs['save_data_path']:
+            _, ext = os.path.splitext(inputs['save_data_path'])
+            save_ext = ext[1:].lower()
+            if save_ext not in ['txt', 'json']:
+                raise Exception(self.tr("Unsupported save data format. Use .txt for TLE or .json for OMM."))
 
         return sat_id, file_format
 
@@ -225,7 +245,8 @@ class SpaceTracePlugin:
             data_format=inputs['data_format'],
             create_line_layer=inputs['create_line_layer'],
             save_data=inputs['save_data'],
-            data_file_path=inputs['data_file_path']
+            data_file_path=inputs['data_file_path'],
+            save_data_path=inputs['save_data_path']
         )
 
     def _process_track(self, config):
