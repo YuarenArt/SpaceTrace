@@ -55,32 +55,57 @@ class OrbitalOrchestrator:
         getattr(self.logger, level.lower(), self.logger.info)(message)
         if self.log_callback:
             self.log_callback(message, level)
+            
+    def _load_local_data(self, file_path, data_format):
+        try:
+            if data_format == 'TLE':
+                # Read TLE data from file
+                with open(file_path, 'r') as f:
+                    lines = f.readlines()
+                    if len(lines) < 2:
+                        raise ValueError("TLE file must contain at least two lines.")
+                    tle_line1 = lines[0].strip()
+                    tle_line2 = lines[1].strip()
+                    orb_incl = float(tle_line2[8:16])
+                    return (tle_line1, tle_line2, orb_incl)
+            elif data_format == 'OMM':
+                # Read OMM data from JSON file
+                with open(file_path, 'r') as f:
+                    omm_data = json.load(f)
+                return omm_data
+            else:
+                raise ValueError("Invalid data format.")
+        except Exception as e:
+            # Log error if loading fails
+            self._log(f"Error loading local data: {str(e)}", "ERROR")
+            return None
 
-    def _retrieve_data(self, sat_id, track_day, data_format, save_data, output_path):
-        """
-        Retrieve TLE or OMM data from SpaceTrack and optionally save it.
-        
-        :param sat_id: Satellite NORAD ID.
-        :param track_day: Date for track computation.
-        :param data_format: 'TLE' or 'OMM'.
-        :param save_data: Whether to save the retrieved data.
-        :param output_path: Path to save the data.
-        :return: Retrieved data or None if invalid.
-        """
-        use_latest = track_day > date.today()
-        
-        if data_format == 'TLE':
-            data = self.client.get_tle(sat_id, track_day, latest=use_latest)
-            if save_data and data:
-                self._save_tle_data(data, output_path)
-        elif data_format == 'OMM':
-            data = self.client.get_omm(sat_id, track_day, latest=use_latest)
-            if isinstance(data, str):
-                data = json.loads(data)
-            if save_data and data:
-                self._save_omm_data(data, output_path)
+    def _retrieve_data(self, sat_id, track_day, data_format, save_data, output_path, local_file_path=None):
+        if local_file_path:
+            # Load data from local file if path is provided
+            self._log(f"Loading data from local file: {local_file_path}", "INFO")
+            data = self._load_local_data(local_file_path, data_format)
+            if data and save_data:
+                if data_format == 'TLE':
+                    self._save_tle_data(data, output_path)
+                elif data_format == 'OMM':
+                    self._save_omm_data(data, output_path)
         else:
-            raise ValueError("Invalid data format. Choose 'TLE' or 'OMM'.")
+            # Fetch data from SpaceTrack API
+            self._log(f"Fetching data from SpaceTrack API for SatID: {sat_id}, Date: {track_day}", "INFO")
+            use_latest = track_day > date.today()
+            if data_format == 'TLE':
+                data = self.client.get_tle(sat_id, track_day, latest=use_latest)
+                if save_data and data:
+                    self._save_tle_data(data, output_path)
+            elif data_format == 'OMM':
+                data = self.client.get_omm(sat_id, track_day, latest=use_latest)
+                if isinstance(data, str):
+                    data = json.loads(data)
+                if save_data and data:
+                    self._save_omm_data(data, output_path)
+            else:
+                raise ValueError("Invalid data format. Choose 'TLE' or 'OMM'.")
         
         return data if self._verify_data(data, data_format) else None
     
@@ -118,24 +143,29 @@ class OrbitalOrchestrator:
             json.dump(omm_data, f, indent=4)
         self._log(f"OMM data saved to {json_filename}", "INFO")
 
-    def process_persistent_track(self, sat_id, track_day, step_minutes, output_path, data_format, file_format, create_line_layer, save_data):
+    def process_persistent_track(self, config):
         """
-        Generate persistent orbital track shapefiles.
+        Generate persistent orbital track shapefiles using configuration settings.
+
+        :param config: An OrbitalConfig instance containing all settings.
+        :return: Tuple (points_file, line_file).
         """
-        self._log(f"Processing persistent track for SatID: {sat_id}, Date: {track_day}, Format: {data_format}", "INFO")
-        data = self._retrieve_data(sat_id, track_day, data_format, save_data, output_path)
+        self._log(f"Processing persistent track for SatID: {config.sat_id}, Date: {config.track_day}, Format: {config.data_format}", "INFO")
+        data = self._retrieve_data(config.sat_id, config.track_day, config.data_format, config.save_data, config.output_path, config.data_file_path)
         if not data:
             return None
         return self.logic_handler.create_persistent_orbital_track(
-            data, data_format, track_day, step_minutes, output_path, file_format, create_line_layer)
+            data, config.data_format, config.track_day, config.step_minutes,
+            config.output_path, config.file_format, config.create_line_layer
+        )
 
-    def process_in_memory_track(self, sat_id, track_day, step_minutes, data_format, create_line_layer, save_data):
+    def process_in_memory_track(self, config):
         """
         Generate temporary in-memory QGIS layers.
         """
-        self._log(f"Processing in-memory track for SatID: {sat_id}, Date: {track_day}, Format: {data_format}", "INFO")
-        output_path = f"{sat_id}_{track_day.strftime('%Y%m%d')}"
-        data = self._retrieve_data(sat_id, track_day, data_format, save_data, output_path)
+        self._log(f"Processing in-memory track for SatID: {config.sat_id}, Date: {config.track_day}, Format: {config.data_format}", "INFO")
+        output_path = f"{config.sat_id}_{config.track_day.strftime('%Y%m%d')}"
+        data = self._retrieve_data(config.sat_id, config.track_day, config.data_format, config.save_data, output_path, config.data_file_path)
         if not data:
             return None
-        return self.logic_handler.create_in_memory_layers(data, data_format, track_day, step_minutes, create_line_layer)
+        return self.logic_handler.create_in_memory_layers(data, config.data_format, config.track_day, config.step_minutes, config.create_line_layer)

@@ -42,7 +42,21 @@ class Ui_SpaceTracePluginDialogBase(object):
         self.lineEditPassword.setPlaceholderText("Enter your SpaceTrack account password")
         self.lineEditPassword.setEchoMode(QtWidgets.QLineEdit.Password)
         self.verticalLayoutMain.addWidget(self.lineEditPassword)
+        
+        self.horizontalLayoutData = QtWidgets.QHBoxLayout()
+        self.horizontalLayoutData.setObjectName("horizontalLayoutData")
+        self.lineEditDataPath = QtWidgets.QLineEdit(self.tabMain)
+        self.lineEditDataPath.setObjectName("lineEditDataPath")
+        self.lineEditDataPath.setPlaceholderText("Specify the path to the TLE/OMM data file")
+        self.horizontalLayoutData.addWidget(self.lineEditDataPath)
+        self.pushButtonBrowseData = QtWidgets.QPushButton(self.tabMain)
+        self.pushButtonBrowseData.setObjectName("pushButtonBrowseData")
+        self.pushButtonBrowseData.setText("Browse")
+        self.horizontalLayoutData.addWidget(self.pushButtonBrowseData)
+        self.verticalLayoutMain.addLayout(self.horizontalLayoutData)
 
+        self.pushButtonBrowseData.clicked.connect(self.browseDataFile)
+        
         # Add date picker for selecting the track day
         self.dateEdit = QtWidgets.QDateEdit(self.tabMain)
         self.dateEdit.setCalendarPopup(True)
@@ -158,11 +172,17 @@ class Ui_SpaceTracePluginDialogBase(object):
         self.pushButtonClose.setText(_translate("SpaceTracePluginDialogBase", "Close"))
         self.checkBoxCreateLineLayer.setText(_translate("SpaceTracePluginDialogBase", "Create line layer"))
         self.checkBoxSaveData.setText(_translate("SpaceTracePluginDialogBase", "Save received data"))
-    
+        self.lineEditDataPath.setPlaceholderText(_translate("SpaceTracePluginDialogBase", "Specify the path to the TLE/OMM data file"))
+
     def browseFile(self):
         file, _ = QtWidgets.QFileDialog.getSaveFileName(None, "Select File", "", "Shapefiles (*.shp);;GeoPackage (*.gpkg);;GeoJSON (*.geojson);;All Files (*)")
         if file:
             self.lineEditOutputPath.setText(file)
+            
+    def browseDataFile(self):
+        file, _ = QtWidgets.QFileDialog.getOpenFileName(None, "Select File", "", "Text Files (*.txt);;JSON Files (*.json);;All Files (*)")
+        if file:
+            self.lineEditDataPath.setText(file)
 
     def appendLog(self, message):
         # Append message to the log widget

@@ -6,7 +6,7 @@
 name=Space trace
 qgisMinimumVersion=3.40.0
 description=Draws the spacecraft's flight path over the Earth's surface
-version=0.8
+version=0.81
 author=Yuriy Malyshev
 email=yuaren@yandex.ru
 
@@ -20,9 +20,13 @@ repository=https://github.com/YuarenArt/Space-trace
 
 hasProcessingProvider=no
 # Uncomment the following line and add your changelog:
-changelog= 
+changelog=  
+            Version 0.81 
+            * Added the ability to select local data TLE/OMM
+            Version 0.8 
+            * Added saving TLE/OMM data localy
             Version 0.72 
-            * refactored project's structure 
+            * Refactored project's structure 
 
 
 

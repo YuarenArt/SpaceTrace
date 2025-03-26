@@ -12,6 +12,7 @@ import logging
 from ...resources import *
 from .Space_trace_dialog import SpaceTracePluginDialog
 from ..orbital.orchestrator import OrbitalOrchestrator
+from ..config.orbital import OrbitalConfig
 
 class SpaceTracePlugin:
     """
@@ -143,9 +144,12 @@ class SpaceTracePlugin:
             self.dlg.appendLog(formatted_message)
         QApplication.processEvents()
 
+
+            
     def execute_logic(self):
         """
         Execute the main plugin logic for generating orbital tracks.
+        Either a local data file path or SpaceTrack account credentials must be provided, but not both.
         """
         
         self.dlg.switch_to_log_tab()
@@ -153,54 +157,83 @@ class SpaceTracePlugin:
         
         try:
             start_time = time.time()
-
+                
+            data_file_path = self.dlg.lineEditDataPath.text().strip()  
             sat_id_text = self.dlg.lineEditSatID.text().strip()
-            if not sat_id_text:
-                raise Exception(self.tr("Please enter the satellite NORAD ID."))
-            sat_id = int(sat_id_text)
             track_day = self.dlg.dateEdit.date().toPyDate()
             step_minutes = self.dlg.spinBoxStepMinutes.value()
             output_path = self.dlg.lineEditOutputPath.text().strip()
             add_layer = self.dlg.checkBoxAddLayer.isChecked()
             login = self.dlg.lineEditLogin.text().strip()
             password = self.dlg.lineEditPassword.text().strip()
-            if not login or not password:
-                raise Exception(self.tr("Please enter your SpaceTrack account login and password."))
             data_format = self.dlg.comboBoxDataFormat.currentText()
             create_line_layer = self.dlg.checkBoxCreateLineLayer.isChecked()
             save_data = self.dlg.checkBoxSaveData.isChecked()
-            
+
+            # Validate satellite ID input only if no local file path is provided
+            if not data_file_path:
+                if not sat_id_text:
+                    raise Exception(self.tr("Please enter a satellite NORAD ID."))
+                try:
+                    sat_id = int(sat_id_text)
+                    if sat_id <= 0:
+                        raise ValueError("Satellite NORAD ID must be a positive integer.")
+                except ValueError:
+                    raise Exception(self.tr("Invalid NORAD ID: Please enter a valid positive integer."))
+            else:
+                sat_id = None  # Skip satellite ID validation if local file is provided
+
+
+            # Validate that either data_file_path or login/password is provided, but not both or neither
+            if data_file_path and (login or password):
+                raise Exception(self.tr("Please provide either a local data file path or SpaceTrack credentials, not both."))
+            if not data_file_path and not (login and password and sat_id_text):
+                raise Exception(self.tr("Please provide either a local data file path or SpaceTrack account login and password and norad ID."))
+
+            # Validate output file format if provided
             if output_path:
                 _, ext = os.path.splitext(output_path)
-                file_format = ext[1:].lower()  
+                file_format = ext[1:].lower()
                 if file_format not in ['shp', 'gpkg', 'geojson']:
                     raise Exception(self.tr("Unsupported file format. Use .shp, .gpkg, or .geojson."))
             else:
                 file_format = None
             
+            # Log user inputs for debugging
             self.log_message(
                 f"User input: Sat ID={sat_id}, Track Day={track_day}, File Format={file_format}, "
                 f"Step Minutes={step_minutes}, Output Path={output_path}, Data Format={data_format}, "
-                f"Save Data={save_data}",
+                f"Save Data={save_data}, Data File Path={data_file_path}, Login={login if login else 'Not provided'}",
                 "DEBUG"
             )
+            
+            config = OrbitalConfig(
+                sat_id=sat_id if sat_id else None,
+                track_day=track_day,
+                step_minutes=step_minutes,
+                output_path=output_path,
+                file_format=file_format,
+                add_layer=add_layer,
+                login=login if login else None,
+                password=password if password else None,
+                data_format=data_format,
+                create_line_layer=create_line_layer,
+                save_data=save_data,
+                data_file_path=data_file_path
+            )
 
-            # Initialize the orbital orchestrator
-            orchestrator = OrbitalOrchestrator(login, password, log_callback=self.log_message)
+            orchestrator = OrbitalOrchestrator(config.login, config.password, log_callback=self.log_message)
             self.log_message("OrbitalOrchestrator initialized.", "DEBUG")
 
             if output_path:
-                point_file, line_file = orchestrator.process_persistent_track(
-                    sat_id, track_day, step_minutes, output_path, data_format,
-                    file_format, create_line_layer, save_data
-                )
+                point_file, line_file = orchestrator.process_persistent_track(config)
                 self.log_message(f"Files created: Point={point_file}, Line={line_file}", "INFO")
                 self.iface.messageBar().pushMessage(
                     self.tr("Success"), 
                     self.tr("{} created successfully").format(file_format.capitalize()), 
                     level=0
                 )
-                
+                # Load and add point layer
                 point_layer_name = os.path.splitext(os.path.basename(point_file))[0]
                 point_layer = QgsVectorLayer(point_file, point_layer_name, "ogr")
                 if not point_layer.isValid():
@@ -210,37 +243,37 @@ class SpaceTracePlugin:
                     QgsProject.instance().addMapLayer(point_layer)
                     num_points = point_layer.featureCount()
                     self.log_message(f"Point layer loaded with {num_points} features.", "INFO")
-                    
+                
+                # Load and add line layer
                 line_layer_name = os.path.splitext(os.path.basename(line_file))[0]
                 line_layer = QgsVectorLayer(line_file, line_layer_name, "ogr")
                 if not line_layer.isValid():
-                    self.iface.messageBar().pushMessage(self.tr("Error"), str(e), level=3)
+                    self.iface.messageBar().pushMessage("Error", "Failed to load line layer", level=3)
                     self.log_message("Failed to load line layer from persistent file.", "ERROR")
                 else:
                     QgsProject.instance().addMapLayer(line_layer)
                     num_lines = line_layer.featureCount()
                     self.log_message(f"Line layer loaded with {num_lines} features.", "INFO")
             else:
-                point_layer, line_layer = orchestrator.process_in_memory_track(
-                    sat_id, track_day, step_minutes, data_format, create_line_layer, save_data
-                )
+                point_layer, line_layer = orchestrator.process_in_memory_track(config)
                 if add_layer:
                     QgsProject.instance().addMapLayer(point_layer)
                     QgsProject.instance().addMapLayer(line_layer)
                     self.log_message("Temporary layers added to the project.", "INFO")
-                    
                     num_points = point_layer.featureCount()
                     num_lines = line_layer.featureCount()
                     self.log_message(f"Temporary Point layer contains {num_points} features.", "INFO")
                     self.log_message(f"Temporary Line layer contains {num_lines} features.", "INFO")
-                    
+                
                 self.iface.messageBar().pushMessage("Success", "Temporary layers created successfully", level=0)
-
+            
+            # Log process completion time
             end_time = time.time()
             duration = end_time - start_time
             self.log_message(f"Process completed in {duration:.2f} seconds.", "INFO")
-
+        
         except Exception as e:
+            # Display error and log it
             self.iface.messageBar().pushMessage("Error", str(e), level=3)
             self.log_message(f"Error: {str(e)}", "ERROR")
 
