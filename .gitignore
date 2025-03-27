@@ -2,4 +2,5 @@
 /help/
 /.qtcreator/
 /.vscode/
+__pycache__/
 
