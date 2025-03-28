@@ -8,9 +8,9 @@ import time
 from datetime import datetime
 import logging
 
-from resources import *
+from ...resources import *
 from .Space_trace_dialog import SpaceTracePluginDialog
-from ..orbital.orchestrator import OrbitalOrchestrator
+from .orbital.orchestrator import OrbitalOrchestrator
 from ..config.orbital import OrbitalConfig
 
 

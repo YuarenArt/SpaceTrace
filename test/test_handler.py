@@ -1,7 +1,7 @@
 import unittest
 from datetime import date, datetime
 from unittest.mock import patch
-from src.orbital.handler import OrbitalLogicHandler
+from src.Space_trace.orbital.handler import OrbitalLogicHandler
 import numpy as np
 
 class OrbitalLogicHandlerTest(unittest.TestCase):

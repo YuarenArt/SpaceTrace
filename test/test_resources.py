@@ -16,8 +16,6 @@ import unittest
 
 from qgis.PyQt.QtGui import QIcon
 
-
-
 class SpaceTracePluginDialogTest(unittest.TestCase):
     """Test rerources work."""
 
