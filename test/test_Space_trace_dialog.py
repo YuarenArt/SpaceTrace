@@ -14,11 +14,12 @@ __copyright__ = 'Copyright 2025, Yuriy Malyshev'
 
 import unittest
 
-from qgis.PyQt.QtGui import QDialogButtonBox, QDialog
+from qgis.PyQt.QtWidgets import QDialogButtonBox, QDialog
 
-from Space_trace_dialog import SpaceTracePluginDialog
+from src.Space_trace.Space_trace_dialog import SpaceTracePluginDialog
 
-from utilities import get_qgis_app
+from test.utilities import get_qgis_app
+
 QGIS_APP = get_qgis_app()
 
 
