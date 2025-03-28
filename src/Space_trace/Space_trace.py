@@ -8,7 +8,7 @@ import time
 from datetime import datetime
 import logging
 
-from ...resources import *
+from resources import *
 from .Space_trace_dialog import SpaceTracePluginDialog
 from ..orbital.orchestrator import OrbitalOrchestrator
 from ..config.orbital import OrbitalConfig
@@ -59,7 +59,8 @@ class SpaceTracePlugin:
         """
         Initialize localization settings.
         """
-        locale = QSettings().value('locale/userLocale')[0:2]
+        locale = QSettings().value('locale/userLocale')
+        locale = locale[0:2] if locale else 'en'
         locale_path = os.path.join(self.plugin_dir, 'i18n', f'SpaceTracePlugin_{locale}.qm')
 
         self.logger.debug(f"Detected locale: {locale}")
