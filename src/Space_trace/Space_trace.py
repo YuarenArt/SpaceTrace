@@ -275,7 +275,6 @@ class SpaceTracePlugin:
                 QgsProject.instance().addMapLayer(line_layer)
                 self.log_message("Temporary layers added to the project.", "INFO")
                 self.log_message(f"Temporary Point layer contains {point_layer.featureCount()} features.", "INFO")
-                self.log_message(f"Temporary Line layer contains {line_layer.featureCount()} features.", "INFO")
             self.iface.messageBar().pushMessage("Success", "Temporary layers created successfully", level=0)
 
     def _load_and_add_layer(self, file_path, layer_type):

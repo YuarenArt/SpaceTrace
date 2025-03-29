@@ -246,7 +246,21 @@ class Ui_SpaceTracePluginDialogBase(object):
 
     
     def browseDataFile(self):
-        file, _ = QtWidgets.QFileDialog.getOpenFileName(None, "Select Data File", "", "Text Files (*.txt);;JSON Files (*.json);;All Files (*)")
+        """
+        Opens a file dialog to select an existing data file. The file format filter is determined
+        based on the selected source (TLE or JSON).
+        """
+        if self.radioLocalFile.isChecked():
+            data_format = self.comboBoxDataFormatLocal.currentText()
+        else:
+            data_format = self.comboBoxDataFormatSpaceTrack.currentText()
+        
+        if data_format == "TLE":
+            file_filter = "Text Files (*.txt)"
+        else:
+            file_filter = "JSON Files (*.json)"
+
+        file, _ = QtWidgets.QFileDialog.getOpenFileName(None, "Select Data File", "", file_filter)
         if file:
             self.lineEditDataPath.setText(file)
 
@@ -256,7 +270,10 @@ class Ui_SpaceTracePluginDialogBase(object):
             self.lineEditOutputPath.setText(file)
 
     def browseSaveDataFile(self):
-        # Determine the data format based on the selected source
+        """
+        Opens a file dialog to select a path for saving data. The file extension is automatically set
+        based on the selected data format (TLE or JSON).
+        """
         if self.radioLocalFile.isChecked():
             data_format = self.comboBoxDataFormatLocal.currentText()
         else:

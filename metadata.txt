@@ -22,7 +22,7 @@ hasProcessingProvider=no
 # Uncomment the following line and add your changelog:
 changelog=  
             Version 0.9.1
-            * Updated saving of received data logic
+            * Updated the logic of saving the received data
             Version 0.9
             * Updated ui and logic
             Version 0.8.1 
