@@ -154,7 +154,7 @@
     <message>
         <location filename="../../../../src/space trace/Space-trace/src/Space_trace/Space_trace_dialog_class.py" line="207"/>
         <source>Fetch from SpaceTrack API</source>
-        <translation>Поулчить данные через SpaceTrack</translation>
+        <translation>Получить данные через SpaceTrack</translation>
     </message>
     <message>
         <location filename="../../../../src/space trace/Space-trace/src/Space_trace/Space_trace_dialog_class.py" line="208"/>
