@@ -6,7 +6,6 @@
 To use the Space Trace plugin, you need to install the following Python libraries:
 - `pyorbital` – for orbital calculations.
 - `spacetrack` – for fetching orbital data from the SpaceTrack API.
-- `pyshp` – for working with shapefiles.
 
 ### Installation of Dependencies
 1. Open the **OSGeo4W Shell** (included with QGIS installation).
@@ -14,7 +13,6 @@ To use the Space Trace plugin, you need to install the following Python librarie
    ```bash
    python3 -m pip install pyorbital -U --user
    python3 -m pip install spacetrack -U --user
-   python3 -m pip install pyshp -U --user
    ```
 
 ### Installation of the Plugin
@@ -81,7 +79,6 @@ The Space Trace plugin visualizes the flight path of a spacecraft over the Earth
 Для работы плагина Space Trace необходимо установить следующие Python-библиотеки:
 - `pyorbital` – для орбитальных расчетов.
 - `spacetrack` – для получения данных с SpaceTrack API.
-- `pyshp` – для работы с shapefiles.
 
 ### Установка зависимостей
 1. Откройте **OSGeo4W Shell** (поставляется с QGIS).
@@ -89,7 +86,6 @@ The Space Trace plugin visualizes the flight path of a spacecraft over the Earth
    ```bash
    python3 -m pip install pyorbital -U --user
    python3 -m pip install spacetrack -U --user
-   python3 -m pip install pyshp -U --user
    ```
 
 ### Установка плагина
