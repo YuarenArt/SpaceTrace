@@ -1,5 +1,7 @@
+import os
+
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QDialogButtonBox, QPushButton, QGroupBox, QRadioButton, QButtonGroup
+from PyQt5.QtWidgets import QDialogButtonBox, QPushButton, QGroupBox, QRadioButton, QButtonGroup, QTextBrowser
 from PyQt5.QtCore import Qt
 
 class Ui_SpaceTracePluginDialogBase(object):
@@ -177,7 +179,22 @@ class Ui_SpaceTracePluginDialogBase(object):
         self.textEditLog.setReadOnly(True)
         self.verticalLayoutLog.addWidget(self.textEditLog)
         self.tabWidget.addTab(self.tabLog, "")
-
+        
+        # ========================
+        # Help Tab
+        # ========================
+        self.tabHelp = QtWidgets.QWidget()
+        self.tabHelp.setObjectName("tabHelp")
+        self.verticalLayoutHelp = QtWidgets.QVBoxLayout(self.tabHelp)
+        self.verticalLayoutHelp.setObjectName("verticalLayoutHelp")
+        
+        self.textBrowserHelp = QTextBrowser(self.tabHelp)
+        self.verticalLayoutHelp.addWidget(self.textBrowserHelp)
+        self.tabWidget.addTab(self.tabHelp, "")
+        # ========================
+        # End
+        # ========================
+        
         # Buttons for dialog actions
         self.buttonBox = QDialogButtonBox(Dialog)
         self.buttonBox.setOrientation(Qt.Horizontal)
@@ -194,6 +211,8 @@ class Ui_SpaceTracePluginDialogBase(object):
         self.tabWidget.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(Dialog)
 
+        self.loadHelpContent()
+        
         # Connect buttons to browse file dialogs
         self.pushButtonBrowseData.clicked.connect(self.browseDataFile)
         self.pushButtonBrowseOutput.clicked.connect(self.browseOutputFile)
@@ -226,7 +245,18 @@ class Ui_SpaceTracePluginDialogBase(object):
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tabLog), _translate("SpaceTracePluginDialogBase", "Log"))
         self.pushButtonExecute.setText(_translate("SpaceTracePluginDialogBase", "Execute"))
         self.pushButtonClose.setText(_translate("SpaceTracePluginDialogBase", "Close"))
-        
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tabHelp), _translate("SpaceTracePluginDialogBase", "Help"))
+    
+    def loadHelpContent(self):
+        ui_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        help_file = os.path.join(ui_dir, "readme.html")
+        if os.path.exists(help_file):
+            with open(help_file, "r", encoding="utf-8") as f:
+                html_content = f.read()
+            self.textBrowserHelp.setHtml(html_content)
+        else:
+            self.textBrowserHelp.setPlainText("File not found")    
+    
     def toggle_save_data_path(self):
         enabled = self.checkBoxSaveData.isChecked()
         self.lineEditSaveDataPath.setEnabled(enabled)

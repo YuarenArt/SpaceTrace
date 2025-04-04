@@ -1,114 +1,249 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Space Trace Plugin for QGIS</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        code {
+            font-family: Consolas, monospace;
+        }
+        ul, ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        hr {
+            border: 0;
+            border-top: 1px solid #ddd;
+            margin: 20px 0;
+        }
+    </style>
 </head>
 <body>
-    <h1>Space Trace Plugin for QGIS</h1>
-    
-    <h2>English Version</h2>
-    
-    <h3>Description</h3>
-    <p>This plugin draws the spacecraft's flight path over the Earth's surface.</p>
-    
+    <h1>Space Trace Plugin for QGIS (En)</h1>
+
+    <h2>Installation</h2>
+
     <h3>Dependencies</h3>
-    <p>To use this plugin, the following Python libraries are required:</p>
+    <p>To use the Space Trace plugin, you need to install the following Python libraries:</p>
     <ul>
-        <li>pyorbital</li>
-        <li>spacetrack</li>
-        <li>pyshp</li>
+        <li><code>pyorbital</code> – for orbital calculations.</li>
+        <li><code>spacetrack</code> – for fetching orbital data from the SpaceTrack API.</li>
     </ul>
-    
+
     <h3>Installation of Dependencies</h3>
-    <p>Open OSGeo4W Shell and run the following commands:</p>
-    <pre>
-python3 -m pip install pyorbital -U --user
-python3 -m pip install spacetrack -U --user
-python3 -m pip install pyshp -U --user
-    </pre>
-    
+    <ol>
+        <li>Open the <strong>OSGeo4W Shell</strong> (included with QGIS installation).</li>
+        <li>Run the following commands to install the required libraries:</li>
+    </ol>
+    <pre><code>python3 -m pip install pyorbital -U --user
+python3 -m pip install spacetrack -U --user</code></pre>
+
     <h3>Installation of the Plugin</h3>
     <ol>
-        <li>Copy the plugin folder to the QGIS plugins directory</li>
-        <li>Open QGIS.</li>
-        <li>Go to Plugins</li>
-    </ol>
-    
-    <h3>Usage</h3>
-    <ol>
-        <li>After installation, the plugin will appear in the <b>Vector</b> menu.</li>
-        <li>Click on <b>Draw flight path lines</b> to open the dialog.</li>
-        <li>In the dialog:
+        <li>Copy the plugin folder to the QGIS plugins directory:
             <ul>
-                <li>Enter the satellite's NORAD ID.</li>
-                <li>Select the date for which the path is to be drawn.</li>
-                <li>Set the calculation step in minutes.</li>
-                <li>(Optional) Specify the path to save the shapefile.</li>
-                <li>Check <b>Add created layer to project</b> to load the layer into QGIS.</li>
+                <li>Windows: <code>C:\Users\[YourUsername]\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins</code></li>
+                <li>Linux: <code>~/.local/share/QGIS/QGIS3/profiles/default/python/plugins</code></li>
+                <li>macOS: <code>~/Library/QGIS/QGIS3/profiles/default/python/plugins</code></li>
             </ul>
         </li>
-        <li>Click <b>OK</b> to generate the orbital path.</li>
+        <li>Open QGIS.</li>
+        <li>Go to <strong>Plugins</strong> > <strong>Manage and Install Plugins</strong>.</li>
+        <li>In the plugin manager, find <strong>Space Trace</strong> and check the box to enable it.</li>
     </ol>
-    
-    <h3>Notes</h3>
+
+    <h2>Features</h2>
+    <p>The Space Trace plugin visualizes the flight path of a spacecraft over the Earth’s surface. Key features include:</p>
     <ul>
-        <li>If the shapefile path is left empty, the plugin will create temporary layers in memory.</li>
-        <li>The <b>Add created layer to project</b> checkbox automatically adds the created layers to the QGIS project.</li>
+        <li><strong>Data Sources</strong>: Fetch orbital data (TLE or OMM format) from the SpaceTrack API or load it from a local file.</li>
+        <li><strong>Track Generation</strong>: Create point and line layers representing the spacecraft’s orbital path for a specified date.</li>
+        <li><strong>Customization</strong>: Adjust the time step (in minutes) for track calculations.</li>
+        <li><strong>Output Options</strong>:
+            <ul>
+                <li>Save layers as shapefiles (<code>.shp</code>), GeoPackages (<code>.gpkg</code>), or GeoJSON (<code>.geojson</code>).</li>
+                <li>Add generated layers directly to the QGIS project.</li>
+            </ul>
+        </li>
+        <li><strong>Data Saving</strong>: Optionally save fetched TLE or OMM data for future use.</li>
+        <li><strong>Logging</strong>: View detailed logs of the process in the plugin’s interface.</li>
     </ul>
-    
+
+    <h2>Usage</h2>
+    <ol>
+        <li>After installation, the plugin appears in the <strong>Vector</strong> menu in QGIS.</li>
+        <li>Select <strong>Space Trace</strong> > <strong>Draw flight path</strong> to open the plugin dialog.</li>
+        <li>Configure the settings in the dialog:</li>
+    </ol>
+
+    <h3>Data Source</h3>
+    <ul>
+        <li><strong>Load from local file</strong>: Use a local TLE or OMM file.
+            <ul>
+                <li>Click <strong>Browse</strong> to select the file.</li>
+                <li>Choose the format: <strong>TLE</strong> (<code>.txt</code>) or <strong>OMM</strong> (<code>.json</code>).</li>
+            </ul>
+        </li>
+        <li><strong>Fetch from SpaceTrack API</strong>: Retrieve data online.
+            <ul>
+                <li>Enter the satellite’s <strong>NORAD ID</strong> (e.g., 25544 for the ISS).</li>
+                <li>Provide your SpaceTrack account <strong>email</strong> and <strong>password</strong>.</li>
+                <li>Select the format: <strong>TLE</strong> or <strong>OMM</strong>.</li>
+            </ul>
+        </li>
+    </ul>
+
+    <h3>Track Settings</h3>
+    <ul>
+        <li>Choose the <strong>date</strong> for the orbital path using the calendar widget.</li>
+        <li>Set the <strong>time step</strong> (in minutes) for calculations (e.g., 0.5 for finer detail).</li>
+    </ul>
+
+    <h3>Output Settings</h3>
+    <ul>
+        <li>(Optional) Specify a <strong>file path</strong> to save the output (<code>.shp</code>, <code>.gpkg</code>, or <code>.geojson</code>).</li>
+        <li>Check <strong>Add created layer to project</strong> to load layers into QGIS.</li>
+        <li>Check <strong>Create line layer</strong> to generate a line layer alongside points.</li>
+    </ul>
+
+    <h3>Save Received Data</h3>
+    <ul>
+        <li>Check <strong>Save TLE/OMM data</strong> to store fetched data.</li>
+        <li>Specify a <strong>file path</strong> for saving (<code>.txt</code> for TLE, <code>.json</code> for OMM).</li>
+    </ul>
+
+    <ol start="4">
+        <li>Click <strong>Execute</strong> to generate the orbital path.</li>
+        <li>Monitor the process in the <strong>Log</strong> tab. If successful, layers will be added to the project or saved to the specified path.</li>
+    </ol>
+
+    <h2>Notes</h2>
+    <ul>
+        <li>If no output file path is provided, temporary in-memory layers are created.</li>
+        <li>Ensure SpaceTrack API credentials are valid for online data retrieval.</li>
+        <li>The plugin supports both TLE (Two-Line Element) and OMM (Orbit Mean Elements) formats.</li>
+    </ul>
+
     <hr>
-    
-    <h2>Русская версия</h2>
-    
-    <h3>Описание</h3>
-    <p>Этот плагин отображает траекторию полёта космического аппарата над поверхностью Земли.</p>
-    
+
+    <h1>Space Trace Plugin для QGIS (Русский)</h1>
+
+    <h2>Установка</h2>
+
     <h3>Зависимости</h3>
-    <p>Для работы плагина необходимо установить следующие Python-библиотеки:</p>
+    <p>Для работы плагина Space Trace необходимо установить следующие Python-библиотеки:</p>
     <ul>
-        <li>pyorbital</li>
-        <li>spacetrack</li>
-        <li>pyshp</li>
+        <li><code>pyorbital</code> – для орбитальных расчетов.</li>
+        <li><code>spacetrack</code> – для получения данных с SpaceTrack API.</li>
     </ul>
-    
+
     <h3>Установка зависимостей</h3>
-    <p>Откройте OSGeo4W Shell и выполните следующие команды:</p>
-    <pre>
-python3 -m pip install pyorbital -U --user
-python3 -m pip install spacetrack -U --user
-python3 -m pip install pyshp -U --user
-    </pre>
-    
+    <ol>
+        <li>Откройте <strong>OSGeo4W Shell</strong> (поставляется с QGIS).</li>
+        <li>Выполните следующие команды для установки библиотек:</li>
+    </ol>
+    <pre><code>python3 -m pip install pyorbital -U --user
+python3 -m pip install spacetrack -U --user</code></pre>
+
     <h3>Установка плагина</h3>
     <ol>
-        <li>Откройте QGIS.</li>
-        <li>Перейдите в меню <b>Плагины > Управление и установка плагинов</b>.</li>
-        <li>Найдите "Space Trace" и установите его.</li>
-    </ol>
-    <p>Альтернативно, вы можете вручную скопировать папку плагина в директорию плагинов QGIS.</p>
-    
-    <h3>Использование</h3>
-    <ol>
-        <li>После установки плагин появится в меню <b>Вектор</b>.</li>
-        <li>Нажмите на <b>Draw flight path lines</b> (нарисовать линии траектории полёта), чтобы открыть диалоговое окно.</li>
-        <li>В диалоговом окне:
+        <li>Скопируйте папку плагина в каталог плагинов QGIS:
             <ul>
-                <li>Введите NORAD ID спутника.</li>
-                <li>Выберите дату, для которой строится траектория.</li>
-                <li>Установите шаг расчёта в минутах.</li>
-                <li>(Опционально) Укажите путь для сохранения shapefile.</li>
-                <li>Установите флажок <b>Добавить созданный слой в проект</b>, чтобы загрузить слой в QGIS.</li>
+                <li>Windows: <code>C:\Users\[ВашеИмя]\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins</code></li>
+                <li>Linux: <code>~/.local/share/QGIS/QGIS3/profiles/default/python/plugins</code></li>
+                <li>macOS: <code>~/Library/QGIS/QGIS3/profiles/default/python/plugins</code></li>
             </ul>
         </li>
-        <li>Нажмите <b>OK</b> для генерации траектории орбиты.</li>
+        <li>Откройте QGIS.</li>
+        <li>Перейдите в <strong>Плагины</strong> > <strong>Управление и установка плагинов</strong>.</li>
+        <li>В менеджере плагинов найдите <strong>Space Trace</strong> и включите его, установив галочку.</li>
     </ol>
-    
-    <h3>Примечания</h3>
+
+    <h2>Функциональность</h2>
+    <p>Плагин Space Trace визуализирует траекторию полета космического аппарата над поверхностью Земли. Основные возможности:</p>
     <ul>
-        <li>Если путь к shapefile оставить пустым, плагин создаст временные слои в памяти.</li>
-        <li>Флажок <b>Добавить созданный слой в проект</b> автоматически добавляет созданные слои в проект QGIS.</li>
+        <li><strong>Источники данных</strong>: Загрузка орбитальных данных (формат TLE или OMM) из SpaceTrack API или локального файла.</li>
+        <li><strong>Генерация трека</strong>: Создание слоев точек и линий, представляющих орбитальный путь для заданной даты.</li>
+        <li><strong>Настройка</strong>: Установка шага времени (в минутах) для расчетов.</li>
+        <li><strong>Вывод данных</strong>:
+            <ul>
+                <li>Сохранение слоев в форматах shapefiles (<code>.shp</code>), GeoPackages (<code>.gpkg</code>) или GeoJSON (<code>.geojson</code>).</li>
+                <li>Добавление сгенерированных слоев в проект QGIS.</li>
+            </ul>
+        </li>
+        <li><strong>Сохранение данных</strong>: Возможность сохранить полученные TLE или OMM данные.</li>
+        <li><strong>Логирование</strong>: Подробные журналы процесса доступны в интерфейсе плагина.</li>
+    </ul>
+
+    <h2>Использование</h2>
+    <ol>
+        <li>После установки плагин появится в меню <strong>Вектор</strong> в QGIS.</li>
+        <li>Выберите <strong>Space Trace</strong> > <strong>Draw flight path</strong> (Нарисовать траекторию полета), чтобы открыть диалог.</li>
+        <li>Настройте параметры в диалоговом окне:</li>
+    </ol>
+
+    <h3>Источник данных</h3>
+    <ul>
+        <li><strong>Загрузить из локального файла</strong>: Используйте локальный файл TLE или OMM.
+            <ul>
+                <li>Нажмите <strong>Обзор</strong> для выбора файла.</li>
+                <li>Выберите формат: <strong>TLE</strong> (<code>.txt</code>) или <strong>OMM</strong> (<code>.json</code>).</li>
+            </ul>
+        </li>
+        <li><strong>Получить из SpaceTrack API</strong>: Загрузка данных онлайн.
+            <ul>
+                <li>Введите <strong>NORAD ID</strong> спутника (например, 25544 для МКС).</li>
+                <li>Укажите <strong>email</strong> и <strong>пароль</strong> учетной записи SpaceTrack.</li>
+                <li>Выберите формат: <strong>TLE</strong> или <strong>OMM</strong>.</li>
+            </ul>
+        </li>
+    </ul>
+
+    <h3>Настройки трека</h3>
+    <ul>
+        <li>Выберите <strong>дату</strong> для построения траектории с помощью календаря.</li>
+        <li>Установите <strong>шаг времени</strong> (в минутах) для расчетов (например, 0.5 для большей детализации).</li>
+    </ul>
+
+    <h3>Настройки вывода</h3>
+    <ul>
+        <li>(Опционально) Укажите <strong>путь к файлу</strong> для сохранения (<code>.shp</code>, <code>.gpkg</code>, или <code>.geojson</code>).</li>
+        <li>Установите флажок <strong>Добавить созданный слой в проект</strong>, чтобы загрузить слои в QGIS.</li>
+        <li>Установите флажок <strong>Создать слой линий</strong>, чтобы сгенерировать линии в дополнение к точкам.</li>
+    </ul>
+
+    <h3>Сохранение полученных данных</h3>
+    <ul>
+        <li>Установите флажок <strong>Сохранить данные TLE/OMM</strong>, чтобы сохранить полученные данные.</li>
+        <li>Укажите <strong>путь</strong> для сохранения (<code>.txt</code> для TLE, <code>.json</code> для OMM).</li>
+    </ul>
+
+    <ol start="4">
+        <li>Нажмите <strong>Выполнить</strong> для генерации траектории.</li>
+        <li>Следите за процессом на вкладке <strong>Журнал</strong>. При успехе слои будут добавлены в проект или сохранены по указанному пути.</li>
+    </ol>
+
+    <h2>Примечания</h2>
+    <ul>
+        <li>Если путь к файлу вывода не указан, создаются временные слои в памяти.</li>
+        <li>Убедитесь, что учетные данные SpaceTrack API верны для загрузки данных онлайн.</li>
+        <li>Плагин поддерживает форматы TLE (Two-Line Element) и OMM (Orbit Mean Elements).</li>
     </ul>
 </body>
 </html>
