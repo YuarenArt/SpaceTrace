@@ -5,12 +5,13 @@
 [general]
 name=Space trace
 qgisMinimumVersion=3.40.0
-description=Draws the spacecraft's flight path over the Earth's surface
+description=Draws a spacecraft's ground trace over the Earth's surface.
 version=0.9.1
 author=Yuriy Malyshev
 email=yuaren@yandex.ru
 
-about=Draws the spacecraft's flight path over the Earth's surface
+about=Draws a spacecraft's flight path over the Earth's surface, creating point and (optionally) line layers. 
+      It can fetch TLE (Two-Line Element) or OMM (Orbit Mean Elements) data from the SpaceTrack API or use local files.
 
 tracker=https://github.com/YuarenArt/Space-trace/issues
 repository=https://github.com/YuarenArt/Space-trace
