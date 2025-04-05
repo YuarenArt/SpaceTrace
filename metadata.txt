@@ -3,7 +3,7 @@
 # This file should be included when you package your plugin.# Mandatory items:
 
 [general]
-name=Space trace
+name=Space Trace
 qgisMinimumVersion=3.40.0
 description=Draws a spacecraft's ground trace over the Earth's surface.
 version=1.0
