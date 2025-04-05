@@ -39,7 +39,7 @@ changelog=
 
 
 # Tags are comma separated with spaces allowed
-tags=python space orbit trace earth 
+tags=python, space, orbit, Earth, ground trace 
 
 homepage=https://github.com/YuarenArt/Space-trace/blob/main/README.md
 category=Vector
