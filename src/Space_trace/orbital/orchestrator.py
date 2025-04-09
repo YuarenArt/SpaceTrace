@@ -80,9 +80,8 @@ class OrbitalOrchestrator:
             self._log(f"Error loading local data: {str(e)}", "ERROR")
             return None
 
-    def _retrieve_data(self, sat_id, track_day, data_format, save_data, output_path, local_file_path=None):
+    def _retrieve_data(self, sat_id, start_datetime, data_format, save_data, output_path, local_file_path=None):
         if local_file_path:
-            # Load data from local file if path is provided
             self._log(f"Loading data from local file: {local_file_path}", "INFO")
             data = self._load_local_data(local_file_path, data_format)
             if data and save_data:
@@ -91,17 +90,13 @@ class OrbitalOrchestrator:
                 elif data_format == 'OMM':
                     self._save_omm_data(data, output_path)
         else:
-            # Fetch data from SpaceTrack API
-            self._log(f"Fetching data from SpaceTrack API for SatID: {sat_id}, Date: {track_day}", "INFO")
-            use_latest = track_day > date.today()
+            self._log(f"Fetching data from SpaceTrack API for SatID: {sat_id}, Start: {start_datetime}", "INFO")
             if data_format == 'TLE':
-                data = self.client.get_tle(sat_id, track_day, latest=use_latest)
+                data = self.client.get_tle(sat_id, start_datetime)
                 if save_data and data:
                     self._save_tle_data(data, output_path)
             elif data_format == 'OMM':
-                data = self.client.get_omm(sat_id, track_day, latest=use_latest)
-                if isinstance(data, str):
-                    data = json.loads(data)
+                data = self.client.get_omm(sat_id, start_datetime)
                 if save_data and data:
                     self._save_omm_data(data, output_path)
             else:
@@ -150,29 +145,37 @@ class OrbitalOrchestrator:
         :param config: An OrbitalConfig instance containing all settings.
         :return: Tuple (points_file, line_file).
         """
-        self._log(f"Processing persistent track for SatID: {config.sat_id}, Date: {config.track_day}, Format: {config.data_format}", "INFO")
-        data = self._retrieve_data(config.sat_id, config.track_day, config.data_format, config.save_data_path, config.output_path, config.data_file_path)
+        self._log(f"Processing persistent track for SatID: {config.sat_id}, Start: {config.start_datetime}, "
+                f"Duration: {config.duration_hours} hours, Format: {config.data_format}", "INFO")
+        data = self._retrieve_data(config.sat_id, config.start_datetime, config.data_format, 
+                                config.save_data, config.save_data_path, config.data_file_path)
         if not data:
             return None
         return self.logic_handler.create_persistent_orbital_track(
-            data, config.data_format, config.track_day, config.step_minutes,
+            data, config.data_format, config.start_datetime, config.duration_hours, config.step_minutes,
             config.output_path, config.file_format, config.create_line_layer
         )
 
     def process_in_memory_track(self, config):
         """
         Generate temporary in-memory QGIS layers.
+
+        :param config: An OrbitalConfig instance containing all settings.
+        :return: Tuple (point_layer, line_layer).
         """
-        self._log(f"Processing in-memory track for SatID: {config.sat_id}, Date: {config.track_day}, Format: {config.data_format}", "INFO")
+        self._log(f"Processing in-memory track for SatID: {config.sat_id}, Start: {config.start_datetime}, "
+                f"Duration: {config.duration_hours} hours, Format: {config.data_format}", "INFO")
         plugin_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-        
         data_folder = os.path.join(plugin_dir, "data")
         if not os.path.exists(data_folder):
             os.makedirs(data_folder)
             self._log(f"Created data folder at: {data_folder}", "INFO")
         
-        default_output_path = os.path.join(data_folder, f"{config.sat_id or 'local'}_{config.track_day.strftime('%Y%m%d')}")
-        data = self._retrieve_data(config.sat_id, config.track_day, config.data_format, config.save_data, config.save_data_path or default_output_path, config.data_file_path)
+        default_output_path = os.path.join(data_folder, f"{config.sat_id or 'local'}_{config.start_datetime.strftime('%Y%m%d%H%M')}")
+        data = self._retrieve_data(config.sat_id, config.start_datetime, config.data_format, 
+                                config.save_data, config.save_data_path or default_output_path, config.data_file_path)
         if not data:
             return None
-        return self.logic_handler.create_in_memory_layers(data, config.data_format, config.track_day, config.step_minutes, config.create_line_layer)
+        return self.logic_handler.create_in_memory_layers(
+            data, config.data_format, config.start_datetime, config.duration_hours, config.step_minutes, config.create_line_layer
+        )

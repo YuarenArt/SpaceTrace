@@ -104,11 +104,32 @@ class Ui_SpaceTracePluginDialogBase(object):
         self.groupBoxTrackSettings = QGroupBox("Track Settings", self.tabMain)
         self.verticalLayoutTrackSettings = QtWidgets.QVBoxLayout(self.groupBoxTrackSettings)
 
-        # Date edit for selecting tracking date
-        self.dateEdit = QtWidgets.QDateEdit(self.groupBoxTrackSettings)
-        self.dateEdit.setCalendarPopup(True)
-        self.dateEdit.setDate(QtCore.QDate.currentDate())
-        self.verticalLayoutTrackSettings.addWidget(self.dateEdit)
+    
+        self.dateTimeEdit = QtWidgets.QDateTimeEdit(self.groupBoxTrackSettings)
+        self.dateTimeEdit.setCalendarPopup(True)
+        self.dateTimeEdit.setDateTime(QtCore.QDateTime.currentDateTime())
+        self.verticalLayoutTrackSettings.addWidget(self.dateTimeEdit)
+        
+        self.labelDuration = QtWidgets.QLabel("Duration (hours):", self.groupBoxTrackSettings)
+        self.verticalLayoutTrackSettings.addWidget(self.labelDuration)
+        self.spinBoxDuration = QtWidgets.QDoubleSpinBox(self.groupBoxTrackSettings)
+        self.spinBoxDuration.setMinimum(0.1)  
+        self.spinBoxDuration.setMaximum(168.0) 
+        self.spinBoxDuration.setValue(24.0)  
+        self.verticalLayoutTrackSettings.addWidget(self.spinBoxDuration)
+        
+        self.button1Hour = QtWidgets.QPushButton("1 hour", self.groupBoxTrackSettings)
+        self.button1Day = QtWidgets.QPushButton("1 day", self.groupBoxTrackSettings)
+        self.button1Week = QtWidgets.QPushButton("1 week", self.groupBoxTrackSettings)
+        self.horizontalLayoutDurationButtons = QtWidgets.QHBoxLayout()
+        self.horizontalLayoutDurationButtons.addWidget(self.button1Hour)
+        self.horizontalLayoutDurationButtons.addWidget(self.button1Day)
+        self.horizontalLayoutDurationButtons.addWidget(self.button1Week)
+        self.verticalLayoutTrackSettings.addLayout(self.horizontalLayoutDurationButtons)
+        
+        self.button1Hour.clicked.connect(lambda: self.spinBoxDuration.setValue(1.0))
+        self.button1Day.clicked.connect(lambda: self.spinBoxDuration.setValue(24.0))
+        self.button1Week.clicked.connect(lambda: self.spinBoxDuration.setValue(168.0))
 
         # Spin box for selecting time step (in minutes)
         self.spinBoxStepMinutes = QtWidgets.QDoubleSpinBox(self.groupBoxTrackSettings)

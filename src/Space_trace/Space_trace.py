@@ -156,10 +156,11 @@ class SpaceTracePlugin:
 
         data_file_path = self.dlg.lineEditDataPath.text().strip() if  self.dlg.radioLocalFile.isChecked() else ''
         sat_id_text = self.dlg.lineEditSatID.text().strip()
-        track_day = self.dlg.dateEdit.date().toPyDate()
         step_minutes = self.dlg.spinBoxStepMinutes.value()
         output_path = self.dlg.lineEditOutputPath.text().strip()
         add_layer = self.dlg.checkBoxAddLayer.isChecked()
+        start_datetime = self.dlg.dateTimeEdit.dateTime().toPyDateTime() 
+        duration_hours = self.dlg.spinBoxDuration.value()
         
         login = '' if self.dlg.radioLocalFile.isChecked() else self.dlg.lineEditLogin.text().strip()
         password = '' if self.dlg.radioLocalFile.isChecked() else self.dlg.lineEditPassword.text().strip()
@@ -173,7 +174,8 @@ class SpaceTracePlugin:
         return {
         'data_file_path': data_file_path,
         'sat_id_text': sat_id_text,
-        'track_day': track_day,
+        'start_datetime': start_datetime, 
+        'duration_hours': duration_hours,  
         'step_minutes': step_minutes,
         'output_path': output_path,
         'add_layer': add_layer,
@@ -182,7 +184,7 @@ class SpaceTracePlugin:
         'data_format': data_format,
         'create_line_layer': create_line_layer,
         'save_data': save_data,
-        'save_data_path': save_data_path
+        'save_data_path': save_data_path    
         }
         
         
@@ -236,7 +238,8 @@ class SpaceTracePlugin:
         """
         return OrbitalConfig(
             sat_id=sat_id,
-            track_day=inputs['track_day'],
+            start_datetime=inputs['start_datetime'],
+            duration_hours=inputs['duration_hours'],
             step_minutes=inputs['step_minutes'],
             output_path=inputs['output_path'],
             file_format=file_format,
@@ -314,10 +317,11 @@ class SpaceTracePlugin:
 
             # Log inputs for debugging
             self.log_message(
-                f"User input: Sat ID={sat_id}, Track Day={inputs['track_day']}, File Format={file_format}, "
+                f"User input: Sat ID={sat_id}, Start Datetime={inputs['start_datetime']}, "
+                f"Duration Hours={inputs['duration_hours']}, File Format={file_format}, "
                 f"Step Minutes={inputs['step_minutes']}, Output Path={inputs['output_path']}, "
                 f"Data Format={inputs['data_format']}, Save Data={inputs['save_data']}, "
-                f"Data File Path={inputs['data_file_path']}, Login={inputs['login'] if inputs['login'] else 'Not provided'}",
+                f"Data File Path={inputs['data_file_path']}",
                 "DEBUG"
             )
 

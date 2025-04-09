@@ -121,22 +121,22 @@ class OrbitalLogicHandler:
 
         return points
 
-    def generate_points(self, data, data_format, track_day, step_minutes):
+    def generate_points(self, data, data_format, start_datetime, duration_hours, step_minutes):
         """
         Generate a list of points with orbital parameters based on the data format.
 
         :param data: TLE tuple (tle_1, tle_2, orb_incl) or a list of OMM records.
         :param data_format: 'TLE' or 'OMM'.
-        :param track_day: Date for track computation.
+        :param start_datetime: Start date and time for track computation.
+        :param duration_hours: Duration of the track in hours.
         :param step_minutes: Time step in minutes.
         :return: List of tuples (datetime, lon, lat, alt, velocity, azimuth, elevation, true_anomaly).
         :raises ValueError: If data format is invalid or data is malformed.
         """
-        start_time = datetime(track_day.year, track_day.month, track_day.day)
-        end_time = start_time + timedelta(days=1)
+        end_time = start_datetime + timedelta(hours=duration_hours)
         step = timedelta(minutes=step_minutes)
-        num_steps = int((end_time - start_time) / step)
-        start_time_np = np.datetime64(start_time)
+        num_steps = int((end_time - start_datetime) / step)
+        start_time_np = np.datetime64(start_datetime)
         step_np = np.timedelta64(int(step_minutes * 60 * 1e6), 'us')
         times = start_time_np + np.arange(num_steps) * step_np
 
@@ -179,7 +179,7 @@ class OrbitalLogicHandler:
 
     # ---------------- Unified High-Level Methods ----------------
 
-    def create_persistent_orbital_track(self, data, data_format, track_day, step_minutes, output_path, file_format, create_line_layer):
+    def create_persistent_orbital_track(self, data, data_format, start_datetime, duration_hours, step_minutes, output_path, file_format, create_line_layer):
         """
         Create persistent orbital track shapefiles on disk.
 
@@ -191,7 +191,7 @@ class OrbitalLogicHandler:
         :param file_format: 'shp', 'gpkg', or 'geojson'.
         :return: Tuple (points_file, line_file).
         """
-        points = self.generate_points(data, data_format, track_day, step_minutes)
+        points = self.generate_points(data, data_format, start_datetime, duration_hours, step_minutes)
 
         if file_format == 'shp':
             saver = ShpSaver()
@@ -213,7 +213,7 @@ class OrbitalLogicHandler:
 
         return output_path, line_file
 
-    def create_in_memory_layers(self, data, data_format, track_day, step_minutes, create_line_layer):
+    def create_in_memory_layers(self, data, data_format, start_datetime, duration_hours, step_minutes, create_line_layer):
         """
         Create temporary in-memory QGIS layers.
 
@@ -223,7 +223,7 @@ class OrbitalLogicHandler:
         :param step_minutes: Time step in minutes.
         :return: Tuple (point_layer, line_layer).
         """
-        points = self.generate_points(data, data_format, track_day, step_minutes)
+        points = self.generate_points(data, data_format, start_datetime, duration_hours, step_minutes)
         point_layer = self.memory_saver.save_points(points, f"Orbital Track {data_format}")
         line_layer = None
         if create_line_layer:

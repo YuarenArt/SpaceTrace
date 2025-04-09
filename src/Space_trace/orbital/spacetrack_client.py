@@ -22,56 +22,57 @@ class SpacetrackClientWrapper:
         :param username: SpaceTrack account login (email).
         :param password: SpaceTrack account password.
         """
-        self.username = username
-        self.password = password
         self.client = SpaceTrackClient(identity=username, password=password)
 
-    def get_tle(self, sat_id, track_day=None, latest=False):
+    def get_tle(self, sat_id, start_datetime):
         """
-        Retrieve TLE data for the specified satellite.
+        Retrieve TLE data for the specified satellite based on start_datetime.
 
         :param sat_id: Satellite NORAD ID.
-        :param track_day: Date for which TLE data is needed. If None or in the future,
-                          the latest TLE data is used.
-        :param latest: Boolean flag to force retrieval of the latest TLE.
+        :param start_datetime: Start date and time for which TLE data is needed (latest data before this time).
         :return: Tuple (tle_1, tle_2, orb_incl) containing the TLE lines and orbital inclination.
         :raises Exception: If TLE data cannot be retrieved.
         """
-        if latest or (track_day is None or track_day > date.today()):
-            data = self.client.gp(norad_cat_id=sat_id, orderby='epoch desc', limit=1, format='tle')
-        else:
-            daterange = op.inclusive_range(track_day, track_day + timedelta(days=1))
-            data = self.client.gp_history(norad_cat_id=sat_id, orderby='epoch desc', limit=1,
-                                          format='tle', epoch=daterange)
-
+        # Define a range from 30 days before start_datetime to start_datetime to ensure data availability
+        start_range = start_datetime - timedelta(days=30)
+        daterange = op.inclusive_range(start_range.strftime('%Y-%m-%d'), start_datetime.strftime('%Y-%m-%d %H:%M:%S'))
+        
+        # Fetch the most recent TLE data before the specified start_datetime
+        data = self.client.gp_history(
+            norad_cat_id=sat_id,
+            epoch=daterange,
+            orderby='epoch desc',
+            limit=1,
+            format='tle'
+        )
         if not data:
-            raise Exception(f'Failed to retrieve TLE for satellite with ID {sat_id}')
-
+            raise Exception(f'No TLE data found for satellite {sat_id} before {start_datetime}')
         tle_1 = data[0:69]
         tle_2 = data[70:139]
-        orb_incl = data[78:86]
+        orb_incl = data[78:86] 
         return tle_1, tle_2, orb_incl
 
-    def get_omm(self, sat_id, track_day=None, latest=False):
+    def get_omm(self, sat_id, start_datetime):
         """
-        Retrieve OMM data for the specified satellite in JSON format.
+        Retrieve OMM data for the specified satellite based on start_datetime.
 
         :param sat_id: Satellite NORAD ID.
-        :param track_day: Date for which OMM data is needed. If None or in the future,
-                          the latest OMM data is used.
-        :param latest: Boolean flag to force retrieval of the latest OMM.
-        :return: OMM data as a JSON object.
+        :param start_datetime: Start date and time for which OMM data is needed (latest data before this time).
+        :return: OMM data as a parsed JSON object.
         :raises Exception: If OMM data cannot be retrieved.
         """
-        if latest or (track_day is None or track_day > date.today()):
-            data = self.client.gp(norad_cat_id=sat_id, orderby='epoch desc',
-                                  limit=1, format='json')
-        else:
-            daterange = op.inclusive_range(track_day, track_day + timedelta(days=1))
-            data = self.client.gp_history(norad_cat_id=sat_id, orderby='epoch desc',
-                                          limit=1, format='json', epoch=daterange)
-
+        # Define a range from 30 days before start_datetime to start_datetime to ensure data availability
+        start_range = start_datetime - timedelta(days=30)
+        daterange = op.inclusive_range(start_range.strftime('%Y-%m-%d'), start_datetime.strftime('%Y-%m-%d %H:%M:%S'))
+        
+        # Fetch the most recent OMM data before the specified start_datetime
+        data = self.client.gp_history(
+            norad_cat_id=sat_id,
+            epoch=daterange,
+            orderby='epoch desc',
+            limit=1,
+            format='json'
+        )
         if not data:
-            raise Exception(f'Failed to retrieve OMM data for satellite {sat_id}')
-
-        return data
+            raise Exception(f'No OMM data found for satellite {sat_id} before {start_datetime}')
+        return json.loads(data)
