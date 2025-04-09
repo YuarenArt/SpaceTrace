@@ -10,8 +10,8 @@ version=1.0
 author=Yuriy Malyshev
 email=yuaren@yandex.ru
 
-about=Draws a spacecraft's flight path over the Earth's surface, creating point and (optionally) line layers. 
-      It can fetch TLE (Two-Line Element) or OMM (Orbit Mean Elements) data from the SpaceTrack API or use local files.
+about=Draws a spacecraft's flight path over the Earth's surface, creating point and (optionally) line layers.
+      It can fetch TLE (Two-Line Element) or OMM (Orbit Mean-Elements Message) data from the SpaceTrack API or use local files.
 
 tracker=https://github.com/YuarenArt/Space-trace/issues
 repository=https://github.com/YuarenArt/Space-trace
