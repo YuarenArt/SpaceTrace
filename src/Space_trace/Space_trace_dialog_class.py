@@ -267,6 +267,10 @@ class Ui_SpaceTracePluginDialogBase(object):
         self.pushButtonExecute.setText(_translate("SpaceTracePluginDialogBase", "Execute"))
         self.pushButtonClose.setText(_translate("SpaceTracePluginDialogBase", "Close"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tabHelp), _translate("SpaceTracePluginDialogBase", "Help"))
+        self.labelDuration.setText(_translate("Dialog", "Duration (hours):"))
+        self.button1Hour.setText(_translate("Dialog", "1 hour"))
+        self.button1Day.setText(_translate("Dialog", "1 day"))
+        self.button1Week.setText(_translate("Dialog", "1 week"))
     
     def loadHelpContent(self):
         ui_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

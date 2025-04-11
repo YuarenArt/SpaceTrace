@@ -27,23 +27,7 @@ class OrbitalOrchestrator:
         self.client = SpacetrackClientWrapper(username, password)
         self.logic_handler = OrbitalLogicHandler()
         self.log_callback = log_callback
-        self._init_logger()
         self._log("OrbitalOrchestrator initialized", "DEBUG")
-
-    def _init_logger(self):
-        """
-        Initialize the file logger for the orchestrator.
-        """
-        self.logger = logging.getLogger("OrbitalOrchestrator")
-        self.logger.setLevel(logging.DEBUG)
-        if not self.logger.handlers:
-            log_file = os.path.join(os.path.dirname(__file__), "OrbitalOrchestrator.log")
-            fh = logging.FileHandler(log_file, encoding="utf-8")
-            fh.setLevel(logging.DEBUG)
-            formatter = logging.Formatter("[%(asctime)s] %(levelname)s: %(message)s",
-                                          datefmt="%Y-%m-%d %H:%M:%S")
-            fh.setFormatter(formatter)
-            self.logger.addHandler(fh)
 
     def _log(self, message, level="INFO"):
         """
@@ -52,7 +36,6 @@ class OrbitalOrchestrator:
         :param message: The log message.
         :param level: Log level ("INFO", "DEBUG", "WARNING", "ERROR").
         """
-        getattr(self.logger, level.lower(), self.logger.info)(message)
         if self.log_callback:
             self.log_callback(message, level)
             

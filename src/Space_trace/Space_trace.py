@@ -260,7 +260,7 @@ class SpaceTracePlugin:
         :param config: An OrbitalConfig instance.
         """
         orchestrator = OrbitalOrchestrator(config.login, config.password, log_callback=self.log_message)
-        self.log_message("OrbitalOrchestrator initialized.", "DEBUG")
+        self.log_message("OrbitalOrchestrator initialized", "DEBUG")
         if config.output_path:
             point_file, line_file = orchestrator.process_persistent_track(config)
             self.log_message(f"Files created: Point={point_file}, Line={line_file}", "INFO")
@@ -309,13 +309,10 @@ class SpaceTracePlugin:
         try:
             start_time = time.time()
 
-            # Gather user inputs from the dialog
-            inputs = self._gather_user_inputs()
 
-            # Validate inputs and process satellite ID and output file format
+            inputs = self._gather_user_inputs()
             sat_id, file_format = self._validate_inputs(inputs)
 
-            # Log inputs for debugging
             self.log_message(
                 f"User input: Sat ID={sat_id}, Start Datetime={inputs['start_datetime']}, "
                 f"Duration Hours={inputs['duration_hours']}, File Format={file_format}, "
@@ -325,13 +322,10 @@ class SpaceTracePlugin:
                 "DEBUG"
             )
 
-            # Create configuration object from inputs
             config = self._create_config(inputs, sat_id, file_format)
 
-            # Process the orbital track based on the configuration
             self._process_track(config)
 
-            # Log process completion time
             end_time = time.time()
             duration = end_time - start_time
             self.log_message(f"Process completed in {duration:.2f} seconds.", "INFO")
