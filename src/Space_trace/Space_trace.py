@@ -153,42 +153,8 @@ class SpaceTracePlugin:
 
         :return: A dictionary containing all user input values.
         """
-
-        data_file_path = self.dlg.lineEditDataPath.text().strip() if  self.dlg.radioLocalFile.isChecked() else ''
-        sat_id_text = self.dlg.lineEditSatID.text().strip()
-        step_minutes = self.dlg.spinBoxStepMinutes.value()
-        output_path = self.dlg.lineEditOutputPath.text().strip()
-        add_layer = self.dlg.checkBoxAddLayer.isChecked()
-        start_datetime = self.dlg.dateTimeEdit.dateTime().toPyDateTime() 
-        duration_hours = self.dlg.spinBoxDuration.value()
+        return self.dlg.get_inputs()
         
-        login = '' if self.dlg.radioLocalFile.isChecked() else self.dlg.lineEditLogin.text().strip()
-        password = '' if self.dlg.radioLocalFile.isChecked() else self.dlg.lineEditPassword.text().strip()
-        data_format = (self.dlg.comboBoxDataFormatLocal.currentText() if self.dlg.radioLocalFile.isChecked() 
-                    else self.dlg.comboBoxDataFormatSpaceTrack.currentText())
-        
-        create_line_layer = self.dlg.checkBoxCreateLineLayer.isChecked()
-        save_data = self.dlg.checkBoxSaveData.isChecked()
-        save_data_path = self.dlg.lineEditSaveDataPath.text().strip() if self.dlg.checkBoxSaveData.isChecked() else None
-        
-        return {
-        'data_file_path': data_file_path,
-        'sat_id_text': sat_id_text,
-        'start_datetime': start_datetime, 
-        'duration_hours': duration_hours,  
-        'step_minutes': step_minutes,
-        'output_path': output_path,
-        'add_layer': add_layer,
-        'login': login,
-        'password': password,
-        'data_format': data_format,
-        'create_line_layer': create_line_layer,
-        'save_data': save_data,
-        'save_data_path': save_data_path    
-        }
-        
-        
-
     def _validate_inputs(self, inputs):
         """
         Validate user inputs and process satellite ID and file format.
@@ -324,7 +290,6 @@ class SpaceTracePlugin:
         try:
             start_time = time.time()
 
-
             inputs = self._gather_user_inputs()
             sat_id, file_format = self._validate_inputs(inputs)
 
@@ -338,7 +303,6 @@ class SpaceTracePlugin:
             )
 
             config = self._create_config(inputs, sat_id, file_format)
-
             self._process_track(config)
 
             end_time = time.time()
