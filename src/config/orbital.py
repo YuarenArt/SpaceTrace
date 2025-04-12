@@ -1,24 +1,20 @@
+from dataclasses import dataclass
+from datetime import datetime
+
+@dataclass
 class OrbitalConfig:
-    """
-    Configuration for orbital track generation.
-    
-    Encapsulates all settings required to generate orbital tracks.
-    """
-    def __init__(self, sat_id, step_minutes, output_path, file_format,
-                 add_layer, login, password, data_format, create_line_layer, save_data, data_file_path,
-                 save_data_path, start_datetime, duration_hours):
-        
-        self.sat_id             = sat_id            # Satellite NORAD ID (None if local file is used)
-        self.step_minutes       = step_minutes      # Time step in minutes
-        self.output_path        = output_path       # Output file path (if persistent layers are needed)
-        self.file_format        = file_format       # File format (derived from output_path)
-        self.add_layer          = add_layer         # Whether to add layers to QGIS project
-        self.login              = login             # SpaceTrack login (None if local file is used)
-        self.password           = password          # SpaceTrack password (None if local file is used)
-        self.data_format        = data_format       # 'TLE' or 'OMM'
-        self.create_line_layer  = create_line_layer # Flag to create line layer
-        self.save_data          = save_data         # Flag to save received data
-        self.data_file_path     = data_file_path    # Local data file path (if provided)
-        self.save_data_path     = save_data_path
-        self.start_datetime     = start_datetime
-        self.duration_hours     = duration_hours
+    """Configuration for orbital track generation."""
+    sat_id: int = None              # Satellite NORAD ID (None if using local file)
+    start_datetime: datetime = None # Start date and time for the track
+    duration_hours: float = 24.0    # Duration of the track in hours
+    step_minutes: float = 0.5       # Time step in minutes
+    output_path: str = ""           # Path for saving output (empty for temp layer)
+    file_format: str = None         # Output file format (e.g., shp, gpkg)
+    add_layer: bool = True          # Whether to add layer to QGIS project
+    login: str = None               # SpaceTrack login
+    password: str = None            # SpaceTrack password
+    data_format: str = "TLE"        # Data format (TLE or OMM)
+    create_line_layer: bool = True  # Whether to create a line layer
+    save_data: bool = False         # Whether to save received data
+    data_file_path: str = ""        # Path to local data file
+    save_data_path: str = ""        # Path to save received data
