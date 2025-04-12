@@ -15,6 +15,7 @@ class SpaceTracePluginDialog(QtWidgets.QDialog, Ui_SpaceTracePluginDialogBase):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setupUi(self)
+        self.lineEditSatID.setValidator(QtGui.QIntValidator(1, 999999, self))
         
     def appendLog(self, message):
         self.textEditLog.append(message)

@@ -191,39 +191,54 @@ class SpaceTracePlugin:
 
     def _validate_inputs(self, inputs):
         """
-        Validate user inputs and process the satellite ID and file format.
+        Validate user inputs and process satellite ID and file format.
 
-        :param inputs: Dictionary of user input values.
-        :return: Tuple (sat_id, file_format) after validation.
-        :raises Exception: When validation fails.
+        Args:
+            inputs (dict): Dictionary of user input values.
+
+        Returns:
+            tuple: (sat_id, file_format) after validation.
+
+        Raises:
+            Exception: If validation fails.
         """
-        # Validate satellite ID only if no local file path is provided
-        if not inputs['data_file_path']:
-            if not inputs['sat_id_text']:
+        # Validate data source specific inputs
+        if not inputs["data_file_path"]:
+            # SpaceTrack mode
+            if not inputs["sat_id_text"]:
                 raise Exception(self.tr("Please enter a satellite NORAD ID."))
+            if not inputs["login"] or not inputs["password"]:
+                raise Exception(self.tr("Please provide SpaceTrack login and password."))
             try:
-                sat_id = int(inputs['sat_id_text'])
+                sat_id = int(inputs["sat_id_text"])
                 if sat_id <= 0:
-                    raise ValueError("Satellite NORAD ID must be a positive integer.")
+                    raise ValueError
             except ValueError:
-                raise Exception(self.tr("Invalid NORAD ID: Please enter a valid positive integer."))
+                raise Exception(self.tr("Invalid NORAD ID: Please enter a positive integer."))
         else:
-            sat_id = None  # Skip validation if local file is provided
+            # Local file mode
+            if not os.path.isfile(inputs["data_file_path"]) or not os.access(inputs["data_file_path"], os.R_OK):
+                raise Exception(self.tr("Local data file does not exist or is not readable."))
+            sat_id = None
 
-        # Validate output file format if provided
-        if inputs['output_path']:
-            _, ext = os.path.splitext(inputs['output_path'])
+        # Validate output file path
+        if inputs["output_path"]:
+            _, ext = os.path.splitext(inputs["output_path"])
             file_format = ext[1:].lower()
-            if file_format not in ['shp', 'gpkg', 'geojson']:
+            supported_formats = {"shp", "gpkg", "geojson"}
+            if file_format not in supported_formats:
                 raise Exception(self.tr("Unsupported file format. Use .shp, .gpkg, or .geojson."))
+            output_dir = os.path.dirname(inputs["output_path"])
+            if output_dir and (not os.path.isdir(output_dir) or not os.access(output_dir, os.W_OK)):
+                raise Exception(self.tr("Output directory does not exist or is not writable."))
         else:
             file_format = None
 
-        if inputs['save_data'] and inputs['save_data_path']:
-            _, ext = os.path.splitext(inputs['save_data_path'])
-            save_ext = ext[1:].lower()
-            if save_ext not in ['txt', 'json']:
-                raise Exception(self.tr("Unsupported save data format. Use .txt for TLE or .json for OMM."))
+        # Validate save data path
+        if inputs["save_data"] and inputs["save_data_path"]:
+            save_dir = os.path.dirname(inputs["save_data_path"])
+            if save_dir and (not os.path.isdir(save_dir) or not os.access(save_dir, os.W_OK)):
+                raise Exception(self.tr("Save data directory does not exist or is not writable."))
 
         return sat_id, file_format
 
