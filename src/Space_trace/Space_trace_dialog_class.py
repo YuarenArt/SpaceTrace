@@ -238,6 +238,7 @@ class Ui_SpaceTracePluginDialogBase(object):
         self.pushButtonBrowseData.clicked.connect(self.browseDataFile)
         self.pushButtonBrowseOutput.clicked.connect(self.browseOutputFile)
         self.pushButtonBrowseSaveData.clicked.connect(self.browseSaveDataFile)
+        self.lineEditSatID.setValidator(QtGui.QIntValidator(1, 999999, self))
 
     def retranslateUi(self, Dialog):
         _translate = QtCore.QCoreApplication.translate

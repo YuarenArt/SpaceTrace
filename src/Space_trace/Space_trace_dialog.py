@@ -10,13 +10,38 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from .Space_trace_dialog_class import Ui_SpaceTracePluginDialogBase
-
+from .spacetrack_dialog.spacetrack_dialog import SpaceTrackDialog
 class SpaceTracePluginDialog(QtWidgets.QDialog, Ui_SpaceTracePluginDialogBase):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setupUi(self)
-        self.lineEditSatID.setValidator(QtGui.QIntValidator(1, 999999, self))
         
+        hlayout = QtWidgets.QHBoxLayout()
+        hlayout.addWidget(self.lineEditSatID)
+        
+        self.pushButtonSearchSatellites = QtWidgets.QPushButton("Search")
+        hlayout.addWidget(self.pushButtonSearchSatellites)
+
+        self.verticalLayoutSpaceTrack.removeWidget(self.lineEditSatID)
+        self.verticalLayoutSpaceTrack.insertLayout(0, hlayout)
+        self.pushButtonSearchSatellites.clicked.connect(self.open_space_track_dialog)
+        
+    def open_space_track_dialog(self):
+        """
+        Open the SpaceTrack API search dialog. If the user selects a satellite,
+        its NORAD ID is set in the corresponding input field.
+        """
+        login = self.lineEditLogin.text().strip()
+        password = self.lineEditPassword.text().strip()
+        if not login or not password:
+            QtWidgets.QMessageBox.warning(self, self.tr("Error"), self.tr("Please enter SpaceTrack login and password."))
+            return
+        # Pass login and password to the search dialog
+        dialog = SpaceTrackDialog(self, login=login, password=password, log_callback=self.appendLog)
+        if dialog.exec_() == QtWidgets.QDialog.Accepted:
+            selected_norad_id = dialog.get_selected_norad_id()
+            if selected_norad_id:
+                self.lineEditSatID.setText(selected_norad_id)
         
     def appendLog(self, message):
         self.textEditLog.append(message)

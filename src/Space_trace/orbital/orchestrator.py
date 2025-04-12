@@ -2,13 +2,10 @@
 This module contains the OrbitalOrchestrator class that orchestrates the process
 of retrieving TLE/OMM data and generating orbital track layers.
 """
-import datetime
-from datetime import date
 import os
 import json
-import logging
 
-from .spacetrack_client import SpacetrackClientWrapper
+from ..spacetrack_client.spacetrack_client import SpacetrackClientWrapper
 from .handler import OrbitalLogicHandler
 
 

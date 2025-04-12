@@ -76,3 +76,44 @@ class SpacetrackClientWrapper:
         if not data:
             raise Exception(f'No OMM data found for satellite {sat_id} before {start_datetime}')
         return json.loads(data)
+
+    def search_by_name(self, name):
+        """
+        Search for satellites matching part of the name using a wildcard query.
+        
+        :param name: Partial satellite name to search for.
+        :return: A list of found satellites in JSON format.
+        :raises Exception: If no satellites are found.
+        """
+        data = self.client.satcat(OBJECT_NAME=f'*{name}*', format='json')
+        if not data:
+            raise Exception(f"No satellites found matching name: {name}")
+        return data
+        
+    def get_active_satellites(self, limit=100):
+        """
+        Return a list of active satellites.
+        An active satellite is typically defined as one that does not have a DECAY_DATE.
+        
+        :param limit: Maximum number of satellites to return.
+        :return: A list of active satellites in JSON format.
+        :raises Exception: If no active satellites are found.
+        """
+        # Filtering satellites where DECAY_DATE is empty.
+        data = self.client.satcat(DECAY_DATE='', limit=limit, format='json')
+        if not data:
+            raise Exception("No active satellites found")
+        return data
+        
+    def search_by_country(self, country_code):
+        """
+        Search for satellites by country code.
+        
+        :param country_code: Country code (e.g., 'US') to filter satellites.
+        :return: A list of satellites from the specified country in JSON format.
+        :raises Exception: If no satellites are found for the given country.
+        """
+        data = self.client.satcat(COUNTRY_CODE=country_code.upper(), format='json')
+        if not data:
+            raise Exception(f"No satellites found for country: {country_code}")
+        return data
