@@ -143,7 +143,10 @@ class SpaceTrackDialog(QtWidgets.QDialog):
 
             # Populate the table with search results.
             for item in results:
-                self.add_result_row(str(item.get('norad_id', '')), item.get('name', ''), item.get('country', ''))
+                if isinstance(item, dict):
+                    self.add_result_row(str(item.get('NORAD_CAT_ID', '')), item.get('SATNAME', ''), item.get('COUNTRY', ''))
+                else:
+                    self.log_callback(self.tr(f"Unexpected result item type: {type(item)}"))
 
         except Exception as e:
             error_message = self.tr("Search error: ") + str(e)

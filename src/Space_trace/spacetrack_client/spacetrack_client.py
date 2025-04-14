@@ -78,42 +78,32 @@ class SpacetrackClientWrapper:
         return json.loads(data)
 
     def search_by_name(self, name):
-        """
-        Search for satellites matching part of the name using a wildcard query.
-        
-        :param name: Partial satellite name to search for.
-        :return: A list of found satellites in JSON format.
-        :raises Exception: If no satellites are found.
-        """
-        data = self.client.satcat(OBJECT_NAME=f'*{name}*', format='json')
-        if not data:
-            raise Exception(f"No satellites found matching name: {name}")
-        return data
+        results = self.client.satcat(
+            satname=op.like(f'%{name}%'),
+            orderby='NORAD_CAT_ID asc',
+            format='json'
+        )
+        return json.loads(results) if isinstance(results, str) else results
         
     def get_active_satellites(self, limit=100):
-        """
-        Return a list of active satellites.
-        An active satellite is typically defined as one that does not have a DECAY_DATE.
+        results = self.client.satcat(
+            current='Y',
+            orderby='NORAD_CAT_ID asc',
+            limit=limit,
+            format='json'
+        )
+        return json.loads(results) if isinstance(results, str) else results
+
         
-        :param limit: Maximum number of satellites to return.
-        :return: A list of active satellites in JSON format.
-        :raises Exception: If no active satellites are found.
+    def search_by_country(self, country_code, limit=100):
         """
-        # Filtering satellites where DECAY_DATE is empty.
-        data = self.client.satcat(DECAY_DATE='', limit=limit, format='json')
-        if not data:
-            raise Exception("No active satellites found")
-        return data
-        
-    def search_by_country(self, country_code):
+        Search satellites launched by a specific country.
+        Example country codes: 'USA', 'RUS', 'CHN'.
         """
-        Search for satellites by country code.
-        
-        :param country_code: Country code (e.g., 'US') to filter satellites.
-        :return: A list of satellites from the specified country in JSON format.
-        :raises Exception: If no satellites are found for the given country.
-        """
-        data = self.client.satcat(COUNTRY_CODE=country_code.upper(), format='json')
-        if not data:
-            raise Exception(f"No satellites found for country: {country_code}")
-        return data
+        results = self.client.satcat(
+            country=country_code,
+            orderby='NORAD_CAT_ID asc',
+            limit=limit,
+            format='json'
+        )
+        return json.loads(results) if isinstance(results, str) else results
