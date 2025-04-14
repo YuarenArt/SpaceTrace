@@ -1,210 +1,288 @@
 """
 SpaceTrackDialog module
 
-This module defines the SpaceTrackDialog class which provides a dialog
-for searching satellite data via the SpaceTrack API. The dialog supports
-search by name, listing of all active satellites, and search by country code.
-It logs key events and search results via a callback function.
+This module defines the SpaceTrackDialog class, which provides a dialog interface to search satellite
+data using the SpaceTrack API. Users can search by satellite name, country code, NORAD ID (single, range, or list),
+or list all active satellites with a configurable limit. The dialog displays detailed satellite parameters
+and logs all important actions.
 """
 
 from PyQt5 import QtWidgets, QtCore
-import json
 from ..spacetrack_client.spacetrack_client import SpacetrackClientWrapper
+
 
 class SpaceTrackDialog(QtWidgets.QDialog):
     """
-    A dialog for searching satellites using the SpaceTrack API.
+    Dialog for querying satellite data from SpaceTrack and displaying it.
 
     Attributes:
-        login (str): SpaceTrack login credential.
-        password (str): SpaceTrack password.
-        client (SpacetrackClientWrapper): Instance of the SpaceTrack API wrapper.
-        log_callback (callable): Callback function to log messages (e.g., log_message from main plugin).
-        selected_norad_id (str): The NORAD ID selected by the user.
+        selected_norad_id (str): NORAD ID of the selected satellite.
+        client (SpacetrackClientWrapper): Wrapper for SpaceTrack API requests.
+        log_callback (callable): Callback for logging messages externally.
     """
+
     def __init__(self, parent=None, login=None, password=None, log_callback=None):
         """
-        Initialize the search dialog.
+        Initialize the SpaceTrack dialog window.
 
-        :param parent: Parent widget.
-        :param login: SpaceTrack account login.
-        :param password: SpaceTrack account password.
-        :param log_callback: Callback function for logging messages.
+        Args:
+            parent (QWidget): Parent widget.
+            login (str): SpaceTrack API login.
+            password (str): SpaceTrack API password.
+            log_callback (callable): Callback for logging.
         """
         super().__init__(parent)
         self.selected_norad_id = None
         self.log_callback = log_callback
         self.client = SpacetrackClientWrapper(login, password)
-        self.setupUi()
+        self.init_ui()
 
-    def setupUi(self):
-        """
-        Set up the user interface for the dialog.
-        """
-        self.setWindowTitle(self.tr("SpaceTrack Search"))
-        self.resize(600, 400)
-
+    def init_ui(self):
+        """Set up the UI components of the dialog."""
+        self.setWindowTitle("SpaceTrack Search")
+        self.resize(900, 500)
         self.verticalLayout = QtWidgets.QVBoxLayout(self)
 
-        # Group for selecting the search type.
-        self.groupBoxSearchType = QtWidgets.QGroupBox(self.tr("Search Type"), self)
-        self.hLayoutSearchType = QtWidgets.QHBoxLayout(self.groupBoxSearchType)
+        self._setup_search_type_controls()
+        self._setup_search_input()
+        self._setup_limit_selector()
+        self._setup_result_table()
+        self._setup_buttons()
+        self._connect_signals()
 
-        self.radioName = QtWidgets.QRadioButton(self.tr("By Name"), self.groupBoxSearchType)
-        self.radioActive = QtWidgets.QRadioButton(self.tr("All Active"), self.groupBoxSearchType)
-        self.radioCountry = QtWidgets.QRadioButton(self.tr("By Country"), self.groupBoxSearchType)
-        # Default selection: search by name.
+    def _setup_search_type_controls(self):
+        """Configure the radio buttons for search type selection."""
+        self.groupBoxSearchType = QtWidgets.QGroupBox("Search Type", self)
+        layout = QtWidgets.QHBoxLayout(self.groupBoxSearchType)
+
+        self.radioName = QtWidgets.QRadioButton("By Name")
+        self.radioActive = QtWidgets.QRadioButton("All Active")
+        self.radioCountry = QtWidgets.QRadioButton("By Country")
+        self.radioNorad = QtWidgets.QRadioButton("By NORAD ID")
         self.radioName.setChecked(True)
-        self.hLayoutSearchType.addWidget(self.radioName)
-        self.hLayoutSearchType.addWidget(self.radioActive)
-        self.hLayoutSearchType.addWidget(self.radioCountry)
+
+        for radio in (self.radioName, self.radioActive, self.radioCountry, self.radioNorad):
+            layout.addWidget(radio)
+
         self.verticalLayout.addWidget(self.groupBoxSearchType)
 
-        # Label and field for search criteria.
-        self.labelSearch = QtWidgets.QLabel(self.tr("Search Criteria:"), self)
-        self.verticalLayout.addWidget(self.labelSearch)
-        self.lineEditSearch = QtWidgets.QLineEdit(self)
+    def _setup_search_input(self):
+        """Configure search input field and button."""
+        self.labelSearch = QtWidgets.QLabel("Search Criteria:")
+        self.lineEditSearch = QtWidgets.QLineEdit()
         self.lineEditSearch.setPlaceholderText(
-            self.tr("Enter satellite name, country code (e.g., US), or leave empty for active satellites")
+            "Enter name, country code (e.g., US), NORAD ID (e.g., 25544), range (e.g., 25544-25550), or list (e.g., 25544,25545)"
         )
-        self.verticalLayout.addWidget(self.lineEditSearch)
+        self.pushButtonSearch = QtWidgets.QPushButton("Search")
 
-        # Search button.
-        self.pushButtonSearch = QtWidgets.QPushButton(self.tr("Search"), self)
+        self.verticalLayout.addWidget(self.labelSearch)
+        self.verticalLayout.addWidget(self.lineEditSearch)
         self.verticalLayout.addWidget(self.pushButtonSearch)
 
-        # Table for displaying search results.
-        self.tableResult = QtWidgets.QTableWidget(self)
-        self.tableResult.setColumnCount(3)
-        self.tableResult.setHorizontalHeaderLabels([self.tr("NORAD ID"), self.tr("Name"), self.tr("Country")])
+    def _setup_limit_selector(self):
+        """Configure the limit selection combo box."""
+        self.labelLimit = QtWidgets.QLabel("Result Limit:")
+        self.comboLimit = QtWidgets.QComboBox()
+        self.comboLimit.addItems(["10", "50", "100", "500", "1000"])
+        self.comboLimit.setCurrentText("100")
+
+        limit_layout = QtWidgets.QHBoxLayout()
+        limit_layout.addWidget(self.labelLimit)
+        limit_layout.addWidget(self.comboLimit)
+        limit_layout.addStretch()
+        self.verticalLayout.addLayout(limit_layout)
+
+    def _setup_result_table(self):
+        """Configure the table for displaying satellite search results."""
+        self.tableResult = QtWidgets.QTableWidget()
+        self.tableResult.setColumnCount(7)
+        self.tableResult.setHorizontalHeaderLabels([
+            "NORAD ID", "Name", "Country", "Eccentricity", "Perigee (km)", "Apogee (km)", "Inclination (°)"
+        ])
         self.tableResult.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
         self.tableResult.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
         self.tableResult.horizontalHeader().setStretchLastSection(True)
+        self.tableResult.setSortingEnabled(True)
+
         self.verticalLayout.addWidget(self.tableResult)
 
-        # OK and Cancel buttons.
+    def _setup_buttons(self):
+        """Add OK and Cancel buttons."""
         self.buttonBox = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel
         )
         self.verticalLayout.addWidget(self.buttonBox)
 
-        # Connect signals to slots.
+    def _connect_signals(self):
+        """Connect UI events to corresponding methods."""
         self.pushButtonSearch.clicked.connect(self.perform_search)
         self.buttonBox.accepted.connect(self.on_accept)
         self.buttonBox.rejected.connect(self.reject)
         self.tableResult.itemSelectionChanged.connect(self.on_selection_changed)
 
     def perform_search(self):
-        """
-        Perform a search based on the selected search type and criteria.
-        Display the results in the table, and log key events via the callback.
-        """
-        # Log the beginning of search.
-        if self.log_callback:
-            self.log_callback(self.tr("Starting satellite search..."))
-
+        """Handle the search button press based on selected mode."""
+        self._log("Starting satellite search...")
         search_text = self.lineEditSearch.text().strip()
-        self.tableResult.setRowCount(0)  # Clear previous results
+        limit = int(self.comboLimit.currentText())
+        self.tableResult.setRowCount(0)
 
         try:
-            # Determine which search method to use based on the selected radio button.
-            if self.radioName.isChecked():
-                if not search_text:
-                    QtWidgets.QMessageBox.warning(
-                        self, self.tr("Error"), self.tr("Please enter a satellite name.")
-                    )
-                    if self.log_callback:
-                        self.log_callback(self.tr("Satellite name was not provided for search."))
-                    return
-                results = self.client.search_by_name(search_text)
-            elif self.radioActive.isChecked():
-                results = self.client.get_active_satellites(limit=100)
-            elif self.radioCountry.isChecked():
-                if not search_text:
-                    QtWidgets.QMessageBox.warning(
-                        self, self.tr("Error"), self.tr("Please enter a country code (e.g., US).")
-                    )
-                    if self.log_callback:
-                        self.log_callback(self.tr("Country code was not provided for search."))
-                    return
-                results = self.client.search_by_country(search_text)
-            else:
-                results = []
-
-            # Log the number of results found.
-            if self.log_callback:
-                self.log_callback(
-                    self.tr("Found {0} results.").format(len(results) if results else 0))
-
-            if not results:
-                self.tableResult.setRowCount(1)
-                self.tableResult.setItem(0, 0, QtWidgets.QTableWidgetItem(self.tr("No results")))
-                return
-
-            # Populate the table with search results.
-            for item in results:
-                if isinstance(item, dict):
-                    self.add_result_row(str(item.get('NORAD_CAT_ID', '')), item.get('SATNAME', ''), item.get('COUNTRY', ''))
-                else:
-                    self.log_callback(self.tr(f"Unexpected result item type: {type(item)}"))
-
+            results = self._get_search_results(search_text, limit)
+            self._display_results(results)
         except Exception as e:
-            error_message = self.tr("Search error: ") + str(e)
-            QtWidgets.QMessageBox.critical(self, self.tr("Error"), error_message)
-            if self.log_callback:
-                self.log_callback(error_message)
+            self._handle_error(f"Search error: {e}")
 
-    def add_result_row(self, norad_id, name, country):
+    def _get_search_results(self, search_text, limit):
         """
-        Add a row to the result table.
+        Return results from the appropriate API method based on radio selection.
 
-        :param norad_id: Satellite NORAD ID.
-        :param name: Satellite name.
-        :param country: Satellite country code.
+        Args:
+            search_text (str): User input for search.
+            limit (int): Maximum number of results to return.
+
+        Returns:
+            list: List of satellite data dictionaries.
         """
+        if self.radioName.isChecked():
+            if not search_text:
+                self._warn("Please enter a satellite name.")
+                return []
+            return self.client.search_by_name(search_text, limit)
+
+        elif self.radioActive.isChecked():
+            return self.client.get_active_satellites(limit)
+
+        elif self.radioCountry.isChecked():
+            if not search_text:
+                self._warn("Please enter a country code (e.g., US).")
+                return []
+            return self.client.search_by_country(search_text, limit)
+
+        elif self.radioNorad.isChecked():
+            if not search_text:
+                self._warn("Please enter a NORAD ID, range, or list.")
+                return []
+            return self.client.search_by_norad_id(search_text, limit)
+
+        return []
+
+    def _display_results(self, results):
+        """
+        Populate the result table with satellite data.
+
+        Args:
+            results (list): List of satellite data dictionaries.
+        """
+        if not results:
+            self._log("No results found.")
+            self.tableResult.setRowCount(1)
+            self.tableResult.setItem(0, 0, QtWidgets.QTableWidgetItem("No results"))
+            return
+
+        self._log(f"Found {len(results)} results.")
+        for sat in results:
+            if isinstance(sat, dict):
+                self._add_result_row(sat)
+            else:
+                self._log(f"Unexpected result type: {type(sat)}")
+
+    def _add_result_row(self, sat):
         row = self.tableResult.rowCount()
         self.tableResult.insertRow(row)
-        self.tableResult.setItem(row, 0, QtWidgets.QTableWidgetItem(norad_id))
-        self.tableResult.setItem(row, 1, QtWidgets.QTableWidgetItem(name))
-        self.tableResult.setItem(row, 2, QtWidgets.QTableWidgetItem(country))
-        # Log the addition of each result row.
-        if self.log_callback:
-            self.log_callback(
-                self.tr("Added result row: NORAD ID {0}, Name {1}, Country {2}").format(norad_id, name, country)
-            )
+
+        # Constants
+        R_EARTH = 6378.137  # Earth radius in km
+
+        # Extract values
+        perigee = sat.get("PERIGEE")
+        apogee = sat.get("APOGEE")
+
+        # Try direct eccentricity
+        eccentricity = sat.get("ECCENTRICITY")
+
+        # If not present, calculate manually
+        if eccentricity is None and perigee is not None and apogee is not None:
+            try:
+                rp = float(perigee) + R_EARTH
+                ra = float(apogee) + R_EARTH
+                eccentricity = (ra - rp) / (ra + rp)
+                eccentricity = round(eccentricity, 7)
+            except Exception as e:
+                self._log(f"Failed to calculate eccentricity: {e}")
+                eccentricity = ""
+        elif eccentricity is None:
+            eccentricity = ""
+
+        # Build values
+        values = [
+            str(sat.get("NORAD_CAT_ID", "")),
+            sat.get("SATNAME", ""),
+            sat.get("COUNTRY", ""),
+            str(eccentricity),
+            str(perigee) if perigee is not None else "",
+            str(apogee) if apogee is not None else "",
+            str(sat.get("INCLINATION", ""))
+        ]
+
+        # Set cells
+        for col, val in enumerate(values):
+            item = QtWidgets.QTableWidgetItem(val)
+            if col == 0:
+                item.setData(QtCore.Qt.ItemDataRole.UserRole, int(val) if val.isdigit() else 0)
+            self.tableResult.setItem(row, col, item)
 
     def on_selection_changed(self):
-        """
-        Update the selected NORAD ID based on the current table selection.
-        """
+        """Update internal state when user selects a satellite in the table."""
         selected_items = self.tableResult.selectedItems()
         if selected_items:
             self.selected_norad_id = selected_items[0].text()
-            if self.log_callback:
-                self.log_callback(
-                    self.tr("Selected satellite NORAD ID: {0}").format(self.selected_norad_id)
-                )
+            self._log(f"Selected satellite NORAD ID: {self.selected_norad_id}")
 
     def on_accept(self):
-        """
-        Accept the dialog if a satellite has been selected;
-        otherwise, show a warning message.
-        """
+        """Accept the dialog if a satellite is selected; otherwise show warning."""
         if self.selected_norad_id:
-            if self.log_callback:
-                self.log_callback(self.tr("Satellite {0} selected; accepting dialog.").format(self.selected_norad_id))
+            self._log(f"Satellite {self.selected_norad_id} selected; accepting dialog.")
             self.accept()
         else:
-            QtWidgets.QMessageBox.warning(
-                self, self.tr("Error"), self.tr("Please select a satellite from the list.")
-            )
-            if self.log_callback:
-                self.log_callback(self.tr("No satellite selected; dialog not accepted."))
+            self._warn("Please select a satellite from the list.")
+            self._log("No satellite selected; dialog not accepted.")
 
     def get_selected_norad_id(self):
         """
-        Return the selected NORAD ID.
+        Get the NORAD ID of the selected satellite.
 
-        :return: The NORAD ID of the selected satellite.
+        Returns:
+            str: Selected NORAD ID, or None if none selected.
         """
         return self.selected_norad_id
+
+    def _warn(self, message):
+        """
+        Show warning dialog with a message.
+
+        Args:
+            message (str): Warning message to display.
+        """
+        QtWidgets.QMessageBox.warning(self, "Warning", message)
+        self._log(message)
+
+    def _handle_error(self, message):
+        """
+        Display error message and log it.
+
+        Args:
+            message (str): Error message to display.
+        """
+        QtWidgets.QMessageBox.critical(self, "Error", message)
+        self._log(message)
+
+    def _log(self, message):
+        """
+        Log a message using the provided callback.
+
+        Args:
+            message (str): Message to log.
+        """
+        if self.log_callback:
+            self.log_callback(message)

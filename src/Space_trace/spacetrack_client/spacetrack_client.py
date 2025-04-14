@@ -77,10 +77,14 @@ class SpacetrackClientWrapper:
             raise Exception(f'No OMM data found for satellite {sat_id} before {start_datetime}')
         return json.loads(data)
 
-    def search_by_name(self, name):
+    def search_by_name(self, name, limit=100):
+        """
+        Search satellites by name (partial match).
+        """
         results = self.client.satcat(
             satname=op.like(f'%{name}%'),
             orderby='NORAD_CAT_ID asc',
+            limit=limit,
             format='json'
         )
         return json.loads(results) if isinstance(results, str) else results
@@ -88,7 +92,7 @@ class SpacetrackClientWrapper:
     def get_active_satellites(self, limit=100):
         results = self.client.satcat(
             current='Y',
-            orderby='NORAD_CAT_ID asc',
+            orderby='NORAD_CAT_ID desc',
             limit=limit,
             format='json'
         )
@@ -102,6 +106,54 @@ class SpacetrackClientWrapper:
         """
         results = self.client.satcat(
             country=country_code,
+            orderby='NORAD_CAT_ID asc',
+            limit=limit,
+            format='json'
+        )
+        return json.loads(results) if isinstance(results, str) else results
+    
+    def search_by_norad_id(self, norad_input, limit=100):
+        """
+        Search satellites by NORAD ID (single, range, or list).
+
+        Args:
+            norad_input (str): Single NORAD ID (e.g., '25544'), range (e.g., '25544-25550'), or list (e.g., '25544,25545').
+            limit (int): Maximum number of results.
+
+        Returns:
+            list: List of satellite data dictionaries.
+
+        Raises:
+            ValueError: If NORAD input format is invalid.
+        """
+        norad_input = norad_input.strip()
+        if '-' in norad_input:
+            # Handle range (e.g., '25544-25550')
+            try:
+                start, end = map(int, norad_input.split('-'))
+                if start > end:
+                    raise ValueError("Start of range must be less than or equal to end.")
+                norad_ids = op.inclusive_range(start, end)
+            except ValueError as e:
+                raise ValueError(f"Invalid NORAD ID range format: {norad_input}. Use e.g., '25544-25550'.") from e
+        elif ',' in norad_input:
+            # Handle list (e.g., '25544,25545')
+            try:
+                norad_ids = [int(id.strip()) for id in norad_input.split(',')]
+                if not norad_ids:
+                    raise ValueError("NORAD ID list cannot be empty.")
+                norad_ids = ','.join(map(str, norad_ids))
+            except ValueError as e:
+                raise ValueError(f"Invalid NORAD ID list format: {norad_input}. Use e.g., '25544,25545'.") from e
+        else:
+            # Handle single ID (e.g., '25544')
+            try:
+                norad_ids = int(norad_input)
+            except ValueError as e:
+                raise ValueError(f"Invalid NORAD ID: {norad_input}. Must be a number.") from e
+
+        results = self.client.satcat(
+            norad_cat_id=norad_ids,
             orderby='NORAD_CAT_ID asc',
             limit=limit,
             format='json'
