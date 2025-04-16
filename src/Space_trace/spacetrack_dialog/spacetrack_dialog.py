@@ -9,7 +9,7 @@ and logs all important actions.
 
 from PyQt5 import QtWidgets, QtCore
 from ..spacetrack_client.spacetrack_client import SpacetrackClientWrapper
-
+from .custom_query_dialog import CustomQueryDialog
 
 class SpaceTrackDialog(QtWidgets.QDialog):
     """
@@ -49,6 +49,30 @@ class SpaceTrackDialog(QtWidgets.QDialog):
         self._setup_result_table()
         self._setup_buttons()
         self._connect_signals()
+        self.retranslateUi()
+        
+        self.pushButtonCustomQuery = QtWidgets.QPushButton("Custom Query")
+        self.pushButtonCustomQuery.clicked.connect(self.open_custom_query_dialog)
+        self.verticalLayout.addWidget(self.pushButtonCustomQuery, 0, QtCore.Qt.AlignRight)
+        self.verticalLayout.addWidget(self.buttonBox)
+        
+    def open_custom_query_dialog(self):
+        dialog = CustomQueryDialog(self)
+        if dialog.exec_() == QtWidgets.QDialog.Accepted:
+            conditions = dialog.get_conditions()
+            if conditions:
+                self.perform_custom_search(conditions)
+                
+    def perform_custom_search(self, conditions):
+        self._log("Starting custom satellite search...")
+        limit = int(self.comboLimit.currentText())
+        self.tableResult.setRowCount(0)
+
+        try:
+            results = self.client.search_by_custom_query(conditions, limit)
+            self._display_results(results)
+        except Exception as e:
+            self._handle_error(f"Search error: {e}")
 
     def _setup_search_type_controls(self):
         """Configure the radio buttons for search type selection."""
@@ -79,6 +103,34 @@ class SpaceTrackDialog(QtWidgets.QDialog):
         self.verticalLayout.addWidget(self.lineEditSearch)
         self.verticalLayout.addWidget(self.pushButtonSearch)
 
+    def retranslateUi(self):
+        """Translate UI strings."""
+        _translate = QtCore.QCoreApplication.translate
+        self.setWindowTitle(_translate("SpaceTrackDialog", "SpaceTrack Search"))
+        self.groupBoxSearchType.setTitle(_translate("SpaceTrackDialog", "Search Type"))
+        self.radioName.setText(_translate("SpaceTrackDialog", "By Name"))
+        self.radioActive.setText(_translate("SpaceTrackDialog", "All Active"))
+        self.radioCountry.setText(_translate("SpaceTrackDialog", "By Country"))
+        self.radioNorad.setText(_translate("SpaceTrackDialog", "By NORAD ID"))
+        self.labelSearch.setText(_translate("SpaceTrackDialog", "Search Criteria:"))
+        self.lineEditSearch.setPlaceholderText(
+            _translate(
+                "SpaceTrackDialog",
+                "Enter name, country code (e.g., US), NORAD ID (e.g., 25544), range (e.g., 25544-25550), or list (e.g., 25544,25545)"
+            )
+        )
+        self.pushButtonSearch.setText(_translate("SpaceTrackDialog", "Search"))
+        self.labelLimit.setText(_translate("SpaceTrackDialog", "Result Limit:"))
+        self.tableResult.setHorizontalHeaderLabels([
+            _translate("SpaceTrackDialog", "NORAD ID"),
+            _translate("SpaceTrackDialog", "Name"),
+            _translate("SpaceTrackDialog", "Country"),
+            _translate("SpaceTrackDialog", "Eccentricity"),
+            _translate("SpaceTrackDialog", "Perigee (km)"),
+            _translate("SpaceTrackDialog", "Apogee (km)"),
+            _translate("SpaceTrackDialog", "Inclination (°)")
+        ])
+    
     def _setup_limit_selector(self):
         """Configure the limit selection combo box."""
         self.labelLimit = QtWidgets.QLabel("Result Limit:")
@@ -136,13 +188,6 @@ class SpaceTrackDialog(QtWidgets.QDialog):
     def _get_search_results(self, search_text, limit):
         """
         Return results from the appropriate API method based on radio selection.
-
-        Args:
-            search_text (str): User input for search.
-            limit (int): Maximum number of results to return.
-
-        Returns:
-            list: List of satellite data dictionaries.
         """
         if self.radioName.isChecked():
             if not search_text:

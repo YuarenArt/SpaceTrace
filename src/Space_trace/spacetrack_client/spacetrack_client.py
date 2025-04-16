@@ -3,10 +3,12 @@ This module contains the SpacetrackClientWrapper class for SpaceTrack API commun
 It provides methods to retrieve TLE and OMM data.
 """
 
-from datetime import date, timedelta
+from datetime import datetime, timedelta
 import spacetrack.operators as op
 from spacetrack import SpaceTrackClient
 import json
+
+from ..spacetrack_dialog.custom_query_dialog import field_types
 
 class SpacetrackClientWrapper:
     """
@@ -159,3 +161,60 @@ class SpacetrackClientWrapper:
             format='json'
         )
         return json.loads(results) if isinstance(results, str) else results
+    
+    def search_by_custom_query(self, conditions, limit=100):
+        query_params = {}
+        for field, operator, value in conditions:
+            if field not in field_types:
+                raise ValueError(f"Unknown field: {field}")
+            field_type = field_types[field]
+
+            # Преобразование значения в нужный тип
+            if field_type == 'int':
+                try:
+                    value = int(value)
+                except ValueError:
+                    raise ValueError(f"Invalid value for {field}: {value}. Must be an integer.")
+            elif field_type == 'decimal':
+                try:
+                    value = float(value)
+                except ValueError:
+                    raise ValueError(f"Invalid value for {field}: {value}. Must be a decimal.")
+            elif field_type == 'date':
+                try:
+                    value = datetime.strptime(value, '%Y-%m-%d').date()
+                except ValueError:
+                    raise ValueError(f"Invalid date format for {field}: {value}. Use YYYY-MM-DD")
+            elif field_type == 'enum':
+                if value not in ['Y', 'N']:
+                    raise ValueError(f"Invalid value for {field}: {value}. Must be 'Y' or 'N'.")
+
+            api_field = field.lower()
+
+            if operator == '=':
+                query_params[api_field] = value
+            elif operator == '!=':
+                query_params[api_field] = f'!{value}'
+            elif operator == '<':
+                query_params[api_field] = op.less_than(value)
+            elif operator == '>':
+                query_params[api_field] = op.greater_than(value)
+            elif operator == '<=':
+                query_params[api_field] = f'<={value}'
+            elif operator == '>=':
+                query_params[api_field] = f'>={value}'
+            elif operator == 'LIKE' and field_type == 'string':
+                query_params[api_field] = op.like(value)
+            else:
+                raise ValueError(f"Invalid operator for {field}: {operator}")
+
+        try:
+            results = self.client.satcat(
+                **query_params,
+                orderby='norad_cat_id asc',
+                limit=limit,
+                format='json'
+            )
+            return json.loads(results) if isinstance(results, str) else results
+        except Exception as e:
+            raise Exception(f"Failed to execute satcat query: {str(e)}")
