@@ -170,9 +170,6 @@ class SpaceTrackDialog(QtWidgets.QDialog):
     def _display_results(self, results):
         """
         Populate the result table with satellite data.
-
-        Args:
-            results (list): List of satellite data dictionaries.
         """
         if not results:
             self._log("No results found.")
@@ -191,23 +188,15 @@ class SpaceTrackDialog(QtWidgets.QDialog):
         row = self.tableResult.rowCount()
         self.tableResult.insertRow(row)
 
-        # Constants
-        R_EARTH = 6378.137  # Earth radius in km
 
-        # Extract values
         perigee = sat.get("PERIGEE")
         apogee = sat.get("APOGEE")
-
-        # Try direct eccentricity
         eccentricity = sat.get("ECCENTRICITY")
-
-        # If not present, calculate manually
         if eccentricity is None and perigee is not None and apogee is not None:
             try:
-                rp = float(perigee) + R_EARTH
-                ra = float(apogee) + R_EARTH
+                rp = float(perigee)
+                ra = float(apogee)
                 eccentricity = (ra - rp) / (ra + rp)
-                eccentricity = round(eccentricity, 7)
             except Exception as e:
                 self._log(f"Failed to calculate eccentricity: {e}")
                 eccentricity = ""
@@ -219,10 +208,10 @@ class SpaceTrackDialog(QtWidgets.QDialog):
             str(sat.get("NORAD_CAT_ID", "")),
             sat.get("SATNAME", ""),
             sat.get("COUNTRY", ""),
-            str(eccentricity),
-            str(perigee) if perigee is not None else "",
-            str(apogee) if apogee is not None else "",
-            str(sat.get("INCLINATION", ""))
+            f"{eccentricity:.6f}" if isinstance(eccentricity, float) else str(eccentricity),
+            f"{float(perigee):.3f}" if perigee is not None else "",
+            f"{float(apogee):.3f}" if apogee is not None else "",
+            f"{float(sat.get('INCLINATION', 0.0)):.3f}" if sat.get("INCLINATION") is not None else ""
         ]
 
         # Set cells
@@ -233,11 +222,16 @@ class SpaceTrackDialog(QtWidgets.QDialog):
             self.tableResult.setItem(row, col, item)
 
     def on_selection_changed(self):
-        """Update internal state when user selects a satellite in the table."""
-        selected_items = self.tableResult.selectedItems()
-        if selected_items:
-            self.selected_norad_id = selected_items[0].text()
-            self._log(f"Selected satellite NORAD ID: {self.selected_norad_id}")
+        """Update internal state when user selects a row in the table."""
+        selected_rows = self.tableResult.selectedIndexes()
+        if selected_rows:
+            row = selected_rows[0].row()
+            norad_item = self.tableResult.item(row, 0)  # Always get NORAD ID from column 0
+            self.selected_norad_id = norad_item.text() if norad_item else None
+            if self.selected_norad_id:
+                self._log(f"Selected satellite NORAD ID: {self.selected_norad_id}")
+            else:
+                self._log("No valid NORAD ID in selected row")
 
     def on_accept(self):
         """Accept the dialog if a satellite is selected; otherwise show warning."""
@@ -251,18 +245,12 @@ class SpaceTrackDialog(QtWidgets.QDialog):
     def get_selected_norad_id(self):
         """
         Get the NORAD ID of the selected satellite.
-
-        Returns:
-            str: Selected NORAD ID, or None if none selected.
         """
         return self.selected_norad_id
 
     def _warn(self, message):
         """
         Show warning dialog with a message.
-
-        Args:
-            message (str): Warning message to display.
         """
         QtWidgets.QMessageBox.warning(self, "Warning", message)
         self._log(message)
@@ -270,9 +258,6 @@ class SpaceTrackDialog(QtWidgets.QDialog):
     def _handle_error(self, message):
         """
         Display error message and log it.
-
-        Args:
-            message (str): Error message to display.
         """
         QtWidgets.QMessageBox.critical(self, "Error", message)
         self._log(message)
@@ -280,9 +265,6 @@ class SpaceTrackDialog(QtWidgets.QDialog):
     def _log(self, message):
         """
         Log a message using the provided callback.
-
-        Args:
-            message (str): Message to log.
         """
         if self.log_callback:
             self.log_callback(message)
