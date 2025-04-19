@@ -9,6 +9,7 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+
 from .Space_trace_dialog_class import Ui_SpaceTracePluginDialogBase
 from .spacetrack_dialog.spacetrack_dialog import SpaceTrackDialog
 class SpaceTracePluginDialog(QtWidgets.QDialog, Ui_SpaceTracePluginDialogBase):
@@ -51,6 +52,7 @@ class SpaceTracePluginDialog(QtWidgets.QDialog, Ui_SpaceTracePluginDialogBase):
         Switch the tab widget to the Log tab.
         """
         self.tabWidget.setCurrentIndex(1)
+        
         
     def get_inputs(self):
         """
