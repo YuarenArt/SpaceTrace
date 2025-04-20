@@ -104,7 +104,6 @@ class SpacetrackClientWrapper:
     def search_by_country(self, country_code, limit=100):
         """
         Search satellites launched by a specific country.
-        Example country codes: 'USA', 'RUS', 'CHN'.
         """
         results = self.client.satcat(
             country=country_code,
@@ -169,7 +168,6 @@ class SpacetrackClientWrapper:
                 raise ValueError(f"Unknown field: {field}")
             field_type = field_types[field]
 
-            # Преобразование значения в нужный тип
             if field_type == 'int':
                 try:
                     value = int(value)

@@ -134,6 +134,9 @@ class CustomQueryDialog(QDialog):
         Iterates through selected rows in reverse order to safely remove them.
         """
         selected_rows = self.table.selectionModel().selectedRows()
+        if not selected_rows:
+            QtWidgets.QMessageBox.warning(self, "Warning", "Please select a row to remove.")
+            return
         for index in sorted(selected_rows, reverse=True):
             self.table.removeRow(index.row())
 
