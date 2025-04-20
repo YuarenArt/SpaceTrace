@@ -21,6 +21,17 @@ class SpaceTrackDialog(QtWidgets.QDialog):
         log_callback (callable): Callback for logging messages externally.
     """
 
+    DISPLAY_ATTRIBUTES = {
+        "NORAD_CAT_ID": "NORAD ID",
+        "SATNAME": "Name",
+        "COUNTRY": "Country",
+        "LAUNCH": "Launch Date",
+        "ECCENTRICITY": "Eccentricity",
+        "PERIGEE": "Perigee (km)",
+        "APOGEE": "Apogee (km)",
+        "INCLINATION": "Inclination (°)"
+    }
+
     def __init__(self, parent=None, login=None, password=None, log_callback=None):
         """
         Initialize the SpaceTrack dialog window.
@@ -122,21 +133,15 @@ class SpaceTrackDialog(QtWidgets.QDialog):
         self.pushButtonSearch.setText(_translate("SpaceTrackDialog", "Search"))
         self.labelLimit.setText(_translate("SpaceTrackDialog", "Result Limit:"))
         self.tableResult.setHorizontalHeaderLabels([
-            _translate("SpaceTrackDialog", "NORAD ID"),
-            _translate("SpaceTrackDialog", "Name"),
-            _translate("SpaceTrackDialog", "Country"),
-            _translate("SpaceTrackDialog", "Eccentricity"),
-            _translate("SpaceTrackDialog", "Perigee (km)"),
-            _translate("SpaceTrackDialog", "Apogee (km)"),
-            _translate("SpaceTrackDialog", "Inclination (°)")
+            _translate("SpaceTrackDialog", name) for name in self.DISPLAY_ATTRIBUTES.values()
         ])
-    
+
     def _setup_limit_selector(self):
         """Configure the limit selection combo box."""
         self.labelLimit = QtWidgets.QLabel("Result Limit:")
         self.comboLimit = QtWidgets.QComboBox()
-        self.comboLimit.addItems(["10", "50", "100", "500", "1000"])
-        self.comboLimit.setCurrentText("100")
+        self.comboLimit.addItems(["1", "5", "10", "25", "50", "100", "500", "1000"])
+        self.comboLimit.setCurrentText("10")
 
         limit_layout = QtWidgets.QHBoxLayout()
         limit_layout.addWidget(self.labelLimit)
@@ -147,15 +152,12 @@ class SpaceTrackDialog(QtWidgets.QDialog):
     def _setup_result_table(self):
         """Configure the table for displaying satellite search results."""
         self.tableResult = QtWidgets.QTableWidget()
-        self.tableResult.setColumnCount(7)
-        self.tableResult.setHorizontalHeaderLabels([
-            "NORAD ID", "Name", "Country", "Eccentricity", "Perigee (km)", "Apogee (km)", "Inclination (°)"
-        ])
+        self.tableResult.setColumnCount(len(self.DISPLAY_ATTRIBUTES))
+        self.tableResult.setHorizontalHeaderLabels(self.DISPLAY_ATTRIBUTES.values())
         self.tableResult.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
         self.tableResult.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
         self.tableResult.horizontalHeader().setStretchLastSection(True)
         self.tableResult.setSortingEnabled(True)
-
         self.verticalLayout.addWidget(self.tableResult)
 
     def _setup_buttons(self):
@@ -230,41 +232,34 @@ class SpaceTrackDialog(QtWidgets.QDialog):
                 self._log(f"Unexpected result type: {type(sat)}")
 
     def _add_result_row(self, sat):
+        """Add a row to the result table with satellite data."""
         row = self.tableResult.rowCount()
         self.tableResult.insertRow(row)
 
-
-        perigee = sat.get("PERIGEE")
-        apogee = sat.get("APOGEE")
-        eccentricity = sat.get("ECCENTRICITY")
-        if eccentricity is None and perigee is not None and apogee is not None:
-            try:
-                rp = float(perigee)
-                ra = float(apogee)
-                eccentricity = (ra - rp) / (ra + rp)
-            except Exception as e:
-                self._log(f"Failed to calculate eccentricity: {e}")
-                eccentricity = ""
-        elif eccentricity is None:
-            eccentricity = ""
-
-        # Build values
-        values = [
-            str(sat.get("NORAD_CAT_ID", "")),
-            sat.get("SATNAME", ""),
-            sat.get("COUNTRY", ""),
-            f"{eccentricity:.6f}" if isinstance(eccentricity, float) else str(eccentricity),
-            f"{float(perigee):.3f}" if perigee is not None else "",
-            f"{float(apogee):.3f}" if apogee is not None else "",
-            f"{float(sat.get('INCLINATION', 0.0)):.3f}" if sat.get("INCLINATION") is not None else ""
-        ]
-
-        # Set cells
-        for col, val in enumerate(values):
-            item = QtWidgets.QTableWidgetItem(val)
-            if col == 0:
-                item.setData(QtCore.Qt.ItemDataRole.UserRole, int(val) if val.isdigit() else 0)
+        for col, (key, _) in enumerate(self.DISPLAY_ATTRIBUTES.items()):
+            value = self._format_value(key, sat)
+            item = QtWidgets.QTableWidgetItem(value)
+            if key == "NORAD_CAT_ID":
+                item.setData(QtCore.Qt.ItemDataRole.UserRole, int(value) if value.isdigit() else 0)
             self.tableResult.setItem(row, col, item)
+
+    def _format_value(self, key, sat):
+        """Format a satellite attribute value based on its key."""
+        value = sat.get(key)
+        try:
+            if key == "ECCENTRICITY" and value is None and sat.get("PERIGEE") and sat.get("APOGEE"):
+                rp, ra = float(sat["PERIGEE"]), float(sat["APOGEE"])
+                return f"{(ra - rp) / (ra + rp):.6f}"
+            elif key in ["PERIGEE", "APOGEE"]:
+                return f"{float(value):.0f}" if value is not None else ""
+            elif key == "INCLINATION":
+                return f"{float(value):.3f}" if value is not None else ""
+            elif key == "ECCENTRICITY":
+                return f"{float(value):.6f}" if value is not None else ""
+            return str(value) if value is not None else ""
+        except Exception as e:
+            self._log(f"Error formatting {key}: {e}")
+            return ""
 
     def on_selection_changed(self):
         """Update internal state when user selects a row in the table."""

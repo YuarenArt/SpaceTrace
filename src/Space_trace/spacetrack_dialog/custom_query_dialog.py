@@ -37,6 +37,34 @@ field_types = {
     'OBJECT_NUMBER': 'int'      # Object number (integer)
 }
 
+# Mapping of internal field names to human-readable labels
+field_labels = {
+    'INTLDES': 'International Designator',
+    'NORAD_CAT_ID': 'NORAD Catalog ID',
+    'OBJECT_TYPE': 'Object Type',
+    'SATNAME': 'Satellite Name',
+    'COUNTRY': 'Country of Origin',
+    'LAUNCH': 'Launch Date',
+    'SITE': 'Launch Site',
+    'DECAY': 'Decay Date',
+    'PERIOD': 'Orbital Period (min)',
+    'INCLINATION': 'Inclination (°)',
+    'APOGEE': 'Apogee (km)',
+    'PERIGEE': 'Perigee (km)',
+    'COMMENT': 'Comment',
+    'COMMENTCODE': 'Comment Code',
+    'RCSVALUE': 'Radar Cross-Section Value',
+    'RCS_SIZE': 'Radar Cross-Section Size',
+    'FILE': 'File Number',
+    'LAUNCH_YEAR': 'Launch Year',
+    'LAUNCH_NUM': 'Launch Number',
+    'LAUNCH_PIECE': 'Launch Piece',
+    'CURRENT': 'Active (Y/N)',
+    'OBJECT_NAME': 'Object Name',
+    'OBJECT_ID': 'Object ID',
+    'OBJECT_NUMBER': 'Object Number'
+}
+
 class CustomQueryDialog(QDialog):
     """
     Dialog for creating custom queries to search satellite data.
@@ -67,8 +95,8 @@ class CustomQueryDialog(QDialog):
         self.layout = QVBoxLayout(self)
 
         # Initialize table for conditions
-        self.table = QTableWidget(0, 3, self)
-        self.table.setHorizontalHeaderLabels(["Field", "Operator", "Value"])
+        self.table = QTableWidget(0, 4, self)
+        self.table.setHorizontalHeaderLabels(["Attribute", "Field", "Operator", "Value"])
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.layout.addWidget(self.table)
 
@@ -88,31 +116,34 @@ class CustomQueryDialog(QDialog):
         self.buttonCancel = QPushButton("Cancel", self)
         self.buttonCancel.clicked.connect(self.reject)
         self.layout.addWidget(self.buttonCancel)
+        
+    def update_field_related_widgets(self, row):
+        field_combo = self.table.cellWidget(row, 1)
+        operator_combo = self.table.cellWidget(row, 2)
+        value_edit = self.table.cellWidget(row, 3)
+        label_item = self.table.item(row, 0)
 
-    def add_condition(self):
-        """
-        Add a new row to the conditions table.
-
-        Creates a new row with a field selector, operator selector, and value input.
-        The operator options and value placeholder are updated based on the selected field type.
-        """
-        row = self.table.rowCount()
-        self.table.insertRow(row)
-
-        # Field selection combo box
-        field_combo = QComboBox()
-        field_combo.addItems(field_types.keys())
-        field_combo.currentIndexChanged.connect(lambda index, r=row: self.update_operator_combo(r))
-        self.table.setCellWidget(row, 0, field_combo)
-
-        # Operator selection combo box
-        operator_combo = QComboBox()
-        self.table.setCellWidget(row, 1, operator_combo)
-
-        # Value input field with placeholder based on field type
-        value_edit = QLineEdit()
         field = field_combo.currentText()
         field_type = field_types.get(field, 'string')
+        label = field_labels.get(field, field)
+
+        # Update label
+        label_item.setText(label)
+
+        # Update operator list
+        if field_type in ['int', 'decimal', 'date']:
+            operators = ['=', '!=', '<', '>', '<=', '>=']
+        elif field_type == 'string':
+            operators = ['=', '!=', 'LIKE']
+        elif field_type == 'enum':
+            operators = ['=', '!=']
+        else:
+            operators = []
+
+        operator_combo.clear()
+        operator_combo.addItems(operators)
+
+        # Update value placeholder
         if field_type == 'int':
             value_edit.setPlaceholderText("Enter an integer (e.g., 25544)")
         elif field_type == 'decimal':
@@ -123,9 +154,32 @@ class CustomQueryDialog(QDialog):
             value_edit.setPlaceholderText("Enter Y or N")
         else:
             value_edit.setPlaceholderText("Enter a string (e.g., STARLINK)")
-        self.table.setCellWidget(row, 2, value_edit)
 
-        self.update_operator_combo(row)
+
+    def add_condition(self):
+        row = self.table.rowCount()
+        self.table.insertRow(row)
+
+        # Label: Human-readable field name
+        label_item = QtWidgets.QTableWidgetItem("")
+        self.table.setItem(row, 0, label_item)
+
+        # Field selection combo box
+        field_combo = QComboBox()
+        field_combo.addItems(field_types.keys())
+        field_combo.currentIndexChanged.connect(lambda index, r=row: self.update_field_related_widgets(r))
+        self.table.setCellWidget(row, 1, field_combo)
+
+        # Operator combo box
+        operator_combo = QComboBox()
+        self.table.setCellWidget(row, 2, operator_combo)
+
+        # Value input
+        value_edit = QLineEdit()
+        self.table.setCellWidget(row, 3, value_edit)
+
+        # Initialize label, operator, and placeholder
+        self.update_field_related_widgets(row)
 
     def remove_condition(self):
         """
@@ -180,9 +234,9 @@ class CustomQueryDialog(QDialog):
         """
         conditions = []
         for row in range(self.table.rowCount()):
-            field_combo = self.table.cellWidget(row, 0)
-            operator_combo = self.table.cellWidget(row, 1)
-            value_edit = self.table.cellWidget(row, 2)
+            field_combo = self.table.cellWidget(row, 1)
+            operator_combo = self.table.cellWidget(row, 2)
+            value_edit = self.table.cellWidget(row, 3)
             field = field_combo.currentText()
             operator = operator_combo.currentText()
             value = value_edit.text().strip()
