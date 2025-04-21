@@ -132,7 +132,7 @@ class CustomQueryDialog(QDialog):
 
         # Update operator list
         if field_type in ['int', 'decimal', 'date']:
-            operators = ['=', '!=', '<', '>', '<=', '>=']
+            operators = ['=', '!=', '<', '>']
         elif field_type == 'string':
             operators = ['=', '!=', 'LIKE']
         elif field_type == 'enum':
@@ -211,7 +211,7 @@ class CustomQueryDialog(QDialog):
         if field:
             field_type = field_types.get(field, 'string')
             if field_type in ['int', 'decimal', 'date']:
-                operators = ['=', '!=', '<', '>', '<=', '>=']
+                operators = ['=', '!=', '<', '>']
             elif field_type == 'string':
                 operators = ['=', '!=', 'LIKE']
             elif field_type == 'enum':

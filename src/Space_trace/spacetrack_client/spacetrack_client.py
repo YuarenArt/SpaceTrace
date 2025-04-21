@@ -162,12 +162,15 @@ class SpacetrackClientWrapper:
         return json.loads(results) if isinstance(results, str) else results
     
     def search_by_custom_query(self, conditions, limit=100):
-        query_params = {}
+        # Словарь для хранения списка предикатов по каждому полю
+        predicates_by_field = {}
+        
         for field, operator, value in conditions:
             if field not in field_types:
                 raise ValueError(f"Unknown field: {field}")
             field_type = field_types[field]
 
+            # Преобразование значения в зависимости от типа поля
             if field_type == 'int':
                 try:
                     value = int(value)
@@ -189,22 +192,33 @@ class SpacetrackClientWrapper:
 
             api_field = field.lower()
 
+            # Формирование предиката в зависимости от оператора
             if operator == '=':
-                query_params[api_field] = value
+                predicate = value
             elif operator == '!=':
-                query_params[api_field] = f'!{value}'
+                predicate = op.not_equal(value)
             elif operator == '<':
-                query_params[api_field] = op.less_than(value)
+                predicate = op.less_than(value)
             elif operator == '>':
-                query_params[api_field] = op.greater_than(value)
-            elif operator == '<=':
-                query_params[api_field] = f'<={value}'
-            elif operator == '>=':
-                query_params[api_field] = f'>={value}'
+                predicate = op.greater_than(value)
             elif operator == 'LIKE' and field_type == 'string':
-                query_params[api_field] = op.like(value)
+                predicate = op.like(value)
             else:
                 raise ValueError(f"Invalid operator for {field}: {operator}")
+
+            # Добавление предиката в список для данного поля
+            if api_field not in predicates_by_field:
+                predicates_by_field[api_field] = []
+            predicates_by_field[api_field].append(predicate)
+
+        # Формирование query_params, объединяя предикаты для каждого поля
+        query_params = {}
+        for api_field, predicates in predicates_by_field.items():
+            if len(predicates) == 1:
+                query_params[api_field] = predicates[0]
+            else:
+                # Объединяем предикаты в строку, разделенную запятыми
+                query_params[api_field] = ','.join(str(p) for p in predicates)
 
         try:
             results = self.client.satcat(
