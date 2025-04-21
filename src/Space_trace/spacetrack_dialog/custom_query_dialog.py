@@ -73,16 +73,9 @@ class CustomQueryDialog(QDialog):
     The dialog supports dynamic operator selection based on field types and validates
     user input before returning conditions.
 
-    Attributes:
-        table (QTableWidget): Table for entering query conditions.
-        layout (QVBoxLayout): Main layout of the dialog.
-        buttonAdd (QPushButton): Button to add a new condition.
-        buttonRemove (QPushButton): Button to remove selected conditions.
-        buttonSearch (QPushButton): Button to execute the query.
-        buttonCancel (QPushButton): Button to cancel the dialog.
     """
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, translator=None):
         """
         Initialize the CustomQueryDialog.
 
@@ -90,6 +83,7 @@ class CustomQueryDialog(QDialog):
             parent (QWidget, optional): Parent widget. Defaults to None.
         """
         super().__init__(parent)
+        self.translator = translator
         self.setWindowTitle("Custom Query")
         self.resize(600, 400)
         self.layout = QVBoxLayout(self)
@@ -116,6 +110,29 @@ class CustomQueryDialog(QDialog):
         self.buttonCancel = QPushButton("Cancel", self)
         self.buttonCancel.clicked.connect(self.reject)
         self.layout.addWidget(self.buttonCancel)
+        
+        self.retranslate_ui()
+        
+    def retranslate_ui(self):
+        """
+        Translate all UI strings for localization.
+        """
+        _translate = QtCore.QCoreApplication.translate
+        self.setWindowTitle(_translate("CustomQueryDialog", "Custom Query"))
+        self.table.setHorizontalHeaderLabels([
+            _translate("CustomQueryDialog", "Attribute"),
+            _translate("CustomQueryDialog", "Field"),
+            _translate("CustomQueryDialog", "Operator"),
+            _translate("CustomQueryDialog", "Value")
+        ])
+        self.buttonAdd.setText(_translate("CustomQueryDialog", "Add Condition"))
+        self.buttonRemove.setText(_translate("CustomQueryDialog", "Remove Condition"))
+        self.buttonSearch.setText(_translate("CustomQueryDialog", "Search"))
+        self.buttonCancel.setText(_translate("CustomQueryDialog", "Cancel"))
+
+        # Update existing rows to reflect translated placeholders
+        for row in range(self.table.rowCount()):
+            self.update_field_related_widgets(row)
         
     def update_field_related_widgets(self, row):
         field_combo = self.table.cellWidget(row, 1)
@@ -144,16 +161,17 @@ class CustomQueryDialog(QDialog):
         operator_combo.addItems(operators)
 
         # Update value placeholder
+        _translate = QtCore.QCoreApplication.translate
         if field_type == 'int':
-            value_edit.setPlaceholderText("Enter an integer (e.g., 25544)")
+            value_edit.setPlaceholderText(_translate("CustomQueryDialog", "Enter an integer (e.g., 25544)"))
         elif field_type == 'decimal':
-            value_edit.setPlaceholderText("Enter a decimal (e.g., 90.5)")
+            value_edit.setPlaceholderText(_translate("CustomQueryDialog", "Enter a decimal (e.g., 90.5)"))
         elif field_type == 'date':
-            value_edit.setPlaceholderText("Enter date as YYYY-MM-DD (e.g., 2023-01-01)")
+            value_edit.setPlaceholderText(_translate("CustomQueryDialog", "Enter date as YYYY-MM-DD (e.g., 2023-01-01)"))
         elif field_type == 'enum':
-            value_edit.setPlaceholderText("Enter Y or N")
+            value_edit.setPlaceholderText(_translate("CustomQueryDialog", "Enter Y or N"))
         else:
-            value_edit.setPlaceholderText("Enter a string (e.g., STARLINK)")
+            value_edit.setPlaceholderText(_translate("CustomQueryDialog", "Enter a string (e.g., STARLINK)"))
 
 
     def add_condition(self):
@@ -184,12 +202,15 @@ class CustomQueryDialog(QDialog):
     def remove_condition(self):
         """
         Remove selected rows from the conditions table.
-
-        Iterates through selected rows in reverse order to safely remove them.
         """
         selected_rows = self.table.selectionModel().selectedRows()
         if not selected_rows:
-            QtWidgets.QMessageBox.warning(self, "Warning", "Please select a row to remove.")
+            _translate = QtCore.QCoreApplication.translate
+            QtWidgets.QMessageBox.warning(
+                self,
+                _translate("CustomQueryDialog", "Warning"),
+                _translate("CustomQueryDialog", "Please select a row to remove.")
+            )
             return
         for index in sorted(selected_rows, reverse=True):
             self.table.removeRow(index.row())
@@ -228,9 +249,6 @@ class CustomQueryDialog(QDialog):
         Returns:
             list: List of tuples [(field, operator, value), ...] representing the conditions.
                   Returns an empty list if any condition is incomplete.
-
-        Validates that all fields, operators, and values are filled for each condition.
-        Displays a warning if any condition is incomplete.
         """
         conditions = []
         for row in range(self.table.rowCount()):
@@ -243,6 +261,11 @@ class CustomQueryDialog(QDialog):
             if field and operator and value:
                 conditions.append((field, operator, value))
             elif field or operator or value:
-                QtWidgets.QMessageBox.warning(self, "Warning", "Please fill all fields in each condition.")
+                _translate = QtCore.QCoreApplication.translate
+                QtWidgets.QMessageBox.warning(
+                    self,
+                    _translate("CustomQueryDialog", "Warning"),
+                    _translate("CustomQueryDialog", "Please fill all fields in each condition.")
+                )
                 return []
         return conditions

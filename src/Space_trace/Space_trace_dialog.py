@@ -13,10 +13,12 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from .Space_trace_dialog_class import Ui_SpaceTracePluginDialogBase
 from .spacetrack_dialog.spacetrack_dialog import SpaceTrackDialog
 class SpaceTracePluginDialog(QtWidgets.QDialog, Ui_SpaceTracePluginDialogBase):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, translator=None):
         super().__init__(parent)
-        self.setupUi(self)
         
+        self.translator = translator
+        self.setupUi(self)
+
         hlayout = QtWidgets.QHBoxLayout()
         hlayout.addWidget(self.lineEditSatID)
         
@@ -27,6 +29,12 @@ class SpaceTracePluginDialog(QtWidgets.QDialog, Ui_SpaceTracePluginDialogBase):
         self.verticalLayoutSpaceTrack.insertLayout(0, hlayout)
         self.pushButtonSearchSatellites.clicked.connect(self.open_space_track_dialog)
         
+    def retranslate_ui(self):
+        _translate = QtCore.QCoreApplication.translate
+        self.setWindowTitle(_translate("SpaceTracePluginDialog", "Space Trace Tool"))
+        self.pushButtonSearchSatellites.setText(_translate("SpaceTracePluginDialog", "Search"))
+        
+        
     def open_space_track_dialog(self):
         """
         Open the SpaceTrack API search dialog. If the user selects a satellite,
@@ -35,10 +43,10 @@ class SpaceTracePluginDialog(QtWidgets.QDialog, Ui_SpaceTracePluginDialogBase):
         login = self.lineEditLogin.text().strip()
         password = self.lineEditPassword.text().strip()
         if not login or not password:
-            QtWidgets.QMessageBox.warning(self, self.tr("Error"), self.tr("Please enter SpaceTrack login and password."))
+            QtWidgets.QMessageBox.warning(self, ("Error"), ("Please enter SpaceTrack login and password."))
             return
-        # Pass login and password to the search dialog
-        dialog = SpaceTrackDialog(self, login=login, password=password, log_callback=self.appendLog)
+       
+        dialog = SpaceTrackDialog(self, login=login, password=password, log_callback=self.appendLog, translator=self.translator)
         if dialog.exec_() == QtWidgets.QDialog.Accepted:
             selected_norad_id = dialog.get_selected_norad_id()
             if selected_norad_id:

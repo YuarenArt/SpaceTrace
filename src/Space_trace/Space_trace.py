@@ -329,7 +329,7 @@ class SpaceTracePlugin:
         """
         if self.first_start is None or self.first_start is True:
             self.first_start = False
-            self.dlg = SpaceTracePluginDialog()
+            self.dlg = SpaceTracePluginDialog(translator=self.translator)
             self.dlg.pushButtonExecute.clicked.connect(self.execute_logic)
             self.dlg.pushButtonClose.clicked.connect(self.dlg.close)
             self.dlg.pushButtonClose.clicked.connect(self._on_close_button_clicked)
