@@ -8,19 +8,12 @@ and logs all important actions.
 """
 
 from PyQt5 import QtWidgets, QtCore
+from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGroupBox, QRadioButton, QLabel, QLineEdit, QPushButton, QComboBox, QTableWidget, QDialogButtonBox, QMessageBox
+
 from ..spacetrack_client.spacetrack_client import SpacetrackClientWrapper
 from .custom_query_dialog import CustomQueryDialog
 
-class SpaceTrackDialog(QtWidgets.QDialog):
-    """
-    Dialog for querying satellite data from SpaceTrack and displaying it.
-
-    Provides UI components for searching by name, country code, NORAD ID, or active status,
-    and displays results in a sortable table. Translations are applied via Qt's
-    QCoreApplication.translate to support multiple languages.
-    """
-
-    DISPLAY_ATTRIBUTES = {
+DISPLAY_ATTRIBUTES = {
         "NORAD_CAT_ID": "NORAD ID",
         "SATNAME": "Name",
         "COUNTRY": "Country",
@@ -31,92 +24,65 @@ class SpaceTrackDialog(QtWidgets.QDialog):
         "INCLINATION": "Inclination (°)"
     }
 
-    def __init__(self, parent=None, login=None, password=None, log_callback=None, translator=None):
-        """
-        Initialize the SpaceTrack dialog with optional logging.
 
-        :param parent: Parent QWidget.
-        :param login: SpaceTrack API login (email).
-        :param password: SpaceTrack API password.
-        :param log_callback: Callable for external logging.
-        """
-        super().__init__(parent)
-        self.selected_norad_id = None
-        self.translator = translator
-        self.log_callback = log_callback
-        self.client = SpacetrackClientWrapper(login, password)
-        self.init_ui()
+class Ui_SpaceTrackDialog:
+    """UI setup class for SpaceTrackDialog containing widget creation and layout."""
 
-    def init_ui(self):
-        """
-        Set up all UI components without hard‑coded text.
-        Text is assigned in retranslate_ui().
-        """
-        self.resize(900, 500)
-        self.verticalLayout = QtWidgets.QVBoxLayout(self)
+    def setup_ui(self, Dialog):
+        """Set up all UI components."""
+        Dialog.resize(900, 500)
+        self.verticalLayout = QVBoxLayout(Dialog)
 
         # Search type radio buttons
-        self.groupBoxSearchType = QtWidgets.QGroupBox(self)
-        h_layout = QtWidgets.QHBoxLayout(self.groupBoxSearchType)
-        self.radioName = QtWidgets.QRadioButton(self.groupBoxSearchType)
-        self.radioActive = QtWidgets.QRadioButton(self.groupBoxSearchType)
-        self.radioCountry = QtWidgets.QRadioButton(self.groupBoxSearchType)
-        self.radioNorad = QtWidgets.QRadioButton(self.groupBoxSearchType)
+        self.groupBoxSearchType = QGroupBox(Dialog)
+        h_layout = QHBoxLayout(self.groupBoxSearchType)
+        self.radioName = QRadioButton(self.groupBoxSearchType)
+        self.radioActive = QRadioButton(self.groupBoxSearchType)
+        self.radioCountry = QRadioButton(self.groupBoxSearchType)
+        self.radioNorad = QRadioButton(self.groupBoxSearchType)
         for r in (self.radioName, self.radioActive, self.radioCountry, self.radioNorad):
             h_layout.addWidget(r)
         self.verticalLayout.addWidget(self.groupBoxSearchType)
 
         # Search criteria input
-        self.labelSearch = QtWidgets.QLabel(self)
-        self.lineEditSearch = QtWidgets.QLineEdit(self)
-        self.pushButtonSearch = QtWidgets.QPushButton(self)
+        self.labelSearch = QLabel(Dialog)
+        self.lineEditSearch = QLineEdit(Dialog)
+        self.pushButtonSearch = QPushButton(Dialog)
         self.verticalLayout.addWidget(self.labelSearch)
         self.verticalLayout.addWidget(self.lineEditSearch)
         self.verticalLayout.addWidget(self.pushButtonSearch)
 
         # Limit selector
-        self.labelLimit = QtWidgets.QLabel(self)
-        self.comboLimit = QtWidgets.QComboBox(self)
-        self.comboLimit.addItems(["1","5","10","25","50","100","500","1000"])
+        self.labelLimit = QLabel(Dialog)
+        self.comboLimit = QComboBox(Dialog)
+        self.comboLimit.addItems(["1", "5", "10", "25", "50", "100", "500", "1000"])
         self.comboLimit.setCurrentText("10")
-        limit_layout = QtWidgets.QHBoxLayout()
+        limit_layout = QHBoxLayout()
         limit_layout.addWidget(self.labelLimit)
         limit_layout.addWidget(self.comboLimit)
         limit_layout.addStretch()
         self.verticalLayout.addLayout(limit_layout)
 
         # Results table
-        self.tableResult = QtWidgets.QTableWidget(self)
-        self.tableResult.setColumnCount(len(self.DISPLAY_ATTRIBUTES))
-        self.tableResult.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
-        self.tableResult.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+        self.tableResult = QTableWidget(Dialog)
+        self.tableResult.setColumnCount(len(DISPLAY_ATTRIBUTES))
+        self.tableResult.setSelectionMode(QTableWidget.SingleSelection)
+        self.tableResult.setEditTriggers(QTableWidget.NoEditTriggers)
         self.tableResult.horizontalHeader().setStretchLastSection(True)
         self.tableResult.setSortingEnabled(True)
         self.verticalLayout.addWidget(self.tableResult)
 
         # Buttons: Custom Query and OK/Cancel
-        self.pushButtonCustomQuery = QtWidgets.QPushButton(self)
-        self.buttonBox = QtWidgets.QDialogButtonBox(self)
-        self.buttonBox.setStandardButtons(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
+        self.pushButtonCustomQuery = QPushButton(Dialog)
+        self.buttonBox = QDialogButtonBox(Dialog)
+        self.buttonBox.setStandardButtons(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         self.verticalLayout.addWidget(self.pushButtonCustomQuery, 0, QtCore.Qt.AlignRight)
         self.verticalLayout.addWidget(self.buttonBox)
 
-        # Signal connections
-        self.pushButtonSearch.clicked.connect(self.perform_search)
-        self.pushButtonCustomQuery.clicked.connect(self.open_custom_query_dialog)
-        self.buttonBox.accepted.connect(self.on_accept)
-        self.buttonBox.rejected.connect(self.reject)
-        self.tableResult.itemSelectionChanged.connect(self.on_selection_changed)
-        self.radioName.setChecked(True)
-
-        self.retranslate_ui()
-
-    def retranslate_ui(self):
-        """
-        Translate all UI strings for localization.
-        """
+    def retranslate_ui(self, Dialog):
+        """Translate all UI strings for localization."""
         _translate = QtCore.QCoreApplication.translate
-        self.setWindowTitle(_translate("SpaceTrackDialog", "SpaceTrack Search"))
+        Dialog.setWindowTitle(_translate("SpaceTrackDialog", "SpaceTrack Search"))
         self.groupBoxSearchType.setTitle(_translate("SpaceTrackDialog", "Search Type"))
         self.radioName.setText(_translate("SpaceTrackDialog", "By Name"))
         self.radioActive.setText(_translate("SpaceTrackDialog", "All Active"))
@@ -132,16 +98,31 @@ class SpaceTrackDialog(QtWidgets.QDialog):
         self.pushButtonSearch.setText(_translate("SpaceTrackDialog", "Search"))
         self.labelLimit.setText(_translate("SpaceTrackDialog", "Result Limit:"))
         self.pushButtonCustomQuery.setText(_translate("SpaceTrackDialog", "Custom Query"))
-        headers = [
-            _translate("SpaceTrackDialog", lbl)
-            for lbl in self.DISPLAY_ATTRIBUTES.values()
-        ]
-        self.tableResult.setHorizontalHeaderLabels(headers)
+        
+class SpaceTrackDialog(QtWidgets.QDialog):
+    """Logic implementation for SpaceTrackDialog to search and display satellite data."""
+
+    def __init__(self, parent=None, login=None, password=None, log_callback=None, translator=None):
+        super().__init__(parent)
+        self.selected_norad_id = None
+        self.translator = translator
+        self.log_callback = log_callback
+        self.client = SpacetrackClientWrapper(login, password)
+
+        self.ui = Ui_SpaceTrackDialog()
+        self.ui.setup_ui(self)
+        self.ui.retranslate_ui(self)
+
+        # Signal connections
+        self.ui.pushButtonSearch.clicked.connect(self.perform_search)
+        self.ui.pushButtonCustomQuery.clicked.connect(self.open_custom_query_dialog)
+        self.ui.buttonBox.accepted.connect(self.on_accept)
+        self.ui.buttonBox.rejected.connect(self.reject)
+        self.ui.tableResult.itemSelectionChanged.connect(self.on_selection_changed)
+        self.ui.radioName.setChecked(True)
 
     def open_custom_query_dialog(self):
-        """
-        Launch the custom query dialog and perform search if accepted.
-        """
+        """Launch the custom query dialog and perform search if accepted."""
         dlg = CustomQueryDialog(self, translator=self.translator)
         if dlg.exec_() == QtWidgets.QDialog.Accepted:
             conds = dlg.get_conditions()
@@ -149,13 +130,11 @@ class SpaceTrackDialog(QtWidgets.QDialog):
                 self.perform_custom_search(conds)
 
     def perform_search(self):
-        """
-        Execute a search based on current input and selected search type.
-        """
+        """Execute a search based on current input and selected search type."""
         self._log("Starting satellite search...")
-        text = self.lineEditSearch.text().strip()
-        limit = int(self.comboLimit.currentText())
-        self.tableResult.setRowCount(0)
+        text = self.ui.lineEditSearch.text().strip()
+        limit = int(self.ui.comboLimit.currentText())
+        self.ui.tableResult.setRowCount(0)
         try:
             results = self._get_search_results(text, limit)
             self._display_results(results)
@@ -163,22 +142,20 @@ class SpaceTrackDialog(QtWidgets.QDialog):
             self._handle_error(f"Search error: {e}")
 
     def _get_search_results(self, text, limit):
-        """
-        Route search request to appropriate API method.
-        """
-        if self.radioName.isChecked():
+        """Route search request to appropriate API method."""
+        if self.ui.radioName.isChecked():
             if not text:
                 self._warn("Please enter a satellite name.")
                 return []
             return self.client.search_by_name(text, limit)
-        if self.radioActive.isChecked():
+        if self.ui.radioActive.isChecked():
             return self.client.get_active_satellites(limit)
-        if self.radioCountry.isChecked():
+        if self.ui.radioCountry.isChecked():
             if not text:
                 self._warn("Please enter a country code (e.g., US).")
                 return []
             return self.client.search_by_country(text, limit)
-        if self.radioNorad.isChecked():
+        if self.ui.radioNorad.isChecked():
             if not text:
                 self._warn("Please enter a NORAD ID, range, or list.")
                 return []
@@ -186,12 +163,10 @@ class SpaceTrackDialog(QtWidgets.QDialog):
         return []
 
     def perform_custom_search(self, conditions):
-        """
-        Execute a custom query with given conditions.
-        """
+        """Execute a custom query with given conditions."""
         self._log("Starting custom satellite search...")
-        limit = int(self.comboLimit.currentText())
-        self.tableResult.setRowCount(0)
+        limit = int(self.ui.comboLimit.currentText())
+        self.ui.tableResult.setRowCount(0)
         try:
             results = self.client.search_by_custom_query(conditions, limit)
             self._display_results(results)
@@ -199,13 +174,11 @@ class SpaceTrackDialog(QtWidgets.QDialog):
             self._handle_error(f"Custom query error: {e}")
 
     def _display_results(self, results):
-        """
-        Populate the result table with satellite entries.
-        """
+        """Populate the result table with satellite entries."""
         if not results:
             self._log("No results found.")
-            self.tableResult.setRowCount(1)
-            self.tableResult.setItem(0, 0, QtWidgets.QTableWidgetItem("No results"))
+            self.ui.tableResult.setRowCount(1)
+            self.ui.tableResult.setItem(0, 0, QtWidgets.QTableWidgetItem("No results"))
             return
         self._log(f"Found {len(results)} results.")
         for sat in results:
@@ -216,19 +189,17 @@ class SpaceTrackDialog(QtWidgets.QDialog):
 
     def _add_result_row(self, sat):
         """Add a single satellite record as a new row."""
-        row = self.tableResult.rowCount()
-        self.tableResult.insertRow(row)
-        for col, key in enumerate(self.DISPLAY_ATTRIBUTES):
+        row = self.ui.tableResult.rowCount()
+        self.ui.tableResult.insertRow(row)
+        for col, key in enumerate(DISPLAY_ATTRIBUTES):
             val = self._format_value(key, sat)
             item = QtWidgets.QTableWidgetItem(val)
             if key == "NORAD_CAT_ID" and val.isdigit():
                 item.setData(QtCore.Qt.UserRole, int(val))
-            self.tableResult.setItem(row, col, item)
+            self.ui.tableResult.setItem(row, col, item)
 
     def _format_value(self, key, sat):
-        """
-        Format values for display based on column type.
-        """
+        """Format values for display based on column type."""
         value = sat.get(key)
         try:
             if key == "ECCENTRICITY" and value is None and sat.get("PERIGEE") and sat.get("APOGEE"):
@@ -246,20 +217,16 @@ class SpaceTrackDialog(QtWidgets.QDialog):
             return ""
 
     def on_selection_changed(self):
-        """
-        Track which row is selected and store NORAD ID.
-        """
-        sel = self.tableResult.selectedIndexes()
+        """Track which row is selected and store NORAD ID."""
+        sel = self.ui.tableResult.selectedIndexes()
         if sel:
             row = sel[0].row()
-            item = self.tableResult.item(row, 0)
+            item = self.ui.tableResult.item(row, 0)
             self.selected_norad_id = item.text() if item else None
             self._log(f"Selected satellite NORAD ID: {self.selected_norad_id}")
 
     def on_accept(self):
-        """
-        Accept dialog if a satellite has been selected.
-        """
+        """Accept dialog if a satellite has been selected."""
         if self.selected_norad_id:
             self._log(f"Satellite {self.selected_norad_id} selected; accepting.")
             self.accept()
@@ -267,28 +234,22 @@ class SpaceTrackDialog(QtWidgets.QDialog):
             self._warn("Please select a satellite from the list.")
 
     def get_selected_norad_id(self):
-        """
-        Return the currently selected NORAD ID (string).
-        """
+        """Return the currently selected NORAD ID (string)."""
         return self.selected_norad_id
 
     def _warn(self, msg):
-        """
-        Show a warning message box and log it.
-        """
-        QtWidgets.QMessageBox.warning(self, "Warning", msg)
+        """Show a warning message box and log it."""
+        _translate = QtCore.QCoreApplication.translate
+        QtWidgets.QMessageBox.warning(self, _translate("SpaceTrackDialog", "Warning"), _translate("SpaceTrackDialog", msg))
         self._log(msg)
 
     def _handle_error(self, msg):
-        """
-        Show an error message box and log it.
-        """
-        QtWidgets.QMessageBox.critical(self, "Error", msg)
+        """Show an error message box and log it."""
+        _translate = QtCore.QCoreApplication.translate
+        QtWidgets.QMessageBox.critical(self, _translate("SpaceTrackDialog", "Error"), _translate("SpaceTrackDialog", msg))
         self._log(msg)
 
     def _log(self, msg):
-        """
-        Log a message via provided callback if available.
-        """
+        """Log a message via provided callback if available."""
         if self.log_callback:
             self.log_callback(msg)
