@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Space Trace Plugin Help</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; margin: 20px; }
+    h1, h2, h3 { color: #2c3e50; }
+    hr { margin: 40px 0; }
+  </style>
+</head>
+<body>
+
+<h1>Space Trace Plugin for QGIS</h1>
+
+<h2>Features</h2>
+<ul>
+  <li><strong>Data Sources:</strong> Fetch orbital data (TLE or OMM) from the SpaceTrack API or load from a local file.</li>
+  <li><strong>Track Generation:</strong> Create point and line layers representing a satellite's path for a selected date.</li>
+  <li><strong>Customization:</strong> Configure the time step (in minutes) for orbital path calculation.</li>
+  <li><strong>Output Options:</strong>
+    <ul>
+      <li>Save output as Shapefile, GeoPackage, or GeoJSON.</li>
+      <li>Add generated layers directly into the QGIS project.</li>
+    </ul>
+  </li>
+  <li><strong>Data Saving:</strong> Optionally save TLE/OMM data retrieved from the API.</li>
+  <li><strong>Logging:</strong> Monitor processing steps and results via the log tab.</li>
+</ul>
+
+<h2>Usage</h2>
+<ol>
+  <li>Open the plugin from the <em>Vector</em> menu: <strong>Space Trace &gt; Draw flight path</strong>.</li>
+  <li>Select the data source: local file or SpaceTrack API.</li>
+  <li>Configure date and time step for the orbit track.</li>
+  <li>Specify output format and file path (optional).</li>
+  <li>Enable saving options as needed.</li>
+  <li>Click <strong>Execute</strong> to generate the track.</li>
+</ol>
+
+<h2>Satellite Search and Query Builder</h2>
+<ul>
+  <li><strong>Search Modes:</strong> 
+    <ul>
+      <li>By Name</li>
+      <li>All Active Satellites</li>
+      <li>By Country Code (e.g., US)</li>
+      <li>By NORAD ID (single, range, or list)</li>
+    </ul>
+  </li>
+  <li><strong>Custom Query Builder:</strong>
+    <ul>
+      <li>Select any field (e.g., Launch Date, Eccentricity)</li>
+      <li>Choose comparison operators (=, !=, &lt;, &gt;, LIKE)</li>
+      <li>Enter values with automatic input hints</li>
+      <li>Combine multiple conditions</li>
+    </ul>
+  </li>
+  <li><strong>Result Table:</strong> Sortable columns with satellite info. When you select a line and click OK, the norad ID of the selected satellite is copied to the main dialog.</li>
+</ul>
+
+<hr>
+
+<h1>Плагин Space Trace для QGIS</h1>
+
+<h2>Функциональность</h2>
+<ul>
+  <li><strong>Источники данных:</strong> Получение орбитальных данных (TLE или OMM) из API SpaceTrack или из локального файла.</li>
+  <li><strong>Построение траектории:</strong> Создание точечных и линейных слоев орбитального пути спутника на указанную дату.</li>
+  <li><strong>Настройки:</strong> Выбор шага времени (в минутах) для расчета траектории.</li>
+  <li><strong>Опции вывода:</strong>
+    <ul>
+      <li>Сохранение в формате Shapefile, GeoPackage или GeoJSON.</li>
+      <li>Добавление слоев непосредственно в проект QGIS.</li>
+    </ul>
+  </li>
+  <li><strong>Сохранение данных:</strong> можно сохранить полученные TLE/OMM данные.</li>
+  <li><strong>Журнал:</strong> просмотр логов выполнения внутри интерфейса плагина.</li>
+</ul>
+
+<h2>Использование</h2>
+<ol>
+  <li>Откройте плагин через меню <em>Вектор</em>: <strong>Space Trace &gt; Нарисовать траекторию полета</strong>.</li>
+  <li>Выберите источник данных: локальный файл или API SpaceTrack.</li>
+  <li>Настройте дату и шаг времени для построения траектории.</li>
+  <li>Укажите путь и формат вывода (опционально).</li>
+  <li>Настройте опции сохранения данных (опционально).</li>
+  <li>Нажмите <strong>Выполнить</strong> для запуска построения.</li>
+</ol>
+
+<h2>Поиск спутников и создание пользовательских запросов</h2>
+<ul>
+  <li><strong>Режимы поиска:</strong>
+    <ul>
+      <li>По имени</li>
+      <li>Все активные спутники</li>
+      <li>По коду страны (например, US)</li>
+      <li>По NORAD ID (один, диапазон или список)</li>
+    </ul>
+  </li>
+  <li><strong>Конструктор запросов:</strong>
+    <ul>
+      <li>Выбор поля (дата запуска, эксцентриситет и т.д.)</li>
+      <li>Выбор оператора (=, !=, &lt;, &gt;, LIKE)</li>
+      <li>Ввод значения с контекстной подсказкой</li>
+      <li>Комбинирование условий в один запрос</li>
+    </ul>
+  </li>
+  <li><strong>Таблица результатов:</strong> сортируемые колонки со спутниковыми данными. При выборе строки и нажатии кнопки ОК norad ID выбранного спутника скопируется в оснвной диалог.</li>
+</ul>
+
+</body>
+</html>

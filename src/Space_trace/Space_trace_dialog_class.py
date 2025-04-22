@@ -199,3 +199,6 @@ class SpaceTracePluginDialogBase(QDialog):
         self.quickButton_1_hour.setText(_translate("SpaceTracePluginDialog", "1 hour"))
         self.quickButton_1_day.setText(_translate("SpaceTracePluginDialog", "1 day"))
         self.quickButton_1_week.setText(_translate("SpaceTracePluginDialog", "1 week"))
+        self.lineEditDataPath.setPlaceholderText(_translate("SpaceTracePluginDialog", "Specify the path to the TLE/OMM data file"))
+        self.lineEditOutputPath.setPlaceholderText(_translate("SpaceTracePluginDialog", "Specify the path to save file (leave empty for temporary layer)"))
+        self.lineEditSaveDataPath.setPlaceholderText(_translate("SpaceTracePluginDialog", "Specify the path to save received data"))

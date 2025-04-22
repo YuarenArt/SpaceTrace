@@ -34,7 +34,7 @@ class SpaceTracePluginDialog(SpaceTracePluginDialogBase):
     def _load_help_content(self):
         """Load 'readme.html' into the help tab, or show error if missing."""
         ui_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        help_file = os.path.join(ui_dir, "readme.html")
+        help_file = os.path.join(ui_dir, "help.html")
         if os.path.exists(help_file):
             with open(help_file, "r", encoding="utf-8") as f:
                 self.textBrowserHelp.setHtml(f.read())

@@ -13,17 +13,6 @@ from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGroupBox, QRadioButton, Q
 from ..spacetrack_client.spacetrack_client import SpacetrackClientWrapper
 from .custom_query_dialog import CustomQueryDialog
 
-DISPLAY_ATTRIBUTES = {
-        "NORAD_CAT_ID": "NORAD ID",
-        "SATNAME": "Name",
-        "COUNTRY": "Country",
-        "LAUNCH": "Launch Date",
-        "ECCENTRICITY": "Eccentricity",
-        "PERIGEE": "Perigee (km)",
-        "APOGEE": "Apogee (km)",
-        "INCLINATION": "Inclination (°)"
-    }
-
 
 class Ui_SpaceTrackDialog:
     """UI setup class for SpaceTrackDialog containing widget creation and layout."""
@@ -32,6 +21,17 @@ class Ui_SpaceTrackDialog:
         """Set up all UI components."""
         Dialog.resize(900, 500)
         self.verticalLayout = QVBoxLayout(Dialog)
+        
+        self.display_attributes = {
+            "NORAD_CAT_ID": "NORAD ID",
+            "SATNAME": "Name",
+            "COUNTRY": "Country",
+            "LAUNCH": "Launch Date",
+            "ECCENTRICITY": "Eccentricity",
+            "PERIGEE": "Perigee (km)",
+            "APOGEE": "Apogee (km)",
+            "INCLINATION": "Inclination (°)"
+        }
 
         # Search type radio buttons
         self.groupBoxSearchType = QGroupBox(Dialog)
@@ -65,7 +65,8 @@ class Ui_SpaceTrackDialog:
 
         # Results table
         self.tableResult = QTableWidget(Dialog)
-        self.tableResult.setColumnCount(len(DISPLAY_ATTRIBUTES))
+        self.tableResult.setColumnCount(len(self.display_attributes))
+        self.tableResult.setHorizontalHeaderLabels(list(self.display_attributes.values()))
         self.tableResult.setSelectionMode(QTableWidget.SingleSelection)
         self.tableResult.setEditTriggers(QTableWidget.NoEditTriggers)
         self.tableResult.horizontalHeader().setStretchLastSection(True)
@@ -98,6 +99,18 @@ class Ui_SpaceTrackDialog:
         self.pushButtonSearch.setText(_translate("SpaceTrackDialog", "Search"))
         self.labelLimit.setText(_translate("SpaceTrackDialog", "Result Limit:"))
         self.pushButtonCustomQuery.setText(_translate("SpaceTrackDialog", "Custom Query"))
+        
+        self.display_attributes = {
+            "NORAD_CAT_ID": _translate("SpaceTrackDialog", "NORAD ID"),
+            "SATNAME": _translate("SpaceTrackDialog", "Name"),
+            "COUNTRY": _translate("SpaceTrackDialog", "Country"),
+            "LAUNCH": _translate("SpaceTrackDialog", "Launch Date"),
+            "ECCENTRICITY": _translate("SpaceTrackDialog", "Eccentricity"),
+            "PERIGEE": _translate("SpaceTrackDialog", "Perigee (km)"),
+            "APOGEE": _translate("SpaceTrackDialog", "Apogee (km)"),
+            "INCLINATION": _translate("SpaceTrackDialog", "Inclination (°)")
+        }
+        self.tableResult.setHorizontalHeaderLabels(list(self.display_attributes.values()))
         
 class SpaceTrackDialog(QtWidgets.QDialog):
     """Logic implementation for SpaceTrackDialog to search and display satellite data."""
@@ -191,7 +204,7 @@ class SpaceTrackDialog(QtWidgets.QDialog):
         """Add a single satellite record as a new row."""
         row = self.ui.tableResult.rowCount()
         self.ui.tableResult.insertRow(row)
-        for col, key in enumerate(DISPLAY_ATTRIBUTES):
+        for col, key in enumerate(self.display_attributes):
             val = self._format_value(key, sat)
             item = QtWidgets.QTableWidgetItem(val)
             if key == "NORAD_CAT_ID" and val.isdigit():

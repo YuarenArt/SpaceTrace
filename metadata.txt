@@ -22,6 +22,10 @@ repository=https://github.com/YuarenArt/Space-trace
 hasProcessingProvider=no
 # Uncomment the following line and add your changelog:
 changelog=  
+            Version 1.2
+            * Added SpaceTrack API Dialog for advanced searching
+            * Reworked help tab content
+            * Fixed minor bugs
             Version 1.1
             * Added selecting the time duration and the starting time for ground trace
             Version 1.0
