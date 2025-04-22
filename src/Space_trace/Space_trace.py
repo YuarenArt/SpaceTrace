@@ -122,6 +122,8 @@ class SpaceTracePlugin:
         for action in self.actions:
             self.iface.removePluginVectorMenu(self.tr('&Space trace'), action)
             self.iface.removeToolBarIcon(action)
+            
+        self.close_logger()
 
     def log_message(self, message, level="INFO"):
         """
@@ -260,6 +262,14 @@ class SpaceTracePlugin:
                 self.log_message("Temporary layers added to the project.", "INFO")
                 self.log_message(f"Temporary Point layer contains {point_layer.featureCount()} features.", "INFO")
             self.iface.messageBar().pushMessage("Success", "Temporary layers created successfully", level=0)
+            
+    def close_logger(self):
+        self.log_message("Clossing logger", "DEBUG")
+        if hasattr(self, 'logger') and self.logger:
+            for handler in self.logger.handlers:
+                handler.close()
+                self.logger.removeHandler(handler)
+            
 
     def _load_and_add_layer(self, file_path, layer_type):
         """
@@ -319,7 +329,18 @@ class SpaceTracePlugin:
         """
         if self.first_start is None or self.first_start is True:
             self.first_start = False
-            self.dlg = SpaceTracePluginDialog()
+            self.dlg = SpaceTracePluginDialog(translator=self.translator)
             self.dlg.pushButtonExecute.clicked.connect(self.execute_logic)
             self.dlg.pushButtonClose.clicked.connect(self.dlg.close)
+            self.dlg.pushButtonClose.clicked.connect(self._on_close_button_clicked)
+            self.dlg.rejected.connect(self.close_logger)
+        else:    
+            self._init_logger()
         self.dlg.show()
+        
+    def _on_close_button_clicked(self):
+        """
+        Handle the close button click by closing the logger and the dialog.
+        """
+        self.close_logger()
+        self.dlg.close()
