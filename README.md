@@ -64,6 +64,29 @@ The Space Trace plugin visualizes the flight path of a spacecraft over the Earth
 4. Click **Execute** to generate the orbital path.
 5. Monitor the process in the **Log** tab. If successful, layers will be added to the project or saved to the specified path.
 
+- **Advanced SpaceTrack Search**: 
+  - A new dialog interface (`SpaceTrackDialog`) allows users to search for satellite data via the SpaceTrack API using multiple criteria: satellite name, country code, NORAD ID (single, range, or list), or all active satellites.
+  - Results are displayed in a sortable table with key parameters like NORAD ID, name, country, launch date, eccentricity, perigee, apogee, and inclination.
+  - Users can set a result limit (1 to 1000) to control the number of returned satellites.
+  - A custom query dialog (`CustomQueryDialog`) enables advanced searches by combining multiple conditions (e.g., field, operator, and value) for precise filtering of satellite data.
+  - All search actions are logged for transparency and debugging.
+
+  - Click **Search via SpaceTrack API** to open the **SpaceTrack Search** dialog.
+     - In the **SpaceTrack Search** dialog:
+       - Choose a **Search Type**:
+         - **By Name**: Enter a satellite name (e.g., "STARLINK").
+         - **All Active**: Retrieve all active satellites (no input required).
+         - **By Country**: Enter a country code (e.g., "US").
+         - **By NORAD ID**: Enter a single NORAD ID (e.g., "25544"), a range (e.g., "25544-25550"), or a comma-separated list (e.g., "25544,25545").
+       - Specify a **Result Limit** (1, 5, 10, 25, 50, 100, 500, or 1000) to control the number of results.
+       - Click **Search** to fetch and display results in a table.
+       - Select a satellite from the table to use its NORAD ID for track generation.
+       - (Optional) Click **Custom Query** to open the **Custom Query** dialog for advanced searches:
+         - Add conditions by selecting a field (e.g., "NORAD_CAT_ID", "SATNAME"), an operator (e.g., "=", "LIKE"), and a value.
+         - Combine multiple conditions for precise filtering (e.g., satellites with inclination > 90° and country = "US").
+         - Click **Search** to execute the custom query and display results.
+     - Once a satellite is selected, click **OK** to proceed with track generation.
+
 ## Notes
 - If no output file path is provided, temporary in-memory layers are created.
 - Ensure SpaceTrack API credentials are valid for online data retrieval.
@@ -136,6 +159,28 @@ The Space Trace plugin visualizes the flight path of a spacecraft over the Earth
 
 4. Нажмите **Выполнить** для генерации траектории.
 5. Следите за процессом на вкладке **Журнал**. При успехе слои будут добавлены в проект или сохранены по указанному пути.
+
+- **Расширенный поиск через SpaceTrack**:
+  - Новый диалог (`SpaceTrackDialog`) позволяет искать данные о спутниках через SpaceTrack API по различным критериям: имя спутника, код страны, NORAD ID (одиночный, диапазон или список), или все активные спутники.
+  - Результаты отображаются в сортируемой таблице с ключевыми параметрами: NORAD ID, имя, страна, дата запуска, эксцентриситет, перигей, апогей и наклонение.
+  - Пользователь может установить лимит результатов (от 1 до 1000) для контроля количества возвращаемых спутников.
+  - Диалог пользовательского запроса (`CustomQueryDialog`) позволяет выполнять сложные поиски, комбинируя несколько условий (например, поле, оператор и значение) для точной фильтрации данных.
+  - Все действия поиска логируются для прозрачности и отладки.
+       - Нажмите **Поиск через SpaceTrack API**, чтобы открыть диалог **Поиск SpaceTrack**.
+     - В диалоге **Поиск SpaceTrack**:
+       - Выберите **Тип поиска**:
+         - **По имени**: Введите имя спутника (например, "STARLINK").
+         - **Все активные**: Получите все активные спутники (ввод не требуется).
+         - **По стране**: Введите код страны (например, "US").
+         - **По NORAD ID**: Введите одиночный NORAD ID (например, "25544"), диапазон (например, "25544-25550") или список через запятую (например, "25544,25545").
+       - Укажите **Лимит результатов** (1, 5, 10, 25, 50, 100, 500 или 1000) для контроля количества результатов.
+       - Нажмите **Поиск**, чтобы получить и отобразить результаты в таблице.
+       - Выберите спутник из таблицы, чтобы использовать его NORAD ID для генерации траектории.
+       - (Опционально) Нажмите **Пользовательский запрос**, чтобы открыть диалог **Пользовательский запрос** для сложных поисков:
+         - Добавляйте условия, выбирая поле (например, "NORAD_CAT_ID", "SATNAME"), оператор (например, "=", "LIKE") и значение.
+         - Комбинируйте несколько условий для точной фильтрации (например, спутники с наклонением > 90° и страной = "US").
+         - Нажмите **Поиск**, чтобы выполнить пользовательский запрос и отобразить результаты.
+     - После выбора спутника нажмите **ОК**, чтобы продолжить генерацию траектории.
 
 ## Примечания
 - Если путь к файлу вывода не указан, создаются временные слои в памяти.
