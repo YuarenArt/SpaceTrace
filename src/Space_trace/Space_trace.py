@@ -132,6 +132,7 @@ class SpaceTracePlugin:
         :param message: The log message.
         :param level: Log level ("INFO", "DEBUG", "WARNING", "ERROR").
         """
+            
         message = self.tr(message)
 
         if level.upper() == "DEBUG":
@@ -264,7 +265,6 @@ class SpaceTracePlugin:
             self.iface.messageBar().pushMessage("Success", "Temporary layers created successfully", level=0)
             
     def close_logger(self):
-        self.log_message("Clossing logger", "DEBUG")
         if hasattr(self, 'logger') and self.logger:
             for handler in self.logger.handlers:
                 handler.close()

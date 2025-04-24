@@ -94,7 +94,8 @@ class SpacetrackClientWrapper:
     def get_active_satellites(self, limit=100):
         results = self.client.satcat(
             current='Y',
-            orderby='NORAD_CAT_ID desc',
+            decay=None,
+            orderby='NORAD_CAT_ID asc',
             limit=limit,
             format='json'
         )
