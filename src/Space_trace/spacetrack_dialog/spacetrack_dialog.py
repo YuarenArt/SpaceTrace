@@ -204,7 +204,7 @@ class SpaceTrackDialog(QtWidgets.QDialog):
         """Add a single satellite record as a new row."""
         row = self.ui.tableResult.rowCount()
         self.ui.tableResult.insertRow(row)
-        for col, key in enumerate(self.display_attributes):
+        for col, key in enumerate(self.ui.display_attributes):
             val = self._format_value(key, sat)
             item = QtWidgets.QTableWidgetItem(val)
             if key == "NORAD_CAT_ID" and val.isdigit():

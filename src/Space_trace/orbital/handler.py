@@ -177,8 +177,6 @@ class OrbitalLogicHandler:
         elif file_format == 'geojson':
             return f"{base}_line.geojson"
 
-    # ---------------- Unified High-Level Methods ----------------
-
     def create_persistent_orbital_track(self, data, data_format, start_datetime, duration_hours, step_minutes, output_path, file_format, create_line_layer):
         """
         Create persistent orbital track shapefiles on disk.
