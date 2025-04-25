@@ -80,8 +80,6 @@ class Ui_CustomQueryDialog:
         self.buttonCancel.setText(_translate("CustomQueryDialog", "Cancel"))
 
 class CustomQueryDialog(QDialog):
-    
-    
     def __init__(self, parent=None, translator=None):
         super().__init__(parent)
         self.translator = translator
@@ -124,9 +122,13 @@ class CustomQueryDialog(QDialog):
 
         field = field_combo.currentText()
         field_type = field_types.get(field, 'string')
+        label = field_labels.get(field, field)
         
-        label_item.setText(field_labels.get(field, field))
+        _translate = QCoreApplication.translate
+        translated_label = _translate("CustomQueryDialog", label)
+        label_item.setText(translated_label)
         
+
         if field_type in ['int', 'decimal', 'date']:
             operators = ['=', '!=', '<', '>']
         elif field_type == 'string':

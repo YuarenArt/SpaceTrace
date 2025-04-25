@@ -94,7 +94,8 @@ class SpacetrackClientWrapper:
     def get_active_satellites(self, limit=100):
         results = self.client.satcat(
             current='Y',
-            orderby='NORAD_CAT_ID desc',
+            decay=None,
+            orderby='NORAD_CAT_ID asc',
             limit=limit,
             format='json'
         )
@@ -120,12 +121,6 @@ class SpacetrackClientWrapper:
         Args:
             norad_input (str): Single NORAD ID (e.g., '25544'), range (e.g., '25544-25550'), or list (e.g., '25544,25545').
             limit (int): Maximum number of results.
-
-        Returns:
-            list: List of satellite data dictionaries.
-
-        Raises:
-            ValueError: If NORAD input format is invalid.
         """
         norad_input = norad_input.strip()
         if '-' in norad_input:
@@ -162,7 +157,6 @@ class SpacetrackClientWrapper:
         return json.loads(results) if isinstance(results, str) else results
     
     def search_by_custom_query(self, conditions, limit=100):
-        # Словарь для хранения списка предикатов по каждому полю
         predicates_by_field = {}
         
         for field, operator, value in conditions:
@@ -170,7 +164,6 @@ class SpacetrackClientWrapper:
                 raise ValueError(f"Unknown field: {field}")
             field_type = field_types[field]
 
-            # Преобразование значения в зависимости от типа поля
             if field_type == 'int':
                 try:
                     value = int(value)
@@ -192,7 +185,6 @@ class SpacetrackClientWrapper:
 
             api_field = field.lower()
 
-            # Формирование предиката в зависимости от оператора
             if operator == '=':
                 predicate = value
             elif operator == '!=':
@@ -205,19 +197,16 @@ class SpacetrackClientWrapper:
                 predicate = op.like(value)
             else:
                 raise ValueError(f"Invalid operator for {field}: {operator}")
-
-            # Добавление предиката в список для данного поля
+            
             if api_field not in predicates_by_field:
                 predicates_by_field[api_field] = []
             predicates_by_field[api_field].append(predicate)
 
-        # Формирование query_params, объединяя предикаты для каждого поля
         query_params = {}
         for api_field, predicates in predicates_by_field.items():
             if len(predicates) == 1:
                 query_params[api_field] = predicates[0]
             else:
-                # Объединяем предикаты в строку, разделенную запятыми
                 query_params[api_field] = ','.join(str(p) for p in predicates)
 
         try:
