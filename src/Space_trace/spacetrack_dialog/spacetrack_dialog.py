@@ -8,7 +8,13 @@ and logs all important actions.
 """
 
 from PyQt5 import QtWidgets, QtCore
-from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGroupBox, QRadioButton, QLabel, QLineEdit, QPushButton, QComboBox, QTableWidget, QDialogButtonBox, QMessageBox
+from PyQt5.QtWidgets import (
+    QVBoxLayout, QHBoxLayout, QGroupBox, QRadioButton, QLabel, QLineEdit, 
+    QPushButton, QComboBox, QTableWidget, QDialogButtonBox, QFileDialog )
+
+from datetime import datetime
+import json
+import os
 
 from ..spacetrack_client.spacetrack_client import SpacetrackClientWrapper
 from .custom_query_dialog import CustomQueryDialog
@@ -67,11 +73,23 @@ class Ui_SpaceTrackDialog:
         self.tableResult = QTableWidget(Dialog)
         self.tableResult.setColumnCount(len(self.display_attributes))
         self.tableResult.setHorizontalHeaderLabels(list(self.display_attributes.values()))
-        self.tableResult.setSelectionMode(QTableWidget.SingleSelection)
+        self.tableResult.setSelectionMode(QTableWidget.MultiSelection)
         self.tableResult.setEditTriggers(QTableWidget.NoEditTriggers)
         self.tableResult.horizontalHeader().setStretchLastSection(True)
         self.tableResult.setSortingEnabled(True)
         self.verticalLayout.addWidget(self.tableResult)
+        
+        # Save format selector and button
+        self.save_layout = QHBoxLayout()
+        self.labelSaveFormat = QLabel(Dialog)
+        self.comboSaveFormat = QComboBox(Dialog)
+        self.comboSaveFormat.addItems(["OMM", "TLE"])
+        self.pushButtonSave = QPushButton(Dialog)
+        self.save_layout.addWidget(self.labelSaveFormat)
+        self.save_layout.addWidget(self.comboSaveFormat)
+        self.save_layout.addWidget(self.pushButtonSave)
+        self.save_layout.addStretch()
+        self.verticalLayout.addLayout(self.save_layout)
 
         # Buttons: Custom Query and OK/Cancel
         self.pushButtonCustomQuery = QPushButton(Dialog)
@@ -99,6 +117,8 @@ class Ui_SpaceTrackDialog:
         self.pushButtonSearch.setText(_translate("SpaceTrackDialog", "Search"))
         self.labelLimit.setText(_translate("SpaceTrackDialog", "Result Limit:"))
         self.pushButtonCustomQuery.setText(_translate("SpaceTrackDialog", "Custom Query"))
+        self.labelSaveFormat.setText(_translate("SpaceTrackDialog", "Save Format:"))
+        self.pushButtonSave.setText(_translate("SpaceTrackDialog", "Save Data"))
         
         self.display_attributes = {
             "NORAD_CAT_ID": _translate("SpaceTrackDialog", "NORAD ID"),
@@ -121,7 +141,8 @@ class SpaceTrackDialog(QtWidgets.QDialog):
         self.translator = translator
         self.log_callback = log_callback
         self.client = SpacetrackClientWrapper(login, password)
-
+        self.selected_norad_ids = []
+        
         self.ui = Ui_SpaceTrackDialog()
         self.ui.setup_ui(self)
         self.ui.retranslate_ui(self)
@@ -133,7 +154,51 @@ class SpaceTrackDialog(QtWidgets.QDialog):
         self.ui.buttonBox.rejected.connect(self.reject)
         self.ui.tableResult.itemSelectionChanged.connect(self.on_selection_changed)
         self.ui.radioName.setChecked(True)
+        self.ui.pushButtonSave.clicked.connect(self.save_selected_satellite_data)
 
+    def save_selected_satellite_data(self):
+        """Save data for all selected satellites in the chosen format (OMM or TLE)."""
+        _translate = QtCore.QCoreApplication.translate
+        if not self.selected_norad_ids:
+            self._warn(_translate("SpaceTrackDialog", "Please select at least one satellite to save its data."))
+            return
+
+        format_type = self.ui.comboSaveFormat.currentText()
+        self._log(_translate("SpaceTrackDialog", f"Preparing to save data for NORAD IDs {', '.join(self.selected_norad_ids)} in {format_type} format."))
+
+        try:
+            # Open file dialog to choose save directory
+            save_dir = QFileDialog.getExistingDirectory(
+                self,
+                _translate("SpaceTrackDialog", "Select Directory to Save Satellite Data"),
+                "",
+                QFileDialog.ShowDirsOnly
+            )
+            if not save_dir:
+                self._log(_translate("SpaceTrackDialog", "Save operation cancelled."))
+                return
+
+            # Fetch data for each selected satellite
+            start_datetime = datetime.utcnow()
+            for norad_id in self.selected_norad_ids:
+                file_ext = 'json' if format_type == 'OMM' else 'txt'
+                file_name = os.path.join(save_dir, f"satellite_{norad_id}.{file_ext}")
+                self._log(_translate("SpaceTrackDialog", f"Saving data for NORAD ID {norad_id} to {file_name}."))
+
+                if format_type == "OMM":
+                    data = self.client.get_omm(norad_id, start_datetime)
+                    with open(file_name, 'w') as f:
+                        json.dump(data, f, indent=4)
+                else:  # TLE
+                    tle_1, tle_2, _ = self.client.get_tle(norad_id, start_datetime)
+                    with open(file_name, 'w') as f:
+                        f.write(f"{tle_1}\n{tle_2}\n")
+
+                self._log(_translate("SpaceTrackDialog", f"Successfully saved {format_type} data for NORAD ID {norad_id} to {file_name}."))
+
+        except Exception as e:
+            self._handle_error(_translate("SpaceTrackDialog", f"Failed to save {format_type} data: {e}"))
+    
     def open_custom_query_dialog(self):
         """Launch the custom query dialog and perform search if accepted."""
         dlg = CustomQueryDialog(self, translator=self.translator)
@@ -230,25 +295,28 @@ class SpaceTrackDialog(QtWidgets.QDialog):
             return ""
 
     def on_selection_changed(self):
-        """Track which row is selected and store NORAD ID."""
-        sel = self.ui.tableResult.selectedIndexes()
-        if sel:
-            row = sel[0].row()
+        """Track selected rows and store their NORAD IDs."""
+        _translate = QtCore.QCoreApplication.translate
+        selected_rows = set(index.row() for index in self.ui.tableResult.selectedIndexes())
+        self.selected_norad_ids = []
+        for row in selected_rows:
             item = self.ui.tableResult.item(row, 0)
-            self.selected_norad_id = item.text() if item else None
-            self._log(f"Selected satellite NORAD ID: {self.selected_norad_id}")
+            if item and item.text().isdigit():
+                self.selected_norad_ids.append(item.text())
+        self._log(_translate("SpaceTrackDialog", f"Selected satellite NORAD IDs: {', '.join(self.selected_norad_ids) if self.selected_norad_ids else 'None'}"))
 
     def on_accept(self):
-        """Accept dialog if a satellite has been selected."""
-        if self.selected_norad_id:
-            self._log(f"Satellite {self.selected_norad_id} selected; accepting.")
+        """Accept dialog if at least one satellite has been selected."""
+        _translate = QtCore.QCoreApplication.translate
+        if self.selected_norad_ids:
+            self._log(_translate("SpaceTrackDialog", f"Satellites {', '.join(self.selected_norad_ids)} selected; accepting."))
             self.accept()
         else:
-            self._warn("Please select a satellite from the list.")
+            self._warn(_translate("SpaceTrackDialog", "Please select at least one satellite from the list."))
 
-    def get_selected_norad_id(self):
-        """Return the currently selected NORAD ID (string)."""
-        return self.selected_norad_id
+    def get_selected_norad_ids(self):
+        """Return the list of currently selected NORAD IDs."""
+        return self.selected_norad_ids
 
     def _warn(self, msg):
         """Show a warning message box and log it."""
