@@ -100,9 +100,9 @@ class SpaceTracePluginDialog(SpaceTracePluginDialogBase):
         dlg = SpaceTrackDialog(self, login=login, password=password, 
                              log_callback=self.appendLog, translator=self.translator)
         if dlg.exec_() == QDialog.Accepted:
-            norad = dlg.get_selected_norad_id()
+            norad = dlg.get_selected_norad_ids()
             if norad:
-                self.lineEditSatID.setText(norad)
+                self.lineEditSatID.setText(norad[0])
 
     def appendLog(self, message):
         """Append a line to the log text box."""

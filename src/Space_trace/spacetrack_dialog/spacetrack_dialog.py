@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QGroupBox, QRadioButton, QLabel, QLineEdit, 
     QPushButton, QComboBox, QTableWidget, QDialogButtonBox, QFileDialog )
 
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 import os
 
@@ -90,6 +90,10 @@ class Ui_SpaceTrackDialog:
         self.save_layout.addWidget(self.pushButtonSave)
         self.save_layout.addStretch()
         self.verticalLayout.addLayout(self.save_layout)
+        
+        self.progressBar = QtWidgets.QProgressBar(Dialog)
+        self.progressBar.setVisible(True)
+        self.verticalLayout.addWidget(self.progressBar)
 
         # Buttons: Custom Query and OK/Cancel
         self.pushButtonCustomQuery = QPushButton(Dialog)
@@ -166,25 +170,30 @@ class SpaceTrackDialog(QtWidgets.QDialog):
         format_type = self.ui.comboSaveFormat.currentText()
         self._log(_translate("SpaceTrackDialog", f"Preparing to save data for NORAD IDs {', '.join(self.selected_norad_ids)} in {format_type} format."))
 
-        try:
-            # Open file dialog to choose save directory
-            save_dir = QFileDialog.getExistingDirectory(
-                self,
-                _translate("SpaceTrackDialog", "Select Directory to Save Satellite Data"),
-                "",
-                QFileDialog.ShowDirsOnly
-            )
-            if not save_dir:
-                self._log(_translate("SpaceTrackDialog", "Save operation cancelled."))
-                return
+        # Open dialog to choose save directory
+        save_dir = QFileDialog.getExistingDirectory(
+            self,
+            _translate("SpaceTrackDialog", "Select Directory to Save Satellite Data"),
+            "",
+            QFileDialog.ShowDirsOnly
+        )
+        if not save_dir:
+            self._log(_translate("SpaceTrackDialog", "Save operation cancelled."))
+            return
 
-            # Fetch data for each selected satellite
-            start_datetime = datetime.utcnow()
-            for norad_id in self.selected_norad_ids:
-                file_ext = 'json' if format_type == 'OMM' else 'txt'
-                file_name = os.path.join(save_dir, f"satellite_{norad_id}.{file_ext}")
-                self._log(_translate("SpaceTrackDialog", f"Saving data for NORAD ID {norad_id} to {file_name}."))
+        # Set up progress bar
+        self.ui.progressBar.setRange(0, len(self.selected_norad_ids))
+        self.ui.progressBar.setVisible(True)
 
+        start_datetime = datetime.now(timezone.utc)
+        failed_satellites = []
+
+        for i, norad_id in enumerate(self.selected_norad_ids):
+            file_ext = 'json' if format_type == 'OMM' else 'txt'
+            file_name = os.path.join(save_dir, f"satellite_{norad_id}.{file_ext}")
+            self._log(_translate("SpaceTrackDialog", f"Saving data for NORAD ID {norad_id} to {file_name}."))
+
+            try:
                 if format_type == "OMM":
                     data = self.client.get_omm(norad_id, start_datetime)
                     with open(file_name, 'w') as f:
@@ -196,8 +205,20 @@ class SpaceTrackDialog(QtWidgets.QDialog):
 
                 self._log(_translate("SpaceTrackDialog", f"Successfully saved {format_type} data for NORAD ID {norad_id} to {file_name}."))
 
-        except Exception as e:
-            self._handle_error(_translate("SpaceTrackDialog", f"Failed to save {format_type} data: {e}"))
+            except Exception as e:
+                error_msg = _translate("SpaceTrackDialog", f"Failed to save {format_type} data for NORAD ID {norad_id}: {e}")
+                self._log(error_msg)
+                failed_satellites.append(norad_id)
+                # Continue to the next satellite
+
+            self.ui.progressBar.setValue(i + 1)
+            QtWidgets.QApplication.processEvents()
+
+        # Report any failures after processing all satellites
+        if failed_satellites:
+            self._handle_error(_translate("SpaceTrackDialog", f"Failed to save data for NORAD IDs: {', '.join(failed_satellites)}. See log for details."))
+        else:
+            self._log(_translate("SpaceTrackDialog", "All satellite data saved successfully."))
     
     def open_custom_query_dialog(self):
         """Launch the custom query dialog and perform search if accepted."""
