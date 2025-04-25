@@ -182,8 +182,8 @@ class SpaceTrackDialog(QtWidgets.QDialog):
             return
 
         # Set up progress bar
+        self.ui.progressBar.setTextVisible(True)
         self.ui.progressBar.setRange(0, len(self.selected_norad_ids))
-        self.ui.progressBar.setVisible(True)
 
         start_datetime = datetime.now(timezone.utc)
         failed_satellites = []
@@ -209,11 +209,16 @@ class SpaceTrackDialog(QtWidgets.QDialog):
                 error_msg = _translate("SpaceTrackDialog", f"Failed to save {format_type} data for NORAD ID {norad_id}: {e}")
                 self._log(error_msg)
                 failed_satellites.append(norad_id)
-                # Continue to the next satellite
+                
 
             self.ui.progressBar.setValue(i + 1)
             QtWidgets.QApplication.processEvents()
 
+        self.ui.progressBar.setRange(0, 1)
+        self.ui.progressBar.setValue(0)
+        self.ui.progressBar.setFormat("") 
+        self.ui.progressBar.setTextVisible(False) 
+        
         # Report any failures after processing all satellites
         if failed_satellites:
             self._handle_error(_translate("SpaceTrackDialog", f"Failed to save data for NORAD IDs: {', '.join(failed_satellites)}. See log for details."))
