@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import QVBoxLayout, QTableWidget, QLineEdit, QPushButton, Q
 from PyQt5.QtWidgets import QDialog, QComboBox, QMessageBox, QTableWidgetItem
 from PyQt5.QtCore import QCoreApplication
 
+
 # Dictionary mapping satellite catalog fields to their data types
 field_types = {
     'INTLDES': 'string', 'NORAD_CAT_ID': 'int', 'OBJECT_TYPE': 'string', 'SATNAME': 'string',
@@ -41,78 +42,85 @@ field_labels = {
     'OBJECT_NUMBER': QCoreApplication.translate("CustomQueryDialog", "Object Number")
 }
 
-
 class Ui_CustomQueryDialog:
-    def setup_ui(self, Dialog):
-        Dialog.setWindowTitle("Custom Query")
-        Dialog.resize(600, 400)
-        self.layout = QVBoxLayout(Dialog)
+    """UI setup class for CustomQueryDialog."""
 
-        self.table = QTableWidget(0, 4, Dialog)
+    def setup_ui(self, dialog):
+        """Set up UI components for the custom query dialog."""
+        dialog.setWindowTitle("Custom Query")
+        dialog.resize(600, 400)
+        self.layout = QVBoxLayout(dialog)
+
+        self.table = QTableWidget(0, 4, dialog)
         self.table.setHorizontalHeaderLabels(["Attribute", "Field", "Operator", "Value"])
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.layout.addWidget(self.table)
 
-        self.buttonAdd = QPushButton("Add Condition", Dialog)
-        self.layout.addWidget(self.buttonAdd)
+        self.button_add = QPushButton("Add Condition", dialog)
+        self.button_remove = QPushButton("Remove Condition", dialog)
+        self.button_search = QPushButton("Search", dialog)
+        self.button_cancel = QPushButton("Cancel", dialog)
 
-        self.buttonRemove = QPushButton("Remove Condition", Dialog)
-        self.layout.addWidget(self.buttonRemove)
+        for button in (self.button_add, self.button_remove, self.button_search, self.button_cancel):
+            self.layout.addWidget(button)
 
-        self.buttonSearch = QPushButton("Search", Dialog)
-        self.layout.addWidget(self.buttonSearch)
-
-        self.buttonCancel = QPushButton("Cancel", Dialog)
-        self.layout.addWidget(self.buttonCancel)
-
-    def retranslate_ui(self, Dialog):
+    def retranslate_ui(self, dialog):
+        """Translate all UI strings for localization."""
         _translate = QtCore.QCoreApplication.translate
-        Dialog.setWindowTitle(_translate("CustomQueryDialog", "Custom Query"))
+        dialog.setWindowTitle(_translate("CustomQueryDialog", "Custom Query"))
         self.table.setHorizontalHeaderLabels([
             _translate("CustomQueryDialog", "Attribute"),
             _translate("CustomQueryDialog", "Field"),
             _translate("CustomQueryDialog", "Operator"),
             _translate("CustomQueryDialog", "Value")
         ])
-        self.buttonAdd.setText(_translate("CustomQueryDialog", "Add Condition"))
-        self.buttonRemove.setText(_translate("CustomQueryDialog", "Remove Condition"))
-        self.buttonSearch.setText(_translate("CustomQueryDialog", "Search"))
-        self.buttonCancel.setText(_translate("CustomQueryDialog", "Cancel"))
-
+        self.button_add.setText(_translate("CustomQueryDialog", "Add Condition"))
+        self.button_remove.setText(_translate("CustomQueryDialog", "Remove Condition"))
+        self.button_search.setText(_translate("CustomQueryDialog", "Search"))
+        self.button_cancel.setText(_translate("CustomQueryDialog", "Cancel"))
+        
 class CustomQueryDialog(QDialog):
+    """Dialog for building custom queries with multiple conditions."""
+
     def __init__(self, parent=None, translator=None):
+        """Initialize the custom query dialog."""
         super().__init__(parent)
         self.translator = translator
         self.ui = Ui_CustomQueryDialog()
         self.ui.setup_ui(self)
         self.ui.retranslate_ui(self)
-
         self.saved_conditions = []
 
-        self.ui.buttonAdd.clicked.connect(self.add_condition)
-        self.ui.buttonRemove.clicked.connect(self.remove_condition)
-        self.ui.buttonSearch.clicked.connect(self.accept)
-        self.ui.buttonCancel.clicked.connect(self.reject)
+        self._setup_connections()
+
+    def _setup_connections(self):
+        """Set up signal-slot connections for UI elements."""
+        self.ui.button_add.clicked.connect(self.add_condition)
+        self.ui.button_remove.clicked.connect(self.remove_condition)
+        self.ui.button_search.clicked.connect(self.accept)
+        self.ui.button_cancel.clicked.connect(self.reject)
 
     def set_saved_conditions(self, conditions):
         """Set saved conditions before showing the dialog."""
         self.saved_conditions = conditions.copy()
-        self.restore_conditions()
+        self._restore_conditions()
 
     def get_saved_conditions(self):
-        """Get conditions after dialog is closed."""
+        """Return the list of saved conditions."""
         return self.saved_conditions
 
     def add_condition(self):
+        """Add a new condition row to the table."""
         row = self.ui.table.rowCount()
         self.ui.table.insertRow(row)
 
         label_item = QTableWidgetItem("")
+        label_item.setFlags(label_item.flags() & ~QtCore.Qt.ItemIsEditable)
         self.ui.table.setItem(row, 0, label_item)
 
         field_combo = QComboBox()
         field_combo.addItems(field_types.keys())
-        field_combo.currentIndexChanged.connect(lambda index, r=row: self.update_field_related_widgets(r))
+        field_combo.currentIndexChanged.connect(lambda index, r=row: self._update_field_related_widgets(r))
         self.ui.table.setCellWidget(row, 1, field_combo)
 
         operator_combo = QComboBox()
@@ -121,105 +129,122 @@ class CustomQueryDialog(QDialog):
         value_edit = QLineEdit()
         self.ui.table.setCellWidget(row, 3, value_edit)
 
-        self.update_field_related_widgets(row)
+        self._update_field_related_widgets(row)
 
-    def update_field_related_widgets(self, row):
-        table = self.ui.table
-        field_combo = table.cellWidget(row, 1)
-        operator_combo = table.cellWidget(row, 2)
-        value_edit = table.cellWidget(row, 3)
-        label_item = table.item(row, 0)
+    def _update_field_related_widgets(self, row):
+        """Update operator options and value placeholder based on selected field."""
+        field_combo = self.ui.table.cellWidget(row, 1)
+        operator_combo = self.ui.table.cellWidget(row, 2)
+        value_edit = self.ui.table.cellWidget(row, 3)
+        label_item = self.ui.table.item(row, 0)
 
         field = field_combo.currentText()
         field_type = field_types.get(field, 'string')
         label = field_labels.get(field, field)
-        
-        _translate = QCoreApplication.translate
-        translated_label = _translate("CustomQueryDialog", label)
-        label_item.setText(translated_label)
+        label_item.setText(self._translate("CustomQueryDialog", label))
 
-        if field_type in ['int', 'decimal', 'date']:
-            operators = ['=', '!=', '<', '>']
-        elif field_type == 'string':
-            operators = ['=', '!=', 'LIKE']
-        elif field_type == 'enum':
-            operators = ['=', '!=']
-        else:
-            operators = []
-
+        operators = {
+            'int': ['=', '!=', '<', '>'],
+            'decimal': ['=', '!=', '<', '>'],
+            'date': ['=', '!=', '<', '>'],
+            'string': ['=', '!=', 'LIKE'],
+            'enum': ['=', '!='],
+        }.get(field_type, [])
         operator_combo.clear()
         operator_combo.addItems(operators)
 
-        _translate = QCoreApplication.translate
-        if field_type == 'int':
-            value_edit.setPlaceholderText(_translate("CustomQueryDialog", "Enter an integer (e.g., 25544)"))
-        elif field_type == 'decimal':
-            value_edit.setPlaceholderText(_translate("CustomQueryDialog", "Enter a decimal (e.g., 90.5)"))
-        elif field_type == 'date':
-            value_edit.setPlaceholderText(_translate("CustomQueryDialog", "Enter date as YYYY-MM-DD (e.g., 2023-01-01)"))
-        elif field_type == 'enum':
-            value_edit.setPlaceholderText(_translate("CustomQueryDialog", "Enter Y or N"))
-        else:
-            value_edit.setPlaceholderText(_translate("CustomQueryDialog", "Enter a string (e.g., STARLINK)"))
+        placeholders = {
+            'int': "Enter an integer (e.g., 25544)",
+            'decimal': "Enter a decimal (e.g., 90.5)",
+            'date': "Enter date as YYYY-MM-DD (e.g., 2023-01-01)",
+            'enum': "Enter Y or N",
+            'string': "Enter a string (e.g., STARLINK)"
+        }
+        value_edit.setPlaceholderText(self._translate("CustomQueryDialog", placeholders.get(field_type, "")))
 
     def remove_condition(self):
-        selected_rows = self.ui.table.selectionModel().selectedRows()
+        """Remove the selected condition row or the last one if none selected."""
+        selected_rows = sorted([index.row() for index in self.ui.table.selectionModel().selectedRows()], reverse=True)
         if selected_rows:
-            # Remove selected rows in reverse order to avoid index shifting
-            for index in sorted(selected_rows, reverse=True):
-                self.ui.table.removeRow(index.row())
+            for row in selected_rows:
+                self.ui.table.removeRow(row)
+        elif self.ui.table.rowCount() > 0:
+            self.ui.table.removeRow(self.ui.table.rowCount() - 1)
         else:
-            # If no row is selected, remove the last row if there are any
-            if self.ui.table.rowCount() > 0:
-                self.ui.table.removeRow(self.ui.table.rowCount() - 1)
-            else:
-                _translate = QCoreApplication.translate
-                QMessageBox.warning(
-                    self,
-                    _translate("CustomQueryDialog", "Warning"),
-                    _translate("CustomQueryDialog", "No conditions to remove.")
-                )
-        # Update saved conditions without triggering validation
+            self._warn("No conditions to remove.")
         self._update_saved_conditions_silent()
 
     def get_conditions(self, silent=False):
+        """Retrieve and validate conditions from the table."""
         conditions = []
-        table = self.ui.table
-        for row in range(table.rowCount()):
-            field_combo = table.cellWidget(row, 1)
-            operator_combo = table.cellWidget(row, 2)
-            value_edit = table.cellWidget(row, 3)
+        for row in range(self.ui.table.rowCount()):
+            field_combo = self.ui.table.cellWidget(row, 1)
+            operator_combo = self.ui.table.cellWidget(row, 2)
+            value_edit = self.ui.table.cellWidget(row, 3)
             field = field_combo.currentText()
             operator = operator_combo.currentText()
             value = value_edit.text().strip()
-            if field and operator and value:
-                conditions.append((field, operator, value))
-            elif (field or operator or value) and not silent:
-                _translate = QCoreApplication.translate
-                QMessageBox.warning(
-                    self,
-                    _translate("CustomQueryDialog", "Warning"),
-                    _translate("CustomQueryDialog", "Please fill all fields in each condition.")
-                )
+
+            if not (field and operator and value):
+                if not silent:
+                    self._warn("Please fill all fields in each condition.")
                 return []
+            
+            field_type = field_types.get(field, 'string')
+            if field_type == 'int' and not self._is_valid_int(value):
+                if not silent:
+                    self._warn(f"Invalid integer value for {field}: {value}")
+                return []
+            elif field_type == 'decimal' and not self._is_valid_decimal(value):
+                if not silent:
+                    self._warn(f"Invalid decimal value for {field}: {value}")
+                return []
+            elif field_type == 'date' and not self._is_valid_date(value):
+                if not silent:
+                    self._warn(f"Invalid date format for {field}: {value} (expected YYYY-MM-DD)")
+                return []
+
+            conditions.append((field, operator, value))
         return conditions
 
+    def _is_valid_int(self, value):
+        """Check if the value is a valid integer."""
+        try:
+            int(value)
+            return True
+        except ValueError:
+            return False
 
-    def restore_conditions(self):
+    def _is_valid_decimal(self, value):
+        """Check if the value is a valid decimal."""
+        try:
+            float(value)
+            return True
+        except ValueError:
+            return False
+
+    def _is_valid_date(self, value):
+        """Check if the value is a valid date in YYYY-MM-DD format."""
+        try:
+            datetime.strptime(value, '%Y-%m-%d')
+            return True
+        except ValueError:
+            return False
+
+    def _restore_conditions(self):
+        """Restore saved conditions into the table."""
         self.ui.table.setRowCount(0)
-        if not self.saved_conditions:
-            return
         for field, operator, value in self.saved_conditions:
             row = self.ui.table.rowCount()
             self.ui.table.insertRow(row)
-
-            label_item = QTableWidgetItem("")
+            label_item = QTableWidgetItem(self._translate("CustomQueryDialog", field_labels.get(field, field)))
+            label_item.setFlags(label_item.flags() & ~QtCore.Qt.ItemIsEditable)
             self.ui.table.setItem(row, 0, label_item)
 
             field_combo = QComboBox()
             field_combo.addItems(field_types.keys())
             field_combo.setCurrentText(field)
-            field_combo.currentIndexChanged.connect(lambda index, r=row: self.update_field_related_widgets(r))
+            field_combo.currentIndexChanged.connect(lambda index, r=row: self._update_field_related_widgets(r))
             self.ui.table.setCellWidget(row, 1, field_combo)
 
             operator_combo = QComboBox()
@@ -229,18 +254,29 @@ class CustomQueryDialog(QDialog):
             value_edit.setText(value)
             self.ui.table.setCellWidget(row, 3, value_edit)
 
-            self.update_field_related_widgets(row)
+            self._update_field_related_widgets(row)
             operator_combo.setCurrentText(operator)
-    
+
     def _update_saved_conditions_silent(self):
+        """Update saved conditions without triggering validation."""
         self.saved_conditions = self.get_conditions(silent=True)
 
     def accept(self):
+        """Accept the dialog if conditions are valid."""
         conditions = self.get_conditions()
         if conditions or not self.ui.table.rowCount():
             self.saved_conditions = conditions
             super().accept()
 
     def reject(self):
+        """Reject the dialog and update saved conditions."""
         self._update_saved_conditions_silent()
         super().reject()
+
+    def _translate(self, context, text):
+        """Translate text using Qt's translation system."""
+        return QtCore.QCoreApplication.translate(context, text)
+
+    def _warn(self, message):
+        """Display a warning message."""
+        QtWidgets.QMessageBox.warning(self, self._translate("CustomQueryDialog", "Warning"), self._translate("CustomQueryDialog", message))
