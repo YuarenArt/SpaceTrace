@@ -10,7 +10,7 @@ and logs all important actions.
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QGroupBox, QRadioButton, QLabel, QLineEdit, 
-    QPushButton, QComboBox, QTableWidget, QDialogButtonBox, QFileDialog )
+    QPushButton, QComboBox, QTableWidget, QDialogButtonBox, QFileDialog, QDialog )
 
 from datetime import datetime, timezone
 import json
@@ -146,6 +146,7 @@ class SpaceTrackDialog(QtWidgets.QDialog):
         self.log_callback = log_callback
         self.client = SpacetrackClientWrapper(login, password)
         self.selected_norad_ids = []
+        self.custom_query_saved_conditions = []
         
         self.ui = Ui_SpaceTrackDialog()
         self.ui.setup_ui(self)
@@ -153,7 +154,7 @@ class SpaceTrackDialog(QtWidgets.QDialog):
 
         # Signal connections
         self.ui.pushButtonSearch.clicked.connect(self.perform_search)
-        self.ui.pushButtonCustomQuery.clicked.connect(self.open_custom_query_dialog)
+        self.ui.pushButtonCustomQuery.clicked.connect(self.open_custom_query)
         self.ui.buttonBox.accepted.connect(self.on_accept)
         self.ui.buttonBox.rejected.connect(self.reject)
         self.ui.tableResult.itemSelectionChanged.connect(self.on_selection_changed)
@@ -161,7 +162,7 @@ class SpaceTrackDialog(QtWidgets.QDialog):
         self.ui.pushButtonSave.clicked.connect(self.save_selected_satellite_data)
 
     def save_selected_satellite_data(self):
-        """Save data for all selected satellites in the chosen format (OMM or TLE)."""
+        """Save data for selected satellites, allowing file name selection for a single satellite and showing completion notification."""
         _translate = QtCore.QCoreApplication.translate
         if not self.selected_norad_ids:
             self._warn(_translate("SpaceTrackDialog", "Please select at least one satellite to save its data."))
@@ -170,68 +171,99 @@ class SpaceTrackDialog(QtWidgets.QDialog):
         format_type = self.ui.comboSaveFormat.currentText()
         self._log(_translate("SpaceTrackDialog", f"Preparing to save data for NORAD IDs {', '.join(self.selected_norad_ids)} in {format_type} format."))
 
-        # Open dialog to choose save directory
-        save_dir = QFileDialog.getExistingDirectory(
-            self,
-            _translate("SpaceTrackDialog", "Select Directory to Save Satellite Data"),
-            "",
-            QFileDialog.ShowDirsOnly
-        )
-        if not save_dir:
-            self._log(_translate("SpaceTrackDialog", "Save operation cancelled."))
-            return
+        save_paths = []
+
+        if len(self.selected_norad_ids) == 1:
+            # Single file save: user specifies full file path
+            file_ext = 'json' if format_type == 'OMM' else 'txt'
+            file_filter = f"{format_type} Files (*.{file_ext});;All Files (*)"
+            file_path, _ = QFileDialog.getSaveFileName(
+                self,
+                _translate("SpaceTrackDialog", "Save Satellite Data"),
+                f"satellite_{self.selected_norad_ids[0]}.{file_ext}",
+                file_filter
+            )
+            if not file_path:
+                self._log(_translate("SpaceTrackDialog", "Save operation cancelled."))
+                return
+            save_paths.append((self.selected_norad_ids[0], file_path))
+        else:
+            # Multiple files save: user selects a directory
+            save_dir = QFileDialog.getExistingDirectory(
+                self,
+                _translate("SpaceTrackDialog", "Select Directory to Save Satellite Data"),
+                "",
+                QFileDialog.ShowDirsOnly
+            )
+            if not save_dir:
+                self._log(_translate("SpaceTrackDialog", "Save operation cancelled."))
+                return
+            for norad_id in self.selected_norad_ids:
+                file_ext = 'json' if format_type == 'OMM' else 'txt'
+                file_name = os.path.join(save_dir, f"satellite_{norad_id}.{file_ext}")
+                save_paths.append((norad_id, file_name))
 
         # Set up progress bar
         self.ui.progressBar.setTextVisible(True)
-        self.ui.progressBar.setRange(0, len(self.selected_norad_ids))
+        self.ui.progressBar.setRange(0, len(save_paths))
 
         start_datetime = datetime.now(timezone.utc)
         failed_satellites = []
 
-        for i, norad_id in enumerate(self.selected_norad_ids):
-            file_ext = 'json' if format_type == 'OMM' else 'txt'
-            file_name = os.path.join(save_dir, f"satellite_{norad_id}.{file_ext}")
-            self._log(_translate("SpaceTrackDialog", f"Saving data for NORAD ID {norad_id} to {file_name}."))
+        for i, (norad_id, file_path) in enumerate(save_paths):
+            self._log(_translate("SpaceTrackDialog", f"Saving data for NORAD ID {norad_id} to {file_path}."))
 
             try:
                 if format_type == "OMM":
                     data = self.client.get_omm(norad_id, start_datetime)
-                    with open(file_name, 'w') as f:
+                    with open(file_path, 'w') as f:
                         json.dump(data, f, indent=4)
                 else:  # TLE
                     tle_1, tle_2, _ = self.client.get_tle(norad_id, start_datetime)
-                    with open(file_name, 'w') as f:
+                    with open(file_path, 'w') as f:
                         f.write(f"{tle_1}\n{tle_2}\n")
 
-                self._log(_translate("SpaceTrackDialog", f"Successfully saved {format_type} data for NORAD ID {norad_id} to {file_name}."))
+                self._log(_translate("SpaceTrackDialog", f"Successfully saved {format_type} data for NORAD ID {norad_id}."))
 
             except Exception as e:
                 error_msg = _translate("SpaceTrackDialog", f"Failed to save {format_type} data for NORAD ID {norad_id}: {e}")
                 self._log(error_msg)
                 failed_satellites.append(norad_id)
-                
 
             self.ui.progressBar.setValue(i + 1)
             QtWidgets.QApplication.processEvents()
 
+        # Reset progress bar
         self.ui.progressBar.setRange(0, 1)
         self.ui.progressBar.setValue(0)
-        self.ui.progressBar.setFormat("") 
-        self.ui.progressBar.setTextVisible(False) 
-        
-        # Report any failures after processing all satellites
+        self.ui.progressBar.setFormat("")
+        self.ui.progressBar.setTextVisible(False)
+
+        # Notify user
         if failed_satellites:
             self._handle_error(_translate("SpaceTrackDialog", f"Failed to save data for NORAD IDs: {', '.join(failed_satellites)}. See log for details."))
         else:
+            QtWidgets.QMessageBox.information(
+                self,
+                _translate("SpaceTrackDialog", "Success"),
+                _translate("SpaceTrackDialog", "All selected satellite data have been successfully saved.")
+            )
             self._log(_translate("SpaceTrackDialog", "All satellite data saved successfully."))
     
-    def open_custom_query_dialog(self):
-        """Launch the custom query dialog and perform search if accepted."""
-        dlg = CustomQueryDialog(self, translator=self.translator)
-        if dlg.exec_() == QtWidgets.QDialog.Accepted:
-            conds = dlg.get_conditions()
+    def open_custom_query(self):
+        """Open the Custom Query dialog and preserve conditions."""
+        dialog = CustomQueryDialog(self)
+
+        if self.custom_query_saved_conditions:
+            dialog.set_saved_conditions(self.custom_query_saved_conditions)
+            
+        if dialog.exec_() == QDialog.Accepted:
+            conds = dialog.get_saved_conditions()
             if conds:
+                self.custom_query_saved_conditions = conds
                 self.perform_custom_search(conds)
+        else:
+            self.custom_query_saved_conditions = dialog.get_saved_conditions()
 
     def perform_search(self):
         """Execute a search based on current input and selected search type."""

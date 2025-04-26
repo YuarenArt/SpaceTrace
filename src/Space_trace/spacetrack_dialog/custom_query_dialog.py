@@ -83,15 +83,25 @@ class CustomQueryDialog(QDialog):
     def __init__(self, parent=None, translator=None):
         super().__init__(parent)
         self.translator = translator
-
         self.ui = Ui_CustomQueryDialog()
         self.ui.setup_ui(self)
         self.ui.retranslate_ui(self)
+
+        self.saved_conditions = []
 
         self.ui.buttonAdd.clicked.connect(self.add_condition)
         self.ui.buttonRemove.clicked.connect(self.remove_condition)
         self.ui.buttonSearch.clicked.connect(self.accept)
         self.ui.buttonCancel.clicked.connect(self.reject)
+
+    def set_saved_conditions(self, conditions):
+        """Set saved conditions before showing the dialog."""
+        self.saved_conditions = conditions.copy()
+        self.restore_conditions()
+
+    def get_saved_conditions(self):
+        """Get conditions after dialog is closed."""
+        return self.saved_conditions
 
     def add_condition(self):
         row = self.ui.table.rowCount()
@@ -127,7 +137,6 @@ class CustomQueryDialog(QDialog):
         _translate = QCoreApplication.translate
         translated_label = _translate("CustomQueryDialog", label)
         label_item.setText(translated_label)
-        
 
         if field_type in ['int', 'decimal', 'date']:
             operators = ['=', '!=', '<', '>']
@@ -155,18 +164,25 @@ class CustomQueryDialog(QDialog):
 
     def remove_condition(self):
         selected_rows = self.ui.table.selectionModel().selectedRows()
-        if not selected_rows:
-            _translate = QCoreApplication.translate
-            QMessageBox.warning(
-                self,
-                _translate("CustomQueryDialog", "Warning"),
-                _translate("CustomQueryDialog", "Please select a row to remove.")
-            )
-            return
-        for index in sorted(selected_rows, reverse=True):
-            self.ui.table.removeRow(index.row())
+        if selected_rows:
+            # Remove selected rows in reverse order to avoid index shifting
+            for index in sorted(selected_rows, reverse=True):
+                self.ui.table.removeRow(index.row())
+        else:
+            # If no row is selected, remove the last row if there are any
+            if self.ui.table.rowCount() > 0:
+                self.ui.table.removeRow(self.ui.table.rowCount() - 1)
+            else:
+                _translate = QCoreApplication.translate
+                QMessageBox.warning(
+                    self,
+                    _translate("CustomQueryDialog", "Warning"),
+                    _translate("CustomQueryDialog", "No conditions to remove.")
+                )
+        # Update saved conditions without triggering validation
+        self._update_saved_conditions_silent()
 
-    def get_conditions(self):
+    def get_conditions(self, silent=False):
         conditions = []
         table = self.ui.table
         for row in range(table.rowCount()):
@@ -178,7 +194,7 @@ class CustomQueryDialog(QDialog):
             value = value_edit.text().strip()
             if field and operator and value:
                 conditions.append((field, operator, value))
-            elif field or operator or value:
+            elif (field or operator or value) and not silent:
                 _translate = QCoreApplication.translate
                 QMessageBox.warning(
                     self,
@@ -187,3 +203,44 @@ class CustomQueryDialog(QDialog):
                 )
                 return []
         return conditions
+
+
+    def restore_conditions(self):
+        self.ui.table.setRowCount(0)
+        if not self.saved_conditions:
+            return
+        for field, operator, value in self.saved_conditions:
+            row = self.ui.table.rowCount()
+            self.ui.table.insertRow(row)
+
+            label_item = QTableWidgetItem("")
+            self.ui.table.setItem(row, 0, label_item)
+
+            field_combo = QComboBox()
+            field_combo.addItems(field_types.keys())
+            field_combo.setCurrentText(field)
+            field_combo.currentIndexChanged.connect(lambda index, r=row: self.update_field_related_widgets(r))
+            self.ui.table.setCellWidget(row, 1, field_combo)
+
+            operator_combo = QComboBox()
+            self.ui.table.setCellWidget(row, 2, operator_combo)
+
+            value_edit = QLineEdit()
+            value_edit.setText(value)
+            self.ui.table.setCellWidget(row, 3, value_edit)
+
+            self.update_field_related_widgets(row)
+            operator_combo.setCurrentText(operator)
+    
+    def _update_saved_conditions_silent(self):
+        self.saved_conditions = self.get_conditions(silent=True)
+
+    def accept(self):
+        conditions = self.get_conditions()
+        if conditions or not self.ui.table.rowCount():
+            self.saved_conditions = conditions
+            super().accept()
+
+    def reject(self):
+        self._update_saved_conditions_silent()
+        super().reject()
