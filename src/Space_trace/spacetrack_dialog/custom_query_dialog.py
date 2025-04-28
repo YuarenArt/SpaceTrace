@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import QVBoxLayout, QTableWidget, QLineEdit, QPushButton, Q
 from PyQt5.QtWidgets import QDialog, QComboBox, QMessageBox, QTableWidgetItem
 from PyQt5.QtCore import QCoreApplication
 
+from datetime import datetime
 
 # Dictionary mapping satellite catalog fields to their data types
 field_types = {
