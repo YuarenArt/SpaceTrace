@@ -1,5 +1,5 @@
 """
-This module contains the OrbitalOrchestrator class that orchestrates the process
+This module contains the OrbitalTrackFacade class that orchestrates the process
 of retrieving TLE/OMM data and generating orbital track layers.
 """
 import os
@@ -9,7 +9,7 @@ from ..spacetrack_client.spacetrack_client import SpacetrackClientWrapper
 from .handler import OrbitalLogicHandler
 
 
-class OrbitalOrchestrator:
+class OrbitalTrackFacade:
     """
     Orchestrates the process of retrieving TLE/OMM data and generating orbital tracks.
     """
@@ -24,7 +24,6 @@ class OrbitalOrchestrator:
         self.client = SpacetrackClientWrapper(username, password)
         self.logic_handler = OrbitalLogicHandler()
         self.log_callback = log_callback
-        self._log("OrbitalOrchestrator initialized", "DEBUG")
 
     def _log(self, message, level="INFO"):
         """

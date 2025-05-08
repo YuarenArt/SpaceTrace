@@ -1,4 +1,3 @@
-from abc import ABC, abstractmethod
 
 from qgis.core import (
     QgsVectorFileWriter,
@@ -7,241 +6,261 @@ from qgis.core import (
     QgsFeature,
     QgsGeometry,
     QgsPointXY,
-    QgsFields,
-    QgsField
+    QgsFields
 )
 
-from PyQt5.QtCore import QVariant, QDateTime
+from PyQt5.QtCore import QVariant, QDateTime, Qt
+
+from typing import Optional, Callable
+from abc import ABC, abstractmethod
 
 class FileSaver(ABC):
+    point_fields = [
+        ("Point_ID", QVariant.Int),
+        ("Date_Time", None),
+        ("Latitude", QVariant.Double),
+        ("Longitude", QVariant.Double),
+        ("Altitude", QVariant.Double),
+        ("Velocity", QVariant.Double),
+        ("Azimuth", QVariant.Double),
+        ("Elevation", QVariant.Double),
+        ("TrueAnomaly", QVariant.Double),
+        ("Inclination", QVariant.Double),
+    ]
+
+    def __init__(self, log_callback: Optional[Callable[[str, str], None]] = None):
+        """Initialize with a logging callback."""
+        self.log_callback = log_callback
+
+    def _log(self, message: str, level: str = "INFO"):
+        """Log a message using the provided callback."""
+        if self.log_callback:
+            self.log_callback(message, level)
+
+    @property
     @abstractmethod
-    def save_points(self, points, output_path):
+    def format_name(self) -> str:
+        pass
+
+    @property
+    @abstractmethod
+    def date_field_type(self):
         pass
 
     @abstractmethod
-    def save_lines(self, geometries, output_path):
+    def prepare_date(self, dt):
         pass
 
-class ShpSaver(FileSaver):
-    def save_points(self, points, output_path):
-        layer = QgsVectorLayer("Point?crs=EPSG:4326", "points", "memory")
-        provider = layer.dataProvider()
-        provider.addAttributes([
-            QgsField("Point_ID", QVariant.Int),
-            QgsField("Date_Time", QVariant.DateTime), 
-            QgsField("Latitude", QVariant.Double),
-            QgsField("Longitude", QVariant.Double),
-            QgsField("Altitude", QVariant.Double),
-            QgsField("Velocity", QVariant.Double),
-            QgsField("Azimuth", QVariant.Double),
-            QgsField("Elevation", QVariant.Double),
-            QgsField("TrueAnomaly", QVariant.Double),
-            QgsField("Inclination", QVariant.Double),
-        ])
-        layer.updateFields()
+    @abstractmethod
+    def is_memory(self) -> bool:
+        pass
 
-        features = []
-        for i, point in enumerate(points):
-            current_time, lon, lat, alt, velocity, azimuth, elevation, true_anomaly, inc = point
-            qdt = QDateTime(
-                current_time.year, current_time.month, current_time.day,
-                current_time.hour, current_time.minute, current_time.second
-            )
-            feat = QgsFeature()
-            feat.setAttributes([
-                i, qdt, lat, lon, alt, velocity, azimuth, elevation, true_anomaly, inc
-            ])
-            feat.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(lon, lat)))
-            features.append(feat)
+    def save_points(self, points, output_path_or_layername: Optional[str] = None) -> Optional[QgsVectorLayer]:
+        """Save point data to a layer or file with detailed logging."""
+        self._log(f"Starting save_points for format: {self.format_name}", "DEBUG")
 
-        provider.addFeatures(features)
-        QgsVectorFileWriter.writeAsVectorFormat(layer, output_path, "UTF-8", layer.crs(), "ESRI Shapefile")
+        if not self.is_memory() and output_path_or_layername is None:
+            self._log(f"Output path is required for {self.format_name} format but was None", "ERROR")
+            raise ValueError(f"Output path is required for {self.format_name} format")
 
-    def save_lines(self, geometries, output_path):
-        layer = QgsVectorLayer("LineString?crs=EPSG:4326", "lines", "memory")
-        provider = layer.dataProvider()
-        provider.addAttributes([QgsField("ID", QVariant.Int)])
-        layer.updateFields()
+        layer_name = output_path_or_layername if output_path_or_layername else "Points"
+        self._log(f"Creating point layer with name: {layer_name}", "DEBUG")
 
-        features = []
-        for i, geom in enumerate(geometries):
-            feat = QgsFeature()
-            feat.setAttributes([i + 1])
-            feat.setGeometry(geom)
-            features.append(feat)
+        # Create a vector layer for points
+        layer = QgsVectorLayer("Point?crs=EPSG:4326", layer_name, "memory")
+        prov = layer.dataProvider()
 
-        provider.addFeatures(features)
-        QgsVectorFileWriter.writeAsVectorFormat(layer, output_path, "UTF-8", layer.crs(), "ESRI Shapefile")
-class GpkgSaver(FileSaver):
-
-    def save_points(self, points, output_path):
-        layer = QgsVectorLayer("Point?crs=EPSG:4326", "temp_points", "memory")
-        provider = layer.dataProvider()
-        provider.addAttributes([
-            QgsField("Point_ID", QVariant.Int),
-            QgsField("Date_Time", QVariant.DateTime), 
-            QgsField("Latitude", QVariant.Double),
-            QgsField("Longitude", QVariant.Double),
-            QgsField("Altitude", QVariant.Double),
-            QgsField("Velocity", QVariant.Double),
-            QgsField("Azimuth", QVariant.Double),
-            QgsField("Elevation", QVariant.Double),
-            QgsField("TrueAnomaly", QVariant.Double),
-            QgsField("Inclination", QVariant.Double),
-        ])
-        layer.updateFields()
-        features = []
-        for i, point in enumerate(points):
-            current_time, lon, lat, alt, velocity, azimuth, elevation, true_anomaly, inc = point
-            qdt = QDateTime(
-                current_time.year, current_time.month, current_time.day,
-                current_time.hour, current_time.minute, current_time.second
-            )
-            feat = QgsFeature()
-            feat.setAttributes([
-                i, qdt, lat, lon, alt, velocity, azimuth, elevation, true_anomaly, inc
-            ])
-            feat.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(lon, lat)))
-            features.append(feat)
-        provider.addFeatures(features)
-        QgsVectorFileWriter.writeAsVectorFormat(layer, output_path, "UTF-8", layer.crs(), "GPKG")
-
-    def save_lines(self, geometries, output_path):
-        layer = QgsVectorLayer("LineString?crs=EPSG:4326", "temp_lines", "memory")
-        provider = layer.dataProvider()
-        layer.updateFields()
-        features = []
-        for i, geom in enumerate(geometries):
-            feat = QgsFeature()
-            feat.setAttributes([i + 1])
-            feat.setGeometry(geom)
-            features.append(feat)
-        provider.addFeatures(features)
-        QgsVectorFileWriter.writeAsVectorFormat(layer, output_path, "UTF-8", layer.crs(), "GPKG")
-
-class GeoJsonSaver(FileSaver):
-
-    def save_points(self, points, output_path):
-        layer = QgsVectorLayer("Point?crs=EPSG:4326", "temp_points", "memory")
-        provider = layer.dataProvider()
-        provider.addAttributes([
-            QgsField("Point_ID", QVariant.Int),
-            QgsField("Date_Time", QVariant.DateTime),  
-            QgsField("Latitude", QVariant.Double),
-            QgsField("Longitude", QVariant.Double),
-            QgsField("Altitude", QVariant.Double),
-            QgsField("Velocity", QVariant.Double),
-            QgsField("Azimuth", QVariant.Double),
-            QgsField("Elevation", QVariant.Double),
-            QgsField("TrueAnomaly", QVariant.Double),
-            QgsField("Inclination", QVariant.Double),
-        ])
-        layer.updateFields()
-        features = []
-        for i, point in enumerate(points):
-            current_time, lon, lat, alt, velocity, azimuth, elevation, true_anomaly, inc = point
-            qdt = QDateTime(
-                current_time.year, current_time.month, current_time.day,
-                current_time.hour, current_time.minute, current_time.second
-            )
-            feat = QgsFeature()
-            feat.setAttributes([
-                i, qdt, lat, lon, alt, velocity, azimuth, elevation, true_anomaly, inc
-            ])
-            feat.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(lon, lat)))
-            features.append(feat)
-        provider.addFeatures(features)
-        QgsVectorFileWriter.writeAsVectorFormat(layer, output_path, "UTF-8", layer.crs(), "GeoJSON")    
-
-    def save_lines(self, geometries, output_path):
-        layer = QgsVectorLayer("LineString?crs=EPSG:4326", "temp_lines", "memory")
-        provider = layer.dataProvider()
-        provider.addAttributes([QgsField("ID", QVariant.Int)])
-        layer.updateFields()
-        features = []
-        for i, geom in enumerate(geometries):
-            feat = QgsFeature()
-            feat.setAttributes([i + 1])
-            feat.setGeometry(geom)
-            features.append(feat)
-        provider.addFeatures(features)
-        options = QgsVectorFileWriter.SaveVectorOptions()
-        QgsVectorFileWriter.writeAsVectorFormat(layer, output_path, "UTF-8", layer.crs(), "GeoJSON")
-        
-class MemoryLayerSaver:
-    """Class to create in-memory QGIS layers for points and lines."""
-
-    def save_points(self, points, layer_name):
-        """
-        Create an in-memory point layer from a list of points.
-
-        :param points: List of tuples (datetime, lon, lat, alt, velocity, azimuth, elevation, true_anomaly, inc).
-        :param layer_name: Name of the layer.
-        :return: QgsVectorLayer containing the points.
-        """
-        point_layer = QgsVectorLayer("Point?crs=EPSG:4326", layer_name, "memory")
-        provider = point_layer.dataProvider()
+        # Define and add fields
         fields = QgsFields()
-        fields.append(QgsField("Point_ID", QVariant.Int))
-        fields.append(QgsField("Date_Time", QVariant.DateTime))
-        fields.append(QgsField("Latitude", QVariant.Double))
-        fields.append(QgsField("Longitude", QVariant.Double))
-        fields.append(QgsField("Altitude", QVariant.Double))
-        fields.append(QgsField("Velocity", QVariant.Double))
-        fields.append(QgsField("Azimuth", QVariant.Double))
-        fields.append(QgsField("Elevation", QVariant.Double))
-        fields.append(QgsField("TrueAnomaly", QVariant.Double))
-        fields.append(QgsField("Inclination", QVariant.Double))
-        provider.addAttributes(fields)
-        point_layer.updateFields()
+        for name, vtype in self.point_fields:
+            t = vtype if name != "Date_Time" else self.date_field_type
+            fields.append(QgsField(name, t))
+        prov.addAttributes(fields)
+        layer.updateFields()
+        self._log(f"Fields added to point layer: {[field.name() for field in fields]}", "DEBUG")
 
-        features = []
-        for i, point in enumerate(points):
-            current_time, lon, lat, alt, velocity, azimuth, elevation, true_anom, inc = point
-            qdt = QDateTime(current_time.year, current_time.month, current_time.day,
-                            current_time.hour, current_time.minute, current_time.second)
+        # Create point features
+        feats = []
+        for i, pt in enumerate(points):
+            dt, lon, lat, alt, vel, az, el, ta, inc = pt
             feat = QgsFeature()
             feat.setFields(fields)
             feat.setAttribute("Point_ID", i)
-            feat.setAttribute("Date_Time", qdt)
+            feat.setAttribute("Date_Time", self.prepare_date(dt))
             feat.setAttribute("Latitude", lat)
             feat.setAttribute("Longitude", lon)
             feat.setAttribute("Altitude", alt)
-            feat.setAttribute("Velocity", velocity)
-            feat.setAttribute("Azimuth", azimuth)
-            feat.setAttribute("Elevation", elevation)
-            feat.setAttribute("TrueAnomaly", true_anom)
+            feat.setAttribute("Velocity", vel)
+            feat.setAttribute("Azimuth", az)
+            feat.setAttribute("Elevation", el)
+            feat.setAttribute("TrueAnomaly", ta)
             feat.setAttribute("Inclination", inc)
             feat.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(lon, lat)))
-            features.append(feat)
+            feats.append(feat)
+        self._log(f"Created {len(feats)} point features", "DEBUG")
 
-        if features:
-            provider.addFeatures(features)
-            point_layer.updateExtents()
-        return point_layer
+        # Add features and save if necessary
+        if feats:
+            prov.addFeatures(feats)
+            self._log(f"Added {len(feats)} features to point layer", "DEBUG")
+            if not self.is_memory():
+                self._log(f"Saving points to file: {output_path_or_layername}", "DEBUG")
+                write_result, error_message = QgsVectorFileWriter.writeAsVectorFormat(
+                    layer, output_path_or_layername, "UTF-8", layer.crs(), self.format_name
+                )
+                if write_result != QgsVectorFileWriter.NoError:
+                    self._log(f"Failed to save points to {output_path_or_layername}: {error_message}", "ERROR")
+                    raise RuntimeError(f"Failed to save {self.format_name}: {error_message}")
+                self._log(f"Successfully saved points to {output_path_or_layername}", "INFO")
+            else:
+                layer.updateExtents()
+                self._log("Updated extents for in-memory point layer", "DEBUG")
+        else:
+            self._log("No point features were created", "WARNING")
 
-    def save_lines(self, geometries, layer_name):
-        """
-        Create an in-memory line layer from a list of geometries.
+        return layer if self.is_memory() else None
 
-        :param points: List of tuples (datetime, lon, lat, ...), passed for compatibility.
-        :param geometries: List of QgsGeometry objects representing line segments.
-        :param layer_name: Name of the layer.
-        :return: QgsVectorLayer containing the lines.
-        """
-        line_layer = QgsVectorLayer("LineString?crs=EPSG:4326", layer_name, "memory")
-        provider = line_layer.dataProvider()
-        provider.addAttributes([QgsField("ID", QVariant.Int)])
-        line_layer.updateFields()
+    def save_lines(self, geometries, output_path_or_layername: Optional[str] = None) -> Optional[QgsVectorLayer]:
+        """Save line geometries to a layer or file with detailed logging."""
+        self._log(f"Starting save_lines for format: {self.format_name}", "DEBUG")
 
-        line_features = []
-        for i, geom in enumerate(geometries):
-            feat = QgsFeature()
-            feat.setGeometry(geom)
-            feat.setAttributes([i + 1])
-            line_features.append(feat)
+        if not self.is_memory() and output_path_or_layername is None:
+            self._log(f"Output path is required for {self.format_name} format but was None", "ERROR")
+            raise ValueError(f"Output path is required for {self.format_name} format")
 
-        if line_features:
-            provider.addFeatures(line_features)
-            line_layer.updateExtents()
-        return line_layer
+        layer_name = output_path_or_layername if output_path_or_layername else "Lines"
+        self._log(f"Creating line layer with name: {layer_name}", "DEBUG")
+
+        # Create a vector layer for lines
+        layer = QgsVectorLayer("LineString?crs=EPSG:4326", layer_name, "memory")
+        prov = layer.dataProvider()
+
+        # Define and add fields
+        fields = QgsFields()
+        fields.append(QgsField("ID", QVariant.Int))
+        prov.addAttributes(fields)
+        layer.updateFields()
+        self._log(f"Fields added to line layer: {[field.name() for field in fields]}", "DEBUG")
+
+        # Verify 'ID' field exists
+        id_index = layer.fields().indexFromName("ID")
+        if id_index == -1:
+            self._log("Field 'ID' was not added to the line layer", "ERROR")
+        else:
+            self._log(f"Field 'ID' found at index {id_index}", "DEBUG")
+
+        # Create line features
+        feats = []
+        for i, geom in enumerate(geometries, start=1):
+            f = QgsFeature()
+            f.setFields(fields)
+            if id_index != -1:
+                f.setAttribute("ID", i)
+                self._log(f"Set attribute 'ID' = {i} for feature {i}", "DEBUG")
+            else:
+                self._log(f"Skipping attribute 'ID' for feature {i} as field is missing", "WARNING")
+            f.setGeometry(geom)
+            feats.append(f)
+        self._log(f"Created {len(feats)} line features", "DEBUG")
+
+        # Add features and save if necessary
+        if feats:
+            prov.addFeatures(feats)
+            self._log(f"Added {len(feats)} features to line layer", "DEBUG")
+            if not self.is_memory():
+                self._log(f"Saving lines to file: {output_path_or_layername}", "DEBUG")
+                write_result, error_message = QgsVectorFileWriter.writeAsVectorFormat(
+                    layer, output_path_or_layername, "UTF-8", layer.crs(), self.format_name
+                )
+                if write_result != QgsVectorFileWriter.NoError:
+                    self._log(f"Failed to save lines to {output_path_or_layername}: {error_message}", "ERROR")
+                    raise RuntimeError(f"Failed to save {self.format_name}: {error_message}")
+                self._log(f"Successfully saved lines to {output_path_or_layername}", "INFO")
+            else:
+                layer.updateExtents()
+                self._log("Updated extents for in-memory line layer", "DEBUG")
+        else:
+            self._log("No line features were created", "WARNING")
+
+        return layer if self.is_memory() else None
+
+
+class ShpSaver(FileSaver):
+    format_name = "ESRI Shapefile"
+    date_field_type = QVariant.String
+
+    def prepare_date(self, dt):
+        return QDateTime(dt.year, dt.month, dt.day,
+                         dt.hour, dt.minute, dt.second).toString(Qt.ISODate)
+
+    def is_memory(self):
+        return False
+
+
+class GpkgSaver(FileSaver):
+    format_name = "GPKG"
+    date_field_type = QVariant.DateTime
+
+    def prepare_date(self, dt):
+        return QDateTime(dt.year, dt.month, dt.day,
+                         dt.hour, dt.minute, dt.second)
+
+    def is_memory(self):
+        return False
+
+class GeoJsonSaver(FileSaver):
+    format_name = "GeoJSON"
+    date_field_type = QVariant.DateTime
+
+    def prepare_date(self, dt):
+        return QDateTime(dt.year, dt.month, dt.day,
+                         dt.hour, dt.minute, dt.second)
+
+    def is_memory(self):
+        return False
+
+class MemorySaver(FileSaver):
+    format_name = "memory"
+    date_field_type = QVariant.DateTime
+
+    def prepare_date(self, dt):
+        return QDateTime(dt.year, dt.month, dt.day,
+                         dt.hour, dt.minute, dt.second)
+
+    def is_memory(self) -> bool:
+        return True
+
+class SaverFactory(ABC):
+    @abstractmethod
+    def get_saver(self) -> FileSaver:
+        pass
+
+class ShpFactory(SaverFactory):
+    def get_saver(self) -> FileSaver:
+        return ShpSaver()
+
+class GpkgFactory(SaverFactory):
+    def get_saver(self) -> FileSaver:
+        return GpkgSaver()
+
+class GeoJsonFactory(SaverFactory):
+    def get_saver(self) -> FileSaver:
+        return GeoJsonSaver()
+class MemoryFactory(SaverFactory):
+    def get_saver(self) -> FileSaver:
+        return MemorySaver()
+
+class FactoryProvider:
+    @staticmethod
+    def get_factory(format_name: str) -> SaverFactory:
+        fmt = format_name.lower()
+        if fmt == 'shp':
+            return ShpFactory()
+        elif fmt == 'gpkg':
+            return GpkgFactory()
+        elif fmt == 'geojson':
+            return GeoJsonFactory()
+        elif fmt == 'memory':
+            return MemoryFactory()
+        else:
+            raise ValueError(f"Unsupported format: {format_name}")

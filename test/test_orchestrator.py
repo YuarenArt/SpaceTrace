@@ -1,11 +1,11 @@
 import unittest
 from unittest.mock import Mock, patch
-from src.Space_trace.orbital.orchestrator import OrbitalOrchestrator
+from Space_trace.orbital.facade import OrbitalTrackFacade
 from datetime import date
 
 class OrbitalOrchestratorTest(unittest.TestCase):
     def setUp(self):
-        self.orchestrator = OrbitalOrchestrator("test@example.com", "password")
+        self.orchestrator = OrbitalTrackFacade("test@example.com", "password")
         self.config = Mock(
             sat_id=25544,
             track_day=date(2025, 3, 28),

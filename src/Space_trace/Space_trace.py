@@ -10,7 +10,7 @@ import logging
 
 from ...resources import *
 from .Space_trace_dialog import SpaceTracePluginDialog
-from .orbital.orchestrator import OrbitalOrchestrator
+from .orbital.facade import OrbitalTrackFacade
 from ..config.orbital import OrbitalConfig
 
 
@@ -19,7 +19,7 @@ class SpaceTracePlugin:
     QGIS Plugin Implementation.
 
     This class handles all user interface operations and delegates
-    the core orbital track creation to the OrbitalOrchestrator.
+    the core orbital track creation to the Facade
     """
     def __init__(self, iface):
         """
@@ -243,10 +243,10 @@ class SpaceTracePlugin:
         
         :param config: An OrbitalConfig instance.
         """
-        orchestrator = OrbitalOrchestrator(config.login, config.password, log_callback=self.log_message)
-        self.log_message("OrbitalOrchestrator initialized", "DEBUG")
+        facade = OrbitalTrackFacade(config.login, config.password, log_callback=self.log_message)
+        self.log_message("OrbitalFacade initialized", "DEBUG")
         if config.output_path:
-            point_file, line_file = orchestrator.process_persistent_track(config)
+            point_file, line_file = facade.process_persistent_track(config)
             self.log_message(f"Files created: Point={point_file}, Line={line_file}", "INFO")
             self.iface.messageBar().pushMessage(
                 self.tr("Success"),
@@ -256,7 +256,7 @@ class SpaceTracePlugin:
             self._load_and_add_layer(point_file, "point")
             self._load_and_add_layer(line_file, "line")
         else:
-            point_layer, line_layer = orchestrator.process_in_memory_track(config)
+            point_layer, line_layer = facade.process_in_memory_track(config)
             if config.add_layer:
                 QgsProject.instance().addMapLayer(point_layer)
                 QgsProject.instance().addMapLayer(line_layer)

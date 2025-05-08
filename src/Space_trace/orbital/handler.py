@@ -15,7 +15,7 @@ from qgis.core import (QgsVectorLayer, QgsFeature, QgsGeometry, QgsPointXY,
 from PyQt5.QtCore import QVariant, QDateTime
 from pyorbital.orbital import Orbital
 
-from .saver import ShpSaver, GpkgSaver, GeoJsonSaver, MemoryLayerSaver
+from .saver import FactoryProvider
 
 
 class OrbitalLogicHandler:
@@ -27,7 +27,7 @@ class OrbitalLogicHandler:
     """
 
     def __init__(self):
-        self.memory_saver = MemoryLayerSaver()
+        pass
 
     def get_line_segments(self, points):
         """
@@ -177,7 +177,9 @@ class OrbitalLogicHandler:
         elif file_format == 'geojson':
             return f"{base}_line.geojson"
 
-    def create_persistent_orbital_track(self, data, data_format, start_datetime, duration_hours, step_minutes, output_path, file_format, create_line_layer):
+    def create_persistent_orbital_track(self, data, data_format, start_datetime, 
+                                        duration_hours, step_minutes, output_path, 
+                                        file_format, create_line_layer):
         """
         Create persistent orbital track shapefiles on disk.
 
@@ -191,15 +193,10 @@ class OrbitalLogicHandler:
         """
         points = self.generate_points(data, data_format, start_datetime, duration_hours, step_minutes)
 
-        if file_format == 'shp':
-            saver = ShpSaver()
-        elif file_format == 'gpkg':
-            saver = GpkgSaver()
-        elif file_format == 'geojson':
-            saver = GeoJsonSaver()
-        else:
-            raise ValueError("Unsupported file format")
+        factory = FactoryProvider.get_factory(file_format)
+        saver = factory.get_saver()
 
+        saver = FactoryProvider.get_factory(file_format).get_saver()
         saver.save_points(points, output_path)
         
         line_file = None
@@ -222,11 +219,14 @@ class OrbitalLogicHandler:
         :return: Tuple (point_layer, line_layer).
         """
         points = self.generate_points(data, data_format, start_datetime, duration_hours, step_minutes)
-        point_layer = self.memory_saver.save_points(points, f"Orbital Track {data_format}")
+        
+        saver = FactoryProvider.get_factory("memory").get_saver()
+        point_layer = saver.save_points(points)
+
         line_layer = None
         if create_line_layer:
             geometries = self.generate_line_geometries([(pt[1], pt[2]) for pt in points])
-            line_layer = self.memory_saver.save_lines(geometries, f"Orbital Track {data_format} Line")
+            line_layer = saver.save_lines(geometries, f"Orbital Track {data_format} Line")
         return point_layer, line_layer
 
 def solve_kepler_newton(M, e, tol=1e-6, max_iter=100):

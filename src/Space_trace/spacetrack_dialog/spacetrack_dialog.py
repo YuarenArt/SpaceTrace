@@ -68,8 +68,15 @@ class Ui_SpaceTrackDialog:
         self.label_search = QLabel(dialog)
         self.line_edit_search = QLineEdit(dialog)
         self.push_button_search = QPushButton(dialog)
-        for widget in (self.label_search, self.line_edit_search, self.push_button_search):
-            self.main_layout.addWidget(widget)
+        
+        self.main_layout.addWidget(self.label_search)
+        self.main_layout.addWidget(self.line_edit_search)
+
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+        button_layout.addWidget(self.push_button_search)
+        button_layout.addStretch()
+        self.main_layout.addLayout(button_layout)
 
     def _create_limit_selector(self, dialog: QDialog) -> None:
         self.label_limit = QLabel(dialog)
