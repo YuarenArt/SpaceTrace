@@ -6,7 +6,7 @@
 name=Space Trace
 qgisMinimumVersion=3.40.0
 description=Draws a spacecraft's ground trace over the Earth's surface.
-version=1.4
+version=1.5
 author=Yuriy Malyshev
 email=yuaren@yandex.ru
 
@@ -21,6 +21,9 @@ repository=https://github.com/YuarenArt/Space-trace
 hasProcessingProvider=no
 # Uncomment the following line and add your changelog:
 changelog=  
+            Version 1.5
+            * Minor bugs fixed
+            * 
             Version 1.4
             * Updated functionality of custom query 
             * Updated the way to save data in the Spacetrack dialog 

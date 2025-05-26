@@ -82,7 +82,7 @@ class OrbitalLogicHandler:
         :param orb: Orbital object initialized with TLE data.
         :param times: Array of numpy.datetime64 times.
         :param inc: Orbital inclination (degrees).
-        :return: List of tuples (datetime, lon, lat, alt, velocity, azimuth, elevation, true_anomaly, inc).
+        :return: List of tuples (datetime, lon, lat, alt, velocity, azimuth, trajectory_arc, true_anomaly, inc).
         """
         positions, velocities = orb.get_position(times, normalize=False)
         lons, lats, alts = orb.get_lonlatalt(times)
@@ -102,7 +102,7 @@ class OrbitalLogicHandler:
 
         azimuth = (np.degrees(np.arctan2(east, north)) + 360) % 360
         horizontal_speed = np.sqrt(east ** 2 + north ** 2)
-        elevation = np.degrees(np.arctan2(up, horizontal_speed))
+        trajectory_arc = np.degrees(np.arctan2(up, horizontal_speed))
 
         e = orb.tle.excentricity  
         M0 = orb.tle.mean_anomaly
@@ -115,9 +115,16 @@ class OrbitalLogicHandler:
                                   np.sqrt(1 - e) * np.cos(E / 2))
         true_anomaly = (np.degrees(true_anomaly) + 360) % 360
 
-        points = [(times[i].astype('datetime64[ms]').astype(datetime), lons[i], lats[i], alts[i],
-                velocity_norms[i], azimuth[i], elevation[i], true_anomaly[i], inc)
-                for i in range(len(times))]
+        points = [(times[i].astype('datetime64[ms]').astype(datetime),
+           self._round_float(lons[i]),
+           self._round_float(lats[i]),
+           self._round_float(alts[i]),
+           self._round_float(velocity_norms[i]),
+           self._round_float(azimuth[i]),
+           self._round_float(trajectory_arc[i]),
+           self._round_float(true_anomaly[i]),
+           self._round_float(inc))
+          for i in range(len(times))]
 
         return points
 
@@ -130,12 +137,13 @@ class OrbitalLogicHandler:
         :param start_datetime: Start date and time for track computation.
         :param duration_hours: Duration of the track in hours.
         :param step_minutes: Time step in minutes.
-        :return: List of tuples (datetime, lon, lat, alt, velocity, azimuth, elevation, true_anomaly).
+        :return: List of tuples (datetime, lon, lat, alt, velocity, azimuth, trajectory_arc, true_anomaly).
         :raises ValueError: If data format is invalid or data is malformed.
         """
         end_time = start_datetime + timedelta(hours=duration_hours)
         step = timedelta(minutes=step_minutes)
         num_steps = int((end_time - start_datetime) / step)
+        
         start_time_np = np.datetime64(start_datetime)
         step_np = np.timedelta64(int(step_minutes * 60 * 1e6), 'us')
         times = start_time_np + np.arange(num_steps) * step_np
@@ -228,6 +236,9 @@ class OrbitalLogicHandler:
             geometries = self.generate_line_geometries([(pt[1], pt[2]) for pt in points])
             line_layer = saver.save_lines(geometries, f"Orbital Track {data_format} Line")
         return point_layer, line_layer
+    
+    def _round_float(self, value, digits=4):
+        return round(float(value), digits)
 
 def solve_kepler_newton(M, e, tol=1e-6, max_iter=100):
     M = np.asarray(M)

@@ -23,7 +23,7 @@ class FileSaver(ABC):
         ("Altitude", QVariant.Double),
         ("Velocity", QVariant.Double),
         ("Azimuth", QVariant.Double),
-        ("Elevation", QVariant.Double),
+        ("TrajectoryArc", QVariant.Double),
         ("TrueAnomaly", QVariant.Double),
         ("Inclination", QVariant.Double),
     ]
@@ -82,7 +82,7 @@ class FileSaver(ABC):
         # Create point features
         feats = []
         for i, pt in enumerate(points):
-            dt, lon, lat, alt, vel, az, el, ta, inc = pt
+            dt, lon, lat, alt, vel, az, arc, ta, inc = pt
             feat = QgsFeature()
             feat.setFields(fields)
             feat.setAttribute("Point_ID", i)
@@ -92,7 +92,7 @@ class FileSaver(ABC):
             feat.setAttribute("Altitude", alt)
             feat.setAttribute("Velocity", vel)
             feat.setAttribute("Azimuth", az)
-            feat.setAttribute("Elevation", el)
+            feat.setAttribute("TrajectoryArc", arc)
             feat.setAttribute("TrueAnomaly", ta)
             feat.setAttribute("Inclination", inc)
             feat.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(lon, lat)))
