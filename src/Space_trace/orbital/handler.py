@@ -106,7 +106,6 @@ class OrbitalLogicHandler:
         horizontal_speed = np.sqrt(east ** 2 + north ** 2)
         trajectory_arc = np.degrees(np.arctan2(up, horizontal_speed))
 
-        # Вычисление истинной аномалии с использованием poliastro
         e = orb.tle.excentricity
         M0_deg = orb.tle.mean_anomaly
         n = orb.tle.mean_motion

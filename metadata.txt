@@ -23,7 +23,8 @@ hasProcessingProvider=no
 changelog=  
             Version 1.5
             * Minor bugs fixed
-            * 
+            * Added dependency on policastro library for more reliable calculations
+            * Fixed the method of calculating the true anomaly
             Version 1.4
             * Updated functionality of custom query 
             * Updated the way to save data in the Spacetrack dialog 
