@@ -10,6 +10,8 @@ import math
 from datetime import datetime, timedelta
 import shapefile
 import numpy as np
+from poliastro.twobody.angles import M_to_nu
+
 from qgis.core import (QgsVectorLayer, QgsFeature, QgsGeometry, QgsPointXY,
                        QgsFields, QgsField)
 from PyQt5.QtCore import QVariant, QDateTime
@@ -104,27 +106,27 @@ class OrbitalLogicHandler:
         horizontal_speed = np.sqrt(east ** 2 + north ** 2)
         trajectory_arc = np.degrees(np.arctan2(up, horizontal_speed))
 
-        e = orb.tle.excentricity  
-        M0 = orb.tle.mean_anomaly
+        # Вычисление истинной аномалии с использованием poliastro
+        e = orb.tle.excentricity
+        M0_deg = orb.tle.mean_anomaly
         n = orb.tle.mean_motion
-        t0 = orb.tle.epoch
-        M = M0 + n * ((times - t0) / np.timedelta64(1, 's'))
-        E = solve_kepler_newton(M, e)
-
-        true_anomaly = 2 * np.arctan2(np.sqrt(1 + e) * np.sin(E / 2),
-                                  np.sqrt(1 - e) * np.cos(E / 2))
-        true_anomaly = (np.degrees(true_anomaly) + 360) % 360
+        t0 = np.datetime64(orb.tle.epoch)
+        times_sec = (times - t0) / np.timedelta64(1, 's')
+        M0_rad = np.radians(M0_deg)
+        M = M0_rad + n * times_sec
+        true_anomaly_rad = M_to_nu(M, e)
+        true_anomaly = (np.degrees(true_anomaly_rad) + 360) % 360
 
         points = [(times[i].astype('datetime64[ms]').astype(datetime),
-           self._round_float(lons[i]),
-           self._round_float(lats[i]),
-           self._round_float(alts[i]),
-           self._round_float(velocity_norms[i]),
-           self._round_float(azimuth[i]),
-           self._round_float(trajectory_arc[i]),
-           self._round_float(true_anomaly[i]),
-           self._round_float(inc))
-          for i in range(len(times))]
+                self._round_float(lons[i]),
+                self._round_float(lats[i]),
+                self._round_float(alts[i]),
+                self._round_float(velocity_norms[i]),
+                self._round_float(azimuth[i]),
+                self._round_float(trajectory_arc[i]),
+                self._round_float(true_anomaly[i]),
+                self._round_float(inc))
+                for i in range(len(times))]
 
         return points
 
