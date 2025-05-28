@@ -12,7 +12,8 @@ from ...resources import *
 from .Space_trace_dialog import SpaceTracePluginDialog
 from .orbital.facade import OrbitalTrackFacade
 from ..config.orbital import OrbitalConfig
-
+from .DataRetriever.data_retriver import LocalFileRetriever
+from .DataRetriever.spacetrack import SpaceTrackRetriever
 
 class SpaceTracePlugin:
     """
@@ -243,7 +244,14 @@ class SpaceTracePlugin:
         
         :param config: An OrbitalConfig instance.
         """
-        facade = OrbitalTrackFacade(config.login, config.password, log_callback=self.log_message)
+
+        # Select data retriever
+        if config.data_file_path:
+            retriever = LocalFileRetriever(log_callback=self.log_message)
+        else:
+            retriever = SpaceTrackRetriever(config.login, config.password, log_callback=self.log_message)
+
+        facade = OrbitalTrackFacade(retriever, log_callback=self.log_message)
         self.log_message("OrbitalFacade initialized", "DEBUG")
         if config.output_path:
             point_file, line_file = facade.process_persistent_track(config)

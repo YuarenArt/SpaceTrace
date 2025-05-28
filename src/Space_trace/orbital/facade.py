@@ -14,14 +14,15 @@ class OrbitalTrackFacade:
     Orchestrates the process of retrieving TLE/OMM data and generating orbital tracks.
     """
 
-    def __init__(self, username, password, log_callback=None):
+    def __init__(self, retriever, log_callback=None):
         """
-        Initialize with SpaceTrack credentials.
-        
-        :param username: SpaceTrack login.
-        :param password: SpaceTrack password.
+        Initialize with a data retriever and computation engine.
+
+        :param retriever: Instance of DataRetriever.
+        :param engine: Instance of ComputationEngine.
+        :param log_callback: Function to handle logging.
         """
-        self.client = SpacetrackClientWrapper(username, password)
+        self.retriever = retriever
         self.logic_handler = OrbitalLogicHandler()
         self.log_callback = log_callback
 
@@ -34,54 +35,35 @@ class OrbitalTrackFacade:
         """
         if self.log_callback:
             self.log_callback(message, level)
-            
-    def _load_local_data(self, file_path, data_format):
-        try:
-            if data_format == 'TLE':
-                # Read TLE data from file
-                with open(file_path, 'r') as f:
-                    lines = f.readlines()
-                    if len(lines) < 2:
-                        raise ValueError("TLE file must contain at least two lines.")
-                    tle_line1 = lines[0].strip()
-                    tle_line2 = lines[1].strip()
-                    orb_incl = float(tle_line2[8:16])
-                    return (tle_line1, tle_line2, orb_incl)
-            elif data_format == 'OMM':
-                # Read OMM data from JSON file
-                with open(file_path, 'r') as f:
-                    omm_data = json.load(f)
-                return omm_data
-            else:
-                raise ValueError("Invalid data format.")
-        except Exception as e:
-            # Log error if loading fails
-            self._log(f"Error loading local data: {str(e)}", "ERROR")
-            return None
 
-    def _retrieve_data(self, sat_id, start_datetime, data_format, save_data, output_path, local_file_path=None):
-        if local_file_path:
-            self._log(f"Loading data from local file: {local_file_path}", "INFO")
-            data = self._load_local_data(local_file_path, data_format)
-            if data and save_data:
-                if data_format == 'TLE':
-                    self._save_tle_data(data, output_path)
-                elif data_format == 'OMM':
-                    self._save_omm_data(data, output_path)
-        else:
-            self._log(f"Fetching data from SpaceTrack API for SatID: {sat_id}, Start: {start_datetime}", "INFO")
-            if data_format == 'TLE':
-                data = self.client.get_tle(sat_id, start_datetime)
-                if save_data and data:
-                    self._save_tle_data(data, output_path)
-            elif data_format == 'OMM':
-                data = self.client.get_omm(sat_id, start_datetime)
-                if save_data and data:
-                    self._save_omm_data(data, output_path)
-            else:
-                raise ValueError("Invalid data format. Choose 'TLE' or 'OMM'.")
+    def _retrieve_data(self, config):
+        """
+        Retrieve data using the provided retriever and configuration.
+
+        :param config: OrbitalConfig instance with settings.
+        :return: Retrieved TLE or OMM data, or None if retrieval fails.
+        """
+        data_format = config.data_format
+        source = config.data_file_path if config.data_file_path else "SpaceTrack API"
+        self._log(f"Retrieving data from {source} for SatID: {config.sat_id or 'local'}, "
+                  f"Start: {config.start_datetime}, Format: {data_format}", "INFO")
         
-        return data if self._verify_data(data, data_format) else None
+        try:
+            data = self.retriever.retrieve_data(config)
+            if not self._verify_data(data, data_format):
+                return None
+            
+            # Save data if specified in config
+            if config.save_data and config.save_data_path:
+                if data_format == "TLE":
+                    self._save_tle_data(data, config.save_data_path)
+                elif data_format == "OMM":
+                    self._save_omm_data(data, config.save_data_path)
+            
+            return data
+        except Exception as e:
+            self._log(f"Error retrieving or processing data: {str(e)}", "ERROR")
+            return None
     
     def _verify_data(self, data, data_format):
         """
@@ -126,10 +108,11 @@ class OrbitalTrackFacade:
         """
         self._log(f"Processing persistent track for SatID: {config.sat_id}, Start: {config.start_datetime}, "
                 f"Duration: {config.duration_hours} hours, Format: {config.data_format}", "INFO")
-        data = self._retrieve_data(config.sat_id, config.start_datetime, config.data_format, 
-                                config.save_data, config.save_data_path, config.data_file_path)
+        
+        data = self._retrieve_data(config)
         if not data:
             return None
+        
         return self.logic_handler.create_persistent_orbital_track(
             data, config.data_format, config.start_datetime, config.duration_hours, config.step_minutes,
             config.output_path, config.file_format, config.create_line_layer
@@ -151,10 +134,12 @@ class OrbitalTrackFacade:
             self._log(f"Created data folder at: {data_folder}", "INFO")
         
         default_output_path = os.path.join(data_folder, f"{config.sat_id or 'local'}_{config.start_datetime.strftime('%Y%m%d%H%M')}")
-        data = self._retrieve_data(config.sat_id, config.start_datetime, config.data_format, 
-                                config.save_data, config.save_data_path or default_output_path, config.data_file_path)
+        config.save_data_path = config.save_data_path or default_output_path
+        
+        data = self._retrieve_data(config)
         if not data:
             return None
+        
         return self.logic_handler.create_in_memory_layers(
             data, config.data_format, config.start_datetime, config.duration_hours, config.step_minutes, config.create_line_layer
         )
