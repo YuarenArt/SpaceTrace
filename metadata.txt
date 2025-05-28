@@ -12,8 +12,8 @@ email=yuaren@yandex.ru
 
 about=Draws the flight path of a spacecraft over the Earth's surface, creating point and (optionally) line layers. It can fetch TLE (Two-Line Element) or OMM (Orbit Mean-Elements Message) data from the SpaceTrack API or use local files. It provides an advanced search feature using the SpaceTrack API, which allows you to get satellite data by using a custom query.
 
-tracker=https://github.com/YuarenArt/Space-trace/issues
-repository=https://github.com/YuarenArt/Space-trace
+tracker=https://github.com/YuarenArt/SpaceTrace/issues
+repository=https://github.com/YuarenArt/SpaceTrace
 # End of mandatory metadata
 
 # Recommended items:
@@ -54,7 +54,7 @@ changelog=
 # Tags are comma separated with spaces allowed
 tags=python, space, orbit, Earth, ground trace, vector, line, point, spacetrack, analysis, sattelite
 
-homepage=https://github.com/YuarenArt/Space-trace/blob/main/README.md
+homepage=https://github.com/YuarenArt/SpaceTrace/blob/main/README.md
 category=Vector
 icon=icon.png
 # experimental flag

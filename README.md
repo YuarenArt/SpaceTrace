@@ -4,7 +4,7 @@
 
 ### Dependencies
 To use the Space Trace plugin, you need to install the following Python libraries:
-- `pyorbital` – for orbital calculations.
+- `pyorbital`, `poliastro` – for orbital calculations.
 - `spacetrack` – for fetching orbital data from the SpaceTrack API.
 
 ### Installation of Dependencies
@@ -13,6 +13,7 @@ To use the Space Trace plugin, you need to install the following Python librarie
    ```bash
    python3 -m pip install pyorbital -U --user
    python3 -m pip install spacetrack -U --user
+   python3 -m pip install poliastro -U --user
    ```
 
 ### Installation of the Plugin
@@ -100,7 +101,7 @@ In addition to the existing data‑fetch and track‑generation features, the pl
 
 ### Зависимости
 Для работы плагина Space Trace необходимо установить следующие Python-библиотеки:
-- `pyorbital` – для орбитальных расчетов.
+- `pyorbital`, `poliastro` – для орбитальных расчетов.
 - `spacetrack` – для получения данных с SpaceTrack API.
 
 ### Установка зависимостей
@@ -109,6 +110,7 @@ In addition to the existing data‑fetch and track‑generation features, the pl
    ```bash
    python3 -m pip install pyorbital -U --user
    python3 -m pip install spacetrack -U --user
+   python3 -m pip install poliastro -U --use
    ```
 
 ### Установка плагина
