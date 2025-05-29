@@ -82,6 +82,5 @@ class SpaceTrackRetriever(DataRetriever):
         if not data:
             self._log(f"No data received for format: {data_format}", "ERROR")
             return None
-        self._log(f"Successfully retrieved data for format: {data_format}", "INFO")
         return data
         

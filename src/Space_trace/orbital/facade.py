@@ -23,7 +23,7 @@ class OrbitalTrackFacade:
         :param log_callback: Function to handle logging.
         """
         self.retriever = retriever
-        self.logic_handler = OrbitalLogicHandler()
+        self.logic_handler = OrbitalLogicHandler(log_callback=log_callback)
         self.log_callback = log_callback
 
     def _log(self, message, level="INFO"):
@@ -41,17 +41,18 @@ class OrbitalTrackFacade:
         Retrieve data using the provided retriever and configuration.
 
         :param config: OrbitalConfig instance with settings.
-        :return: Retrieved TLE or OMM data, or None if retrieval fails.
+        :return: Retrieved TLE or OMM data.
+        :raises Exception: If data retrieval fails.
         """
         data_format = config.data_format
         source = config.data_file_path if config.data_file_path else "SpaceTrack API"
         self._log(f"Retrieving data from {source} for SatID: {config.sat_id or 'local'}, "
-                  f"Start: {config.start_datetime}, Format: {data_format}", "INFO")
+                f"Start: {config.start_datetime}, Format: {data_format}", "INFO")
         
         try:
             data = self.retriever.retrieve_data(config)
             if not self._verify_data(data, data_format):
-                return None
+                raise Exception(f"No data received for format: {data_format}")
             
             # Save data if specified in config
             if config.save_data and config.save_data_path:
@@ -63,7 +64,7 @@ class OrbitalTrackFacade:
             return data
         except Exception as e:
             self._log(f"Error retrieving or processing data: {str(e)}", "ERROR")
-            return None
+            raise
     
     def _verify_data(self, data, data_format):
         """
@@ -114,9 +115,9 @@ class OrbitalTrackFacade:
             return None
         
         return self.logic_handler.create_persistent_orbital_track(
-            data, config.data_format, config.start_datetime, config.duration_hours, config.step_minutes,
-            config.output_path, config.file_format, config.create_line_layer
-        )
+        data, config.data_format, config.start_datetime, config.duration_hours, config.step_minutes,
+        config.output_path, config.file_format, config.create_line_layer
+    )
 
     def process_in_memory_track(self, config):
         """
@@ -124,22 +125,27 @@ class OrbitalTrackFacade:
 
         :param config: An OrbitalConfig instance containing all settings.
         :return: Tuple (point_layer, line_layer).
+        :raises Exception: If data folder creation or data retrieval fails.
         """
         self._log(f"Processing in-memory track for SatID: {config.sat_id}, Start: {config.start_datetime}, "
                 f"Duration: {config.duration_hours} hours, Format: {config.data_format}", "INFO")
         plugin_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
         data_folder = os.path.join(plugin_dir, "data")
-        if not os.path.exists(data_folder):
-            os.makedirs(data_folder)
-            self._log(f"Created data folder at: {data_folder}", "INFO")
+        
+        try:
+            if not os.path.exists(data_folder):
+                os.makedirs(data_folder)
+                self._log(f"Created data folder at: {data_folder}", "INFO")
+            elif not os.access(data_folder, os.W_OK):
+                raise Exception(f"Data folder {data_folder} is not writable")
+        except Exception as e:
+            self._log(f"Failed to create or access data folder: {str(e)}", "ERROR")
+            raise
         
         default_output_path = os.path.join(data_folder, f"{config.sat_id or 'local'}_{config.start_datetime.strftime('%Y%m%d%H%M')}")
         config.save_data_path = config.save_data_path or default_output_path
         
         data = self._retrieve_data(config)
-        if not data:
-            return None
-        
         return self.logic_handler.create_in_memory_layers(
             data, config.data_format, config.start_datetime, config.duration_hours, config.step_minutes, config.create_line_layer
         )

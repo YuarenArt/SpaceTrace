@@ -133,8 +133,6 @@ class SpaceTracePlugin:
         :param message: The log message.
         :param level: Log level ("INFO", "DEBUG", "WARNING", "ERROR").
         """
-            
-        message = self.tr(message)
 
         if level.upper() == "DEBUG":
             self.logger.debug(message)
