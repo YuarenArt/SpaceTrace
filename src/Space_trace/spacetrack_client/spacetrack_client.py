@@ -95,7 +95,7 @@ class SpacetrackClientWrapper:
         results = self.client.satcat(
             current='Y',
             decay=None,
-            orderby='NORAD_CAT_ID asc',
+            orderby='NORAD_CAT_ID desc',
             limit=limit,
             format='json'
         )

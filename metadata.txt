@@ -21,7 +21,10 @@ repository=https://github.com/YuarenArt/SpaceTrace
 hasProcessingProvider=no
 # Uncomment the following line and add your changelog:
 changelog=  
-
+            Version 1.7
+            * Minor bugs fixed
+            * Updated functionality of custom query
+            * Optimized logging
             Version 1.6
             * Minor bugs fixed
             * Improved performance

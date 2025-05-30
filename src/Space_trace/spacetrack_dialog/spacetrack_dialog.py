@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import (
 from datetime import datetime, timezone
 import json
 import os
+import logging
 
 from ..spacetrack_client.spacetrack_client import SpacetrackClientWrapper
 from .custom_query_dialog import CustomQueryDialog
@@ -139,17 +140,64 @@ class SpaceTrackDialog(QtWidgets.QDialog):
         password: str = None, log_callback=None, translator=None
     ):
         super().__init__(parent)
-        self.translator = translator
-        self.log_callback = log_callback
+        self.translator = translator 
+        self._init_logger()
         self.client = SpacetrackClientWrapper(login, password)
         self.selected_ids = []
         self.custom_conds = []
+        self.log_callback = log_callback
 
         self.ui = Ui_SpaceTrackDialog()
         self.ui.setup_ui(self)
         self.ui.retranslate_ui(self)
         self._connect_signals()
         self.ui.radio_name.setChecked(True)
+
+    def _init_logger(self):
+        """Initialize the logger."""
+        self.logger = logging.getLogger("SpaceTrackDialog")
+        self.logger.setLevel(logging.DEBUG)
+        log_file = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+            "SpaceTracePlugin.log"
+        )
+        fh = logging.FileHandler(log_file, encoding="utf-8")
+        fh.setLevel(logging.DEBUG)
+        formatter = logging.Formatter(
+            "[%(asctime)s] %(levelname)s: %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S"
+        )
+        fh.setFormatter(formatter)
+        self.logger.addHandler(fh)
+
+    def _log_to_file(self, message: str, level: str = "INFO"):
+        """Log message to file with specified level."""
+        if level.upper() == "DEBUG":
+            self.logger.debug(message)
+        elif level.upper() == "WARNING":
+            self.logger.warning(message)
+        elif level.upper() == "ERROR":
+            self.logger.error(message)
+        else:
+            self.logger.info(message)
+
+    def _log(self, message: str, level: str = "INFO") -> None:
+        """Log message using log_callback and internal logger."""
+        
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        formatted_message = f"[{timestamp}] {message}"
+        
+        if self.log_callback and level.upper() in ["INFO", "WARNING", "DEBUG"]:
+            self.log_callback(formatted_message)
+        
+        if level.upper() == "DEBUG":
+            self.logger.debug(message)
+        elif level.upper() == "WARNING":
+            self.logger.warning(message)
+        elif level.upper() == "ERROR":
+            self.logger.error(message)
+        else:
+            self.logger.info(message)
 
     def _connect_signals(self) -> None:
         ui = self.ui
@@ -162,7 +210,6 @@ class SpaceTrackDialog(QtWidgets.QDialog):
 
     def perform_search(self) -> None:
         """Search satellites based on selected criteria and display results."""
-        self._log("Initiating search...")
         text = self.ui.line_edit_search.text().strip()
         limit = int(self.ui.combo_limit.currentText())
         self.ui.table_result.setRowCount(0)
@@ -179,23 +226,30 @@ class SpaceTrackDialog(QtWidgets.QDialog):
         match True:
             case _ if ui.radio_name.isChecked():
                 self._ensure_text(text, "Please enter a satellite name.")
+                self._log(f"Searching by name: {text}, limit: {limit}", "DEBUG")
                 return self.client.search_by_name(text, limit)
             case _ if ui.radio_active.isChecked():
+                self._log(f"Searching all active satellites, limit: {limit}", "DEBUG")
                 return self.client.get_active_satellites(limit)
             case _ if ui.radio_country.isChecked():
                 self._ensure_text(text, "Please enter a country code (e.g., US).")
+                self._log(f"Searching by country: {text}, limit: {limit}", "DEBUG")
                 return self.client.search_by_country(text, limit)
             case _ if ui.radio_norad.isChecked():
                 self._ensure_text(text, "Please enter a NORAD ID, range, or list.")
+                self._log(f"Searching by NORAD ID: {text}, limit: {limit}", "DEBUG")
                 return self.client.search_by_norad_id(text, limit)
             case _:
+                self._log("No search criteria selected", "WARNING")
                 return []
 
     def open_custom_query(self) -> None:
+        self._log("Opening custom query dialog", "DEBUG")
         dialog = CustomQueryDialog(self)
         dialog.set_saved_conditions(self.custom_conds)
         if dialog.exec_() == QDialog.Accepted:
             self.custom_conds = dialog.get_saved_conditions()
+            self._log(f"Custom query conditions: {self.custom_conds}", "DEBUG")
             self.perform_custom_search(self.custom_conds)
 
     def perform_custom_search(self, conditions: list) -> None:
@@ -306,7 +360,10 @@ class SpaceTrackDialog(QtWidgets.QDialog):
         if not dir_path:
             self._log("Save cancelled.")
             return []
-        return [(nid, os.path.join(dir_path, f"satellite_{nid}.{ext}")) for nid in ids]
+        
+        paths = [(nid, os.path.join(dir_path, f"satellite_{nid}.{ext}")) for nid in ids]
+        self._log(f"Selected save paths: {paths}", "DEBUG")
+        return paths
 
     def _execute_save(self, fmt: str, paths: list) -> None:
         """Perform actual saving and update progress."""
@@ -345,15 +402,11 @@ class SpaceTrackDialog(QtWidgets.QDialog):
 
     def _warn(self, message: str) -> None:
         QtWidgets.QMessageBox.warning(self, "Warning", message)
-        self._log(message)
+        self._log(f"Warning: {message}", "WARNING")
 
     def _handle_error(self, message: str) -> None:
         QtWidgets.QMessageBox.critical(self, "Error", message)
-        self._log(message)
-
-    def _log(self, message: str) -> None:
-        if self.log_callback:
-            self.log_callback(message)
+        self._log(f"Error: {message}", "ERROR")
 
     def get_selected_norad_ids(self) -> list:
         return self.selected_ids
