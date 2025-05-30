@@ -243,7 +243,7 @@ class SpaceTracePlugin:
         :param config: An OrbitalConfig instance.
         """
 
-        # Select data retriever
+        
         if config.data_file_path:
             retriever = LocalFileRetriever(log_callback=self.log_message)
         else:

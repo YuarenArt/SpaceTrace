@@ -262,7 +262,6 @@ class SpaceTrackDialog(QtWidgets.QDialog):
             item = self.ui.table_result.item(r, 0)
             if item and item.text().isdigit():
                 self.selected_ids.append(item.text())
-        self._log(f"Selected IDs: {', '.join(self.selected_ids) or 'None'}")
 
     def on_accept(self) -> None:
         """Accept dialog only if at least one ID is selected."""
