@@ -14,6 +14,8 @@ about=Draws the flight path of a spacecraft over the Earth's surface, creating p
 
 tracker=https://github.com/YuarenArt/SpaceTrace/issues
 repository=https://github.com/YuarenArt/SpaceTrace
+
+required_modules=poliastro, pyorbital, spacetrack
 # End of mandatory metadata
 
 # Recommended items:
@@ -21,10 +23,6 @@ repository=https://github.com/YuarenArt/SpaceTrace
 hasProcessingProvider=no
 # Uncomment the following line and add your changelog:
 changelog=  
-            Version 1.7
-            * Minor bugs fixed
-            * Updated functionality of custom query
-            * Optimized logging
             Version 1.6
             * Minor bugs fixed
             * Improved performance
@@ -48,16 +46,6 @@ changelog=
             Version 1.0
             * Added help tab
             * Dependency on pyshp removed
-            Version 0.9.1
-            * Updated the logic of saving the received data
-            Version 0.9
-            * Updated ui and logic
-            Version 0.8.1 
-            * Added the ability to select local data TLE/OMM
-            Version 0.8 
-            * Added saving TLE/OMM data localy
-
-
 
 # Tags are comma separated with spaces allowed
 tags=python, space, orbit, Earth, ground trace, vector, line, point, spacetrack, analysis, sattelite

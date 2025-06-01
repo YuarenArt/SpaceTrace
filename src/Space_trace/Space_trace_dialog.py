@@ -48,11 +48,15 @@ class SpaceTracePluginDialog(SpaceTracePluginDialogBase):
             self.groupBoxLocalFile.show()
             self.groupBoxSpaceTrack.setEnabled(False)
             self.groupBoxSpaceTrack.hide()
+            self.groupBoxSaveData.setEnabled(False)
+            self.groupBoxSaveData.hide()
         else:
             self.groupBoxLocalFile.setEnabled(False)
             self.groupBoxLocalFile.hide()
             self.groupBoxSpaceTrack.setEnabled(True)
             self.groupBoxSpaceTrack.show()
+            self.groupBoxSaveData.setEnabled(True)
+            self.groupBoxSaveData.show()
 
     def toggle_save_data_path(self):
         """Enable/disable save path widgets when saving data."""
