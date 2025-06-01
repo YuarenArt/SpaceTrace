@@ -1,6 +1,6 @@
 import os
 import json
-from ..DataRetriever.data_retriver import DataRetriever
+from .data_retriver import DataRetriever
 from ..spacetrack_client.spacetrack_client import SpacetrackClientWrapper
 
 class SpaceTrackRetriever(DataRetriever):

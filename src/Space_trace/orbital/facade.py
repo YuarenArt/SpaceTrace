@@ -5,10 +5,7 @@ of retrieving TLE/OMM data and generating orbital track layers.
 import os
 import json
 
-from ..spacetrack_client.spacetrack_client import SpacetrackClientWrapper
 from .handler import OrbitalLogicHandler
-
-
 class OrbitalTrackFacade:
     """
     Orchestrates the process of retrieving TLE/OMM data and generating orbital tracks.

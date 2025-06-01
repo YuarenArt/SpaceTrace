@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import QUrl
 import webbrowser
 
-from .spacetrack_dialog.spacetrack_dialog import SpaceTrackDialog
+from ..spacetrack_dialog.spacetrack_dialog import SpaceTrackDialog
 from.Space_trace_dialog_class import SpaceTracePluginDialogBase
 class SpaceTracePluginDialog(SpaceTracePluginDialogBase):
     """Logic implementation for Space Trace Tool dialog."""
@@ -45,8 +45,12 @@ class SpaceTracePluginDialog(SpaceTracePluginDialogBase):
         else:
             self.textBrowserHelp.setPlainText("Help file not found.")
 
+        self.textBrowserHelp.setOpenLinks(False)
+        self.textBrowserHelp.setOpenExternalLinks(False)
+
     def _open_link_in_browser(self, url: QUrl):
         webbrowser.open(url.toString())
+        self.textBrowserHelp.setSource(QtCore.QUrl())
 
     def toggle_data_source(self):
         """Enable/disable and show/hide groups based on data source selection."""

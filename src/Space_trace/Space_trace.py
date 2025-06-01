@@ -12,8 +12,8 @@ from ...resources import *
 from .Space_trace_dialog import SpaceTracePluginDialog
 from .orbital.facade import OrbitalTrackFacade
 from ..config.orbital import OrbitalConfig
-from .DataRetriever.data_retriver import LocalFileRetriever
-from .DataRetriever.spacetrack import SpaceTrackRetriever
+from ..data_retriver.data_retriver import LocalFileRetriever
+from ..data_retriver.spacetrack_retriver import SpaceTrackRetriever
 
 class SpaceTracePlugin:
     """

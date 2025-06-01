@@ -6,19 +6,14 @@ for orbital track computation and layer creation from TLE or OMM data.
 """
 
 import os
-import math
-from datetime import datetime, timedelta
-import shapefile
-import numpy as np
 from poliastro.twobody.angles import M_to_nu
 
 from qgis.core import (QgsVectorLayer, QgsFeature, QgsGeometry, QgsPointXY,
                        QgsFields, QgsField)
 from PyQt5.QtCore import QVariant, QDateTime
-from pyorbital.orbital import Orbital
 
 from .saver import FactoryProvider
-from ..OrbitalDataProcessor.PyOrbitalDataProcessor import PyOrbitalDataProcessor
+from ...orbital_data_processor.pyorbtital_processor import PyOrbitalDataProcessor
 
 
 class OrbitalLogicHandler:

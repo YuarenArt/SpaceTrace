@@ -4,7 +4,7 @@ import numpy as np
 from pyorbital.orbital import Orbital
 from poliastro.twobody.angles import M_to_nu
 
-from .OrbitalDataProcessor import OrbitalDataProcessorInterface
+from .orbital_data_processor import OrbitalDataProcessorInterface
 
 class PyOrbitalDataProcessor(OrbitalDataProcessorInterface):
     """
