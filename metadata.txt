@@ -23,6 +23,8 @@ required_modules=poliastro, pyorbital, spacetrack
 hasProcessingProvider=no
 # Uncomment the following line and add your changelog:
 changelog=  
+            Version 1.7
+            * Added support IS NULL and IS NOT NULL operators for decay criterion in custom query dialog
             Version 1.6
             * Minor bugs fixed
             * Improved performance

@@ -1,6 +1,8 @@
 from PyQt5 import QtWidgets, QtCore
-from PyQt5.QtWidgets import QVBoxLayout, QTableWidget, QLineEdit, QPushButton, QHeaderView
-from PyQt5.QtWidgets import QDialog, QComboBox, QMessageBox, QTableWidgetItem
+from PyQt5.QtWidgets import (
+    QVBoxLayout, QTableWidget, QLineEdit, QPushButton, QHeaderView,
+    QDialog, QComboBox, QMessageBox, QTableWidgetItem
+)
 from PyQt5.QtCore import QCoreApplication
 
 from datetime import datetime
@@ -15,7 +17,7 @@ field_types = {
     'CURRENT': 'enum', 'OBJECT_NAME': 'string', 'OBJECT_ID': 'string', 'OBJECT_NUMBER': 'int'
 }
 
-# Dictionary mapping field names to translatable keys
+# Dictionary mapping field names to translatable labels
 field_labels = {
     'INTLDES': QCoreApplication.translate("CustomQueryDialog", "International Designator"),
     'NORAD_CAT_ID': QCoreApplication.translate("CustomQueryDialog", "NORAD Catalog ID"),
@@ -79,7 +81,7 @@ class Ui_CustomQueryDialog:
         self.button_remove.setText(_translate("CustomQueryDialog", "Remove Condition"))
         self.button_search.setText(_translate("CustomQueryDialog", "Search"))
         self.button_cancel.setText(_translate("CustomQueryDialog", "Cancel"))
-        
+
 class CustomQueryDialog(QDialog):
     """Dialog for building custom queries with multiple conditions."""
 
@@ -147,7 +149,7 @@ class CustomQueryDialog(QDialog):
         operators = {
             'int': ['=', '!=', '<', '>'],
             'decimal': ['=', '!=', '<', '>'],
-            'date': ['=', '!=', '<', '>'],
+            'date': ['=', '!=', '<', '>', 'IS NULL', 'IS NOT NULL'],
             'string': ['=', '!=', 'LIKE'],
             'enum': ['=', '!='],
         }.get(field_type, [])
@@ -157,11 +159,17 @@ class CustomQueryDialog(QDialog):
         placeholders = {
             'int': "Enter an integer (e.g., 25544)",
             'decimal': "Enter a decimal (e.g., 90.5)",
-            'date': "Enter date as YYYY-MM-DD (e.g., 2023-01-01)",
+            'date': "Enter date as YYYY-MM-DD (e.g., 2023-01-01) or NULL",
             'enum': "Enter Y or N",
             'string': "Enter a string (e.g., STARLINK)"
         }
         value_edit.setPlaceholderText(self._translate("CustomQueryDialog", placeholders.get(field_type, "")))
+
+        if operator_combo.currentText() in ('IS NULL', 'IS NOT NULL'):
+            value_edit.setText("")
+            value_edit.setDisabled(True)
+        else:
+            value_edit.setDisabled(False)
 
     def remove_condition(self):
         """Remove the selected condition row or the last one if none selected."""
@@ -186,24 +194,38 @@ class CustomQueryDialog(QDialog):
             operator = operator_combo.currentText()
             value = value_edit.text().strip()
 
+            field_type = field_types.get(field, 'string')
+
+            if operator in ('IS NULL', 'IS NOT NULL'):
+                conditions.append((field, operator, None))
+                continue
+
             if not (field and operator and value):
                 if not silent:
                     self._warn("Please fill all fields in each condition.")
                 return []
-            
-            field_type = field_types.get(field, 'string')
-            if field_type == 'int' and not self._is_valid_int(value):
-                if not silent:
-                    self._warn(f"Invalid integer value for {field}: {value}")
-                return []
-            elif field_type == 'decimal' and not self._is_valid_decimal(value):
-                if not silent:
-                    self._warn(f"Invalid decimal value for {field}: {value}")
-                return []
-            elif field_type == 'date' and not self._is_valid_date(value):
-                if not silent:
-                    self._warn(f"Invalid date format for {field}: {value} (expected YYYY-MM-DD)")
-                return []
+
+            if field_type == 'int':
+                if not self._is_valid_int(value):
+                    if not silent:
+                        self._warn(f"Invalid integer value for {field}: {value}")
+                    return []
+            elif field_type == 'decimal':
+                if not self._is_valid_decimal(value):
+                    if not silent:
+                        self._warn(f"Invalid decimal value for {field}: {value}")
+                    return []
+            elif field_type == 'date':
+                if value.upper() != 'NULL' and not self._is_valid_date(value):
+                    if not silent:
+                        self._warn(f"Invalid date format for {field}: {value} (expected YYYY-MM-DD or NULL)")
+                    return []
+
+            elif field_type == 'enum':
+                if value not in ['Y', 'N']:
+                    if not silent:
+                        self._warn(f"Invalid value for {field}: {value}. Must be 'Y' or 'N'.")
+                    return []
 
             conditions.append((field, operator, value))
         return conditions
@@ -252,7 +274,8 @@ class CustomQueryDialog(QDialog):
             self.ui.table.setCellWidget(row, 2, operator_combo)
 
             value_edit = QLineEdit()
-            value_edit.setText(value)
+            if value is not None:
+                value_edit.setText(value)
             self.ui.table.setCellWidget(row, 3, value_edit)
 
             self._update_field_related_widgets(row)
@@ -280,4 +303,5 @@ class CustomQueryDialog(QDialog):
 
     def _warn(self, message):
         """Display a warning message."""
-        QtWidgets.QMessageBox.warning(self, self._translate("CustomQueryDialog", "Warning"), self._translate("CustomQueryDialog", message))
+        QtWidgets.QMessageBox.warning(self, self._translate("CustomQueryDialog", "Warning"),
+                                      self._translate("CustomQueryDialog", message))

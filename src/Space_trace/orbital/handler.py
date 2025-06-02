@@ -11,6 +11,7 @@ from poliastro.twobody.angles import M_to_nu
 from qgis.core import (QgsVectorLayer, QgsFeature, QgsGeometry, QgsPointXY,
                        QgsFields, QgsField)
 from PyQt5.QtCore import QVariant, QDateTime
+from qgis.core import QgsCoordinateReferenceSystem
 
 from .saver import FactoryProvider
 from ...orbital_data_processor.pyorbtital_processor import PyOrbitalDataProcessor
@@ -98,8 +99,9 @@ class OrbitalLogicHandler:
         if not points:
             raise ValueError("No points provided to create track.")
 
+        input_crs = QgsCoordinateReferenceSystem("EPSG:4326")
         factory = FactoryProvider.get_factory(file_format)
-        saver = factory.get_saver()
+        saver = factory.get_saver(log_callback=self.log_callback, input_crs=input_crs)
         saver.save_points(points, output_path)
         line_file = None
         if create_line:
@@ -117,8 +119,10 @@ class OrbitalLogicHandler:
         if not points:
             raise ValueError("No points provided to create track.")
 
+        input_crs = QgsCoordinateReferenceSystem("EPSG:4326")
+
         factory = FactoryProvider.get_factory("memory")
-        saver = factory.get_saver()
+        saver = factory.get_saver(log_callback=self.log_callback, input_crs=input_crs)
         point_layer = saver.save_points(points)
         line_layer = None
         if create_line:
