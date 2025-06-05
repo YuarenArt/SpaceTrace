@@ -105,22 +105,22 @@ class Ui_SpaceTrackDialog:
             if len(text) < 2:
                 QMessageBox.warning(
                     None,
-                    "Validation Error",
-                    "Satellite name must be at least 2 characters long"
+                    self._translate("Validation Error"),
+                    self._translate("Satellite name must be at least 2 characters long")
                 )
         elif self.radio_country.isChecked():
             if not text.isalpha() or len(text) != 2:
                 QMessageBox.warning(
                     None,
-                    "Validation Error",
-                    "Country code must be 2 letters (e.g., US)"
+                    self._translate("Validation Error"),
+                    self._translate("Country code must be 2 letters (e.g., US)")
                 )
         elif self.radio_norad.isChecked():
             if not self._is_valid_norad_input(text):
                 QMessageBox.warning(
                     None,
-                    "Validation Error",
-                    "Invalid NORAD ID format. Use single ID, range (e.g., 25544-25550), or list (e.g., 25544,25545)"
+                    self._translate("Validation Error"),
+                    self._translate("Invalid NORAD ID format. Use single ID, range (e.g., 25544-25550), or list (e.g., 25544,25545)")
                 )
 
     def _is_valid_norad_input(self, text: str) -> bool:
@@ -140,13 +140,13 @@ class Ui_SpaceTrackDialog:
 
     def _update_placeholder_text(self) -> None:
         if self.radio_name.isChecked():
-            self.line_edit_search.setPlaceholderText("Enter satellite name (e.g., STARLINK-1234)")
+            self.line_edit_search.setPlaceholderText(self._translate("Enter satellite name (e.g., STARLINK-1234)"))
         elif self.radio_active.isChecked():
-            self.line_edit_search.setPlaceholderText("No input needed - will show all active satellites")
+            self.line_edit_search.setPlaceholderText(self._translate("No input needed - will show all active satellites"))
         elif self.radio_country.isChecked():
-            self.line_edit_search.setPlaceholderText("Enter country code (e.g., US)")
+            self.line_edit_search.setPlaceholderText(self._translate("Enter country code (e.g., US)"))
         elif self.radio_norad.isChecked():
-            self.line_edit_search.setPlaceholderText("Enter NORAD ID, range (e.g., 25544-25550), or list (e.g., 25544,25545)")
+            self.line_edit_search.setPlaceholderText(self._translate("Enter NORAD ID, range (e.g., 25544-25550), or list (e.g., 25544,25545)"))
 
     def _create_limit_selector(self, dialog: QDialog) -> None:
         self.label_limit = QLabel(dialog)
