@@ -1,7 +1,8 @@
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QGroupBox, QRadioButton, QLabel, QLineEdit,
-    QPushButton, QComboBox, QTableWidget, QDialogButtonBox, QFileDialog, QDialog
+    QPushButton, QComboBox, QTableWidget, QDialogButtonBox, QFileDialog, QDialog,
+    QMessageBox
 )
 from datetime import datetime, timezone
 import json
@@ -20,6 +21,7 @@ class Ui_SpaceTrackDialog:
         self._create_main_layout(dialog)
         self._create_search_type_group(dialog)
         self._create_search_inputs(dialog)
+        self._create_error_label(dialog)
         self._create_limit_selector(dialog)
         self._create_results_table(dialog)
         self._create_save_controls(dialog)
@@ -70,6 +72,8 @@ class Ui_SpaceTrackDialog:
         self.line_edit_search = QLineEdit(dialog)
         self.push_button_search = QPushButton(dialog)
         
+        self.line_edit_search.textChanged.connect(self._on_search_text_changed)
+        
         self.main_layout.addWidget(self.label_search)
         self.main_layout.addWidget(self.line_edit_search)
 
@@ -78,6 +82,65 @@ class Ui_SpaceTrackDialog:
         button_layout.addWidget(self.push_button_search)
         button_layout.addStretch()
         self.main_layout.addLayout(button_layout)
+
+    def _create_error_label(self, dialog: QDialog) -> None:
+        self.error_label = QLabel(dialog)
+        self.error_label.setStyleSheet("color: red;")
+        self.error_label.setVisible(False)
+        self.main_layout.addWidget(self.error_label)
+
+    def _on_search_text_changed(self, text: str) -> None:
+        """Handle real-time validation of search input."""
+        if not text.strip():
+            return
+
+        # Get current search type
+        if self.radio_name.isChecked():
+            if len(text) < 2:
+                QMessageBox.warning(
+                    None,
+                    "Validation Error",
+                    "Satellite name must be at least 2 characters long"
+                )
+        elif self.radio_country.isChecked():
+            if not text.isalpha() or len(text) != 2:
+                QMessageBox.warning(
+                    None,
+                    "Validation Error",
+                    "Country code must be 2 letters (e.g., US)"
+                )
+        elif self.radio_norad.isChecked():
+            if not self._is_valid_norad_input(text):
+                QMessageBox.warning(
+                    None,
+                    "Validation Error",
+                    "Invalid NORAD ID format. Use single ID, range (e.g., 25544-25550), or list (e.g., 25544,25545)"
+                )
+
+    def _is_valid_norad_input(self, text: str) -> bool:
+        if text.isdigit():
+            return True
+        
+        if '-' in text:
+            parts = text.split('-')
+            if len(parts) == 2 and all(p.isdigit() for p in parts):
+                return True
+        
+        if ',' in text:
+            parts = text.split(',')
+            return all(p.strip().isdigit() for p in parts)
+        
+        return False
+
+    def _update_placeholder_text(self) -> None:
+        if self.radio_name.isChecked():
+            self.line_edit_search.setPlaceholderText("Enter satellite name (e.g., STARLINK-1234)")
+        elif self.radio_active.isChecked():
+            self.line_edit_search.setPlaceholderText("No input needed - will show all active satellites")
+        elif self.radio_country.isChecked():
+            self.line_edit_search.setPlaceholderText("Enter country code (e.g., US)")
+        elif self.radio_norad.isChecked():
+            self.line_edit_search.setPlaceholderText("Enter NORAD ID, range (e.g., 25544-25550), or list (e.g., 25544,25545)")
 
     def _create_limit_selector(self, dialog: QDialog) -> None:
         self.label_limit = QLabel(dialog)
@@ -152,6 +215,7 @@ class SpaceTrackDialog(QtWidgets.QDialog):
         self.ui.retranslate_ui(self)
         self._connect_signals()
         self.ui.radio_name.setChecked(True)
+        self.ui._update_placeholder_text()  # Initialize placeholder text
 
     def _init_logger(self):
         """Initialize the logger."""
@@ -207,6 +271,18 @@ class SpaceTrackDialog(QtWidgets.QDialog):
         ui.button_box.rejected.connect(self.reject)
         ui.table_result.itemSelectionChanged.connect(self.on_selection_changed)
         ui.push_button_save.clicked.connect(self.save_selected_data)
+        
+        # Connect radio buttons to update placeholder text
+        ui.radio_name.toggled.connect(self._on_search_type_changed)
+        ui.radio_active.toggled.connect(self._on_search_type_changed)
+        ui.radio_country.toggled.connect(self._on_search_type_changed)
+        ui.radio_norad.toggled.connect(self._on_search_type_changed)
+
+    def _on_search_type_changed(self, checked: bool) -> None:
+        """Handle search type radio button changes."""
+        if checked:
+            self.ui._update_placeholder_text()
+            self.ui.line_edit_search.clear()
 
     def perform_search(self) -> None:
         """Search satellites based on selected criteria and display results."""
@@ -215,10 +291,37 @@ class SpaceTrackDialog(QtWidgets.QDialog):
         self.ui.table_result.setRowCount(0)
 
         try:
+            # Validate input before search
+            if self.ui.radio_name.isChecked() and len(text) < 2:
+                raise ValueError("Satellite name must be at least 2 characters long")
+            elif self.ui.radio_country.isChecked() and (not text.isalpha() or len(text) != 2):
+                raise ValueError("Country code must be 2 letters (e.g., US)")
+            elif self.ui.radio_norad.isChecked() and not self.ui._is_valid_norad_input(text):
+                raise ValueError("Invalid NORAD ID format")
+
             results = self._get_results(text, limit)
-            self._display_results(results)
+            if not results:
+                QMessageBox.information(
+                    self,
+                    "No Results",
+                    "No results found. Please try different search criteria."
+                )
+            else:
+                self._display_results(results)
+        except ValueError as err:
+            self._handle_validation_error(str(err))
         except Exception as err:
             self._handle_error(f"Search error: {err}")
+
+    def _handle_validation_error(self, message: str) -> None:
+        """Handle validation errors with user-friendly messages."""
+        QMessageBox.warning(self, "Validation Error", message)
+        self._log(f"Validation error: {message}", "WARNING")
+
+    def _handle_error(self, message: str) -> None:
+        """Handle general errors with user-friendly messages."""
+        QMessageBox.critical(self, "Error", "An error occurred during the search. Please try again.")
+        self._log(message, "ERROR")
 
     def _get_results(self, text: str, limit: int):
         """Dispatch search by current radio selection."""
@@ -403,10 +506,6 @@ class SpaceTrackDialog(QtWidgets.QDialog):
     def _warn(self, message: str) -> None:
         QtWidgets.QMessageBox.warning(self, "Warning", message)
         self._log(f"Warning: {message}", "WARNING")
-
-    def _handle_error(self, message: str) -> None:
-        QtWidgets.QMessageBox.critical(self, "Error", message)
-        self._log(f"Error: {message}", "ERROR")
 
     def get_selected_norad_ids(self) -> list:
         return self.selected_ids
