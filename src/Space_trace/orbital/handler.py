@@ -6,15 +6,9 @@ for orbital track computation and layer creation from TLE or OMM data.
 """
 
 import os
-from poliastro.twobody.angles import M_to_nu
-
-from qgis.core import (QgsVectorLayer, QgsFeature, QgsGeometry, QgsPointXY,
-                       QgsFields, QgsField)
-from PyQt5.QtCore import QVariant, QDateTime
-from qgis.core import QgsCoordinateReferenceSystem
-
+from qgis.core import (QgsGeometry, QgsPointXY, QgsCoordinateReferenceSystem)
 from .saver import FactoryProvider
-from ...orbital_data_processor.pyorbtital_processor import PyOrbitalDataProcessor
+from ...orbital_data_processor.pyorbital_processor import PyOrbitalDataProcessor
 
 
 class OrbitalLogicHandler:
@@ -27,6 +21,16 @@ class OrbitalLogicHandler:
 
     def __init__(self, log_callback=None):
         self.log_callback=log_callback
+
+    def _log(self, message: str, level: str = "INFO"):
+        """
+        Log a message using the provided callback if available.
+
+        :param message: Message to log.
+        :param level: Log level ("INFO", "DEBUG", "WARNING", "ERROR").
+        """
+        if self.log_callback:
+            self.log_callback(message, level)
 
     def get_line_segments(self, points):
         """
@@ -95,27 +99,39 @@ class OrbitalLogicHandler:
         """
         Save point and optional line shapefiles from propagated points.
         """
-
         if not points:
             raise ValueError("No points provided to create track.")
+
+        if output_path:
+            output_dir = os.path.dirname(output_path)
+            if output_dir and not os.path.exists(output_dir):
+                try:
+                    os.makedirs(output_dir)
+                except OSError as e:
+                    self._log(f"Failed to create output directory: {str(e)}", "ERROR")
+                    raise RuntimeError(f"Failed to create output directory: {str(e)}")
 
         input_crs = QgsCoordinateReferenceSystem("EPSG:4326")
         factory = FactoryProvider.get_factory(file_format)
         saver = factory.get_saver(log_callback=self.log_callback, input_crs=input_crs)
-        saver.save_points(points, output_path)
-        line_file = None
-        if create_line:
-            geometries = self.generate_line_geometries([(pt[1], pt[2]) for pt in points])
-            line_output_path = self._adjust_output_path(output_path, file_format)
-            saver.save_lines(geometries, line_output_path)
-            line_file = line_output_path
-        return output_path, line_file
+        
+        try:
+            saver.save_points(points, output_path)
+            line_file = None
+            if create_line:
+                geometries = self.generate_line_geometries([(pt[1], pt[2]) for pt in points])
+                line_output_path = self._adjust_output_path(output_path, file_format)
+                saver.save_lines(geometries, line_output_path)
+                line_file = line_output_path
+            return output_path, line_file
+        except Exception as e:
+            self._log(f"Error creating track: {str(e)}", "ERROR")
+            raise RuntimeError(f"Failed to create track: {str(e)}")
 
     def create_memory_layers_from_points(self, points, data_format, create_line):
         """
         Create in-memory QGIS layers from propagated points.
         """
-
         if not points:
             raise ValueError("No points provided to create track.")
 
@@ -175,27 +191,22 @@ class OrbitalLogicHandler:
         :raises ValueError: If data format is unsupported.
         """
         if data_format == "TLE":
-
             if not isinstance(data, (list, tuple)) or len(data) < 3:
                 error_msg = f"Incorrect TLE data: expected at least 3 elements (got {type(data)} of length {len(data)})"
-                if self.log_callback:
-                    self.log_callback(f"[_get_processor] {error_msg}", "ERROR")
+                self._log(f"[_get_processor] {error_msg}", "ERROR")
                 raise ValueError(error_msg)
-            
             
             tle1, tle2, inc = data[0], data[1], data[2]
 
-            if self.log_callback:
-                self.log_callback(f"[_get_processor] TLE_LINE1 is {'not empty' if tle1 else 'EMPTY'}", "WARNING" if not tle1 else "DEBUG")
-                self.log_callback(f"[_get_processor] TLE_LINE2 is {'not empty' if tle2 else 'EMPTY'}", "WARNING" if not tle2 else "DEBUG")
-
+            self._log(f"[_get_processor] TLE_LINE1 is {'not empty' if tle1 else 'EMPTY'}", 
+                      "WARNING" if not tle1 else "DEBUG")
+            self._log(f"[_get_processor] TLE_LINE2 is {'not empty' if tle2 else 'EMPTY'}", 
+                      "WARNING" if not tle2 else "DEBUG")
 
             return PyOrbitalDataProcessor("N", tle1, tle2, inc, self.log_callback)
         
         elif data_format == "OMM":
-            # Assuming OMM data contains necessary fields; adapt as needed
             record = data[0]
-            tle_name = "N"
             tle_1 = record.get("TLE_LINE1")
             tle_2 = record.get("TLE_LINE2")
             inc = record.get("INCLINATION")

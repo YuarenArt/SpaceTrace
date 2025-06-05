@@ -6,6 +6,7 @@ import os
 import json
 
 from .handler import OrbitalLogicHandler
+
 class OrbitalTrackFacade:
     """
     Orchestrates the process of retrieving TLE/OMM data and generating orbital tracks.

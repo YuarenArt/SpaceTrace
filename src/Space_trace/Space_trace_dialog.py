@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtWidgets import (
     QDialog, QGroupBox, QRadioButton, QButtonGroup,
     QDialogButtonBox, QPushButton, QTextBrowser, QFileDialog
@@ -10,7 +10,8 @@ from PyQt5.QtCore import QUrl
 import webbrowser
 
 from ..spacetrack_dialog.spacetrack_dialog import SpaceTrackDialog
-from.Space_trace_dialog_class import SpaceTracePluginDialogBase
+from .Space_trace_dialog_class import SpaceTracePluginDialogBase
+
 class SpaceTracePluginDialog(SpaceTracePluginDialogBase):
     """Logic implementation for Space Trace Tool dialog."""
     
