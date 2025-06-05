@@ -48,8 +48,14 @@ class Ui_SpaceTrackDialog:
         self.push_button_save.setText(_translate("SpaceTrackDialog", "Save Data"))
 
         headers = [
-            "NORAD ID", "Name", "Country", "Launch Date",
-            "Eccentricity", "Perigee (km)", "Apogee (km)", "Inclination (°)"
+            _translate("SpaceTrackDialog", "NORAD ID"),
+            _translate("SpaceTrackDialog", "Name"),
+            _translate("SpaceTrackDialog", "Country"),
+            _translate("SpaceTrackDialog", "Launch Date"),
+            _translate("SpaceTrackDialog", "Eccentricity"),
+            _translate("SpaceTrackDialog", "Perigee (km)"),
+            _translate("SpaceTrackDialog", "Apogee (km)"),
+            _translate("SpaceTrackDialog", "Inclination (°)")
         ]
         self.table_result.setHorizontalHeaderLabels(headers)
 
@@ -161,8 +167,14 @@ class Ui_SpaceTrackDialog:
         self.table_result = QTableWidget(dialog)
         self.table_result.setColumnCount(len(headers))
         display_headers = [
-            "NORAD ID", "Name", "Country", "Launch Date",
-            "Eccentricity", "Perigee (km)", "Apogee (km)", "Inclination (°)"
+            QtCore.QCoreApplication.translate("SpaceTrackDialog", "NORAD ID"),
+            QtCore.QCoreApplication.translate("SpaceTrackDialog", "Name"),
+            QtCore.QCoreApplication.translate("SpaceTrackDialog", "Country"),
+            QtCore.QCoreApplication.translate("SpaceTrackDialog", "Launch Date"),
+            QtCore.QCoreApplication.translate("SpaceTrackDialog", "Eccentricity"),
+            QtCore.QCoreApplication.translate("SpaceTrackDialog", "Perigee (km)"),
+            QtCore.QCoreApplication.translate("SpaceTrackDialog", "Apogee (km)"),
+            QtCore.QCoreApplication.translate("SpaceTrackDialog", "Inclination (°)")
         ]
         self.table_result.setHorizontalHeaderLabels(display_headers)
         self.table_result.setSelectionMode(QTableWidget.MultiSelection)
@@ -293,18 +305,18 @@ class SpaceTrackDialog(QtWidgets.QDialog):
         try:
             # Validate input before search
             if self.ui.radio_name.isChecked() and len(text) < 2:
-                raise ValueError("Satellite name must be at least 2 characters long")
+                raise ValueError(self._translate("Satellite name must be at least 2 characters long"))
             elif self.ui.radio_country.isChecked() and (not text.isalpha() or len(text) != 2):
-                raise ValueError("Country code must be 2 letters (e.g., US)")
+                raise ValueError(self._translate("Country code must be 2 letters (e.g., US)"))
             elif self.ui.radio_norad.isChecked() and not self.ui._is_valid_norad_input(text):
-                raise ValueError("Invalid NORAD ID format")
+                raise ValueError(self._translate("Invalid NORAD ID format"))
 
             results = self._get_results(text, limit)
             if not results:
                 QMessageBox.information(
                     self,
-                    "No Results",
-                    "No results found. Please try different search criteria."
+                    self._translate("No Results"),
+                    self._translate("No results found. Please try different search criteria.")
                 )
             else:
                 self._display_results(results)
@@ -315,12 +327,16 @@ class SpaceTrackDialog(QtWidgets.QDialog):
 
     def _handle_validation_error(self, message: str) -> None:
         """Handle validation errors with user-friendly messages."""
-        QMessageBox.warning(self, "Validation Error", message)
+        QMessageBox.warning(self, self._translate("Validation Error"), message)
         self._log(f"Validation error: {message}", "WARNING")
 
     def _handle_error(self, message: str) -> None:
         """Handle general errors with user-friendly messages."""
-        QMessageBox.critical(self, "Error", "An error occurred during the search. Please try again.")
+        QMessageBox.critical(
+            self,
+            self._translate("Error"),
+            self._translate("An error occurred during the search. Please try again.")
+        )
         self._log(message, "ERROR")
 
     def _get_results(self, text: str, limit: int):
@@ -426,12 +442,12 @@ class SpaceTrackDialog(QtWidgets.QDialog):
             self._log(f"Accepting with IDs: {', '.join(self.selected_ids)}")
             self.accept()
         else:
-            self._warn("Select at least one satellite.")
+            self._warn(self._translate("Select at least one satellite."))
 
     def save_selected_data(self) -> None:
         """Save data for selected satellites in chosen format."""
         if not self.selected_ids:
-            self._warn("No satellite selected to save.")
+            self._warn(self._translate("No satellite selected to save."))
             return
 
         fmt = self.ui.combo_save_format.currentText()
@@ -444,9 +460,9 @@ class SpaceTrackDialog(QtWidgets.QDialog):
         self._execute_save(fmt, paths)
 
     def _ensure_text(self, text: str, warning: str) -> None:
-        if not text:
-            self._warn(warning)
-            raise ValueError(warning)
+        """Ensure search text is not empty."""
+        if not text.strip():
+            raise ValueError(self._translate(warning))
 
     def _determine_paths(self, fmt: str, ids: list) -> list:
         """Get file paths based on count (single or multiple)."""
@@ -509,3 +525,7 @@ class SpaceTrackDialog(QtWidgets.QDialog):
 
     def get_selected_norad_ids(self) -> list:
         return self.selected_ids
+
+    def _translate(self, text: str) -> str:
+        """Translate text using Qt's translation system."""
+        return QtCore.QCoreApplication.translate("SpaceTrackDialog", text)

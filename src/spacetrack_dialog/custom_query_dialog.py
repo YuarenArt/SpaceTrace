@@ -50,19 +50,24 @@ class Ui_CustomQueryDialog:
 
     def setup_ui(self, dialog):
         """Set up UI components for the custom query dialog."""
-        dialog.setWindowTitle("Custom Query")
+        dialog.setWindowTitle(QtCore.QCoreApplication.translate("CustomQueryDialog", "Custom Query"))
         dialog.resize(600, 400)
         self.layout = QVBoxLayout(dialog)
 
         self.table = QTableWidget(0, 4, dialog)
-        self.table.setHorizontalHeaderLabels(["Attribute", "Field", "Operator", "Value"])
+        self.table.setHorizontalHeaderLabels([
+            QtCore.QCoreApplication.translate("CustomQueryDialog", "Attribute"),
+            QtCore.QCoreApplication.translate("CustomQueryDialog", "Field"),
+            QtCore.QCoreApplication.translate("CustomQueryDialog", "Operator"),
+            QtCore.QCoreApplication.translate("CustomQueryDialog", "Value")
+        ])
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.layout.addWidget(self.table)
 
-        self.button_add = QPushButton("Add Condition", dialog)
-        self.button_remove = QPushButton("Remove Condition", dialog)
-        self.button_search = QPushButton("Search", dialog)
-        self.button_cancel = QPushButton("Cancel", dialog)
+        self.button_add = QPushButton(QtCore.QCoreApplication.translate("CustomQueryDialog", "Add Condition"), dialog)
+        self.button_remove = QPushButton(QtCore.QCoreApplication.translate("CustomQueryDialog", "Remove Condition"), dialog)
+        self.button_search = QPushButton(QtCore.QCoreApplication.translate("CustomQueryDialog", "Search"), dialog)
+        self.button_cancel = QPushButton(QtCore.QCoreApplication.translate("CustomQueryDialog", "Cancel"), dialog)
 
         for button in (self.button_add, self.button_remove, self.button_search, self.button_cancel):
             self.layout.addWidget(button)
@@ -157,13 +162,13 @@ class CustomQueryDialog(QDialog):
         operator_combo.addItems(operators)
 
         placeholders = {
-            'int': "Enter an integer (e.g., 25544)",
-            'decimal': "Enter a decimal (e.g., 90.5)",
-            'date': "Enter date as YYYY-MM-DD (e.g., 2023-01-01) or NULL",
-            'enum': "Enter Y or N",
-            'string': "Enter a string (e.g., STARLINK)"
+            'int': self._translate("CustomQueryDialog", "Enter an integer (e.g., 25544)"),
+            'decimal': self._translate("CustomQueryDialog", "Enter a decimal (e.g., 90.5)"),
+            'date': self._translate("CustomQueryDialog", "Enter date as YYYY-MM-DD (e.g., 2023-01-01) or NULL"),
+            'enum': self._translate("CustomQueryDialog", "Enter Y or N"),
+            'string': self._translate("CustomQueryDialog", "Enter a string (e.g., STARLINK)")
         }
-        value_edit.setPlaceholderText(self._translate("CustomQueryDialog", placeholders.get(field_type, "")))
+        value_edit.setPlaceholderText(placeholders.get(field_type, ""))
 
         if operator_combo.currentText() in ('IS NULL', 'IS NOT NULL'):
             value_edit.setText("")
