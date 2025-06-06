@@ -1,6 +1,6 @@
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
 from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import QAction, QApplication
+from qgis.PyQt.QtWidgets import QAction, QApplication, QMessageBox
 from qgis.core import QgsVectorLayer, QgsProject
 
 import os.path
@@ -33,6 +33,8 @@ class SpaceTracePlugin:
         self.actions = []
         self.menu = self.tr('Space trace')
         self.first_start = None
+        self.dlg = None
+        self.logger = None
 
         self._init_logger()
         self._init_localization()
@@ -43,9 +45,12 @@ class SpaceTracePlugin:
         Initialize the file logger for the plugin.
         """
         self.logger = logging.getLogger("SpaceTracePlugin")
-        self.logger.setLevel(logging.DEBUG)
-
+        
+        # Only add handlers if they don't exist
         if not self.logger.handlers:
+            self.logger.setLevel(logging.DEBUG)
+            
+            # Create file handler
             log_file = os.path.join(self.plugin_dir, "SpaceTracePlugin.log")
             fh = logging.FileHandler(log_file, encoding="utf-8")
             fh.setLevel(logging.DEBUG)
@@ -55,6 +60,9 @@ class SpaceTracePlugin:
             )
             fh.setFormatter(formatter)
             self.logger.addHandler(fh)
+            
+            # Prevent propagation to root logger
+            self.logger.propagate = False
 
     def _init_localization(self):
         """

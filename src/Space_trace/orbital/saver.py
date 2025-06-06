@@ -154,7 +154,6 @@ class FileSaver(ABC):
             fields.append(QgsField(name, t))
         prov.addAttributes(fields)
         layer.updateFields()
-        self._log(f"Fields added to point layer: {[f.name() for f in fields]}", "DEBUG")
 
         # Create and accumulate features
         feats = []
@@ -271,7 +270,6 @@ class FileSaver(ABC):
             feat.setFields(fields)
             if id_index != -1:
                 feat.setAttribute("ID", i)
-                self._log(f"Set attribute 'ID' = {i} for feature {i}", "DEBUG")
             else:
                 self._log(
                     f"Skipping attribute 'ID' for feature {i} as field is missing",

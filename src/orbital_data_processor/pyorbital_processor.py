@@ -86,7 +86,9 @@ class PyOrbitalDataProcessor(OrbitalDataProcessorInterface):
             t0 = np.datetime64(self.orb.tle.epoch)
             times_sec = (times_np - t0) / np.timedelta64(1, 's')
             M0_rad = np.radians(M0_deg)
-            M = M0_rad + n * times_sec
+            # Convert mean motion from rev/day to rad/sec
+            n_rad_per_sec = n * 2 * np.pi / (24 * 3600)
+            M = M0_rad + n_rad_per_sec * times_sec
             true_anomaly = (np.degrees(M_to_nu(M, e)) + 360) % 360
 
             results = []

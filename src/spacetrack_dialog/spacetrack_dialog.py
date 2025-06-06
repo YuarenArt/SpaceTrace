@@ -28,6 +28,10 @@ class Ui_SpaceTrackDialog:
         self._create_progress_bar(dialog)
         self._create_bottom_buttons(dialog)
 
+    def _translate(self, text: str) -> str:
+        """Translate text using Qt's translation system."""
+        return QtCore.QCoreApplication.translate("SpaceTrackDialog", text)
+
     def retranslate_ui(self, dialog: QDialog) -> None:
         _translate = QtCore.QCoreApplication.translate
         dialog.setWindowTitle(_translate("SpaceTrackDialog", "SpaceTrack Search"))
@@ -231,20 +235,7 @@ class SpaceTrackDialog(QtWidgets.QDialog):
 
     def _init_logger(self):
         """Initialize the logger."""
-        self.logger = logging.getLogger("SpaceTrackDialog")
-        self.logger.setLevel(logging.DEBUG)
-        log_file = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-            "SpaceTracePlugin.log"
-        )
-        fh = logging.FileHandler(log_file, encoding="utf-8")
-        fh.setLevel(logging.DEBUG)
-        formatter = logging.Formatter(
-            "[%(asctime)s] %(levelname)s: %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S"
-        )
-        fh.setFormatter(formatter)
-        self.logger.addHandler(fh)
+        self.logger = logging.getLogger("SpaceTracePlugin")
 
     def _log_to_file(self, message: str, level: str = "INFO"):
         """Log message to file with specified level."""
@@ -525,7 +516,3 @@ class SpaceTrackDialog(QtWidgets.QDialog):
 
     def get_selected_norad_ids(self) -> list:
         return self.selected_ids
-
-    def _translate(self, text: str) -> str:
-        """Translate text using Qt's translation system."""
-        return QtCore.QCoreApplication.translate("SpaceTrackDialog", text)

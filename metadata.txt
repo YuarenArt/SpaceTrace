@@ -6,7 +6,7 @@
 name=Space Trace
 qgisMinimumVersion=3.40.0
 description=Draws a spacecraft's ground trace over the Earth's surface.
-version=1.6
+version=1.7
 author=Yuriy Malyshev
 email=yuaren@yandex.ru
 
@@ -23,6 +23,7 @@ hasProcessingProvider=no
 changelog=  
             Version 1.7
             * Added support IS NULL and IS NOT NULL operators for decay criterion in custom query dialog
+            * Updated ru locale
             Version 1.6
             * Minor bugs fixed
             * Improved performance
