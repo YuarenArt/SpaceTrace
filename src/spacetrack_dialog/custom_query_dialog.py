@@ -329,7 +329,10 @@ class CustomQueryDialog(QDialog):
         """Translate text using Qt's translation system."""
         return QtCore.QCoreApplication.translate(context, text)
 
-    def _warn(self, message):
+    def _warn(self, message: str) -> None:
         """Display a warning message."""
-        QtWidgets.QMessageBox.warning(self, self._translate("CustomQueryDialog", "Warning"),
-                                      self._translate("CustomQueryDialog", message))
+        QMessageBox.warning(
+            self,
+            self._translate("CustomQueryDialog", "Warning"),
+            self._translate("CustomQueryDialog", message)
+        )

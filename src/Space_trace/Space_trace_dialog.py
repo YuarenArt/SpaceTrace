@@ -80,14 +80,21 @@ class SpaceTracePluginDialog(SpaceTracePluginDialogBase):
         """Open file dialog to select data file (TLE or JSON)."""
         fmt = self.comboBoxDataFormatLocal.currentText() if self.radioLocalFile.isChecked() else self.comboBoxDataFormatSpaceTrack.currentText()
         filter_ = "Text Files (*.txt)" if fmt == "TLE" else "JSON Files (*.json)"
-        file, _ = QFileDialog.getOpenFileName(self, "Select Data File", "", filter_)
+        file, _ = QFileDialog.getOpenFileName(
+            self,
+            QtCore.QCoreApplication.translate("SpaceTracePluginDialog", "Select Data File"),
+            "",
+            filter_
+        )
         if file:
             self.lineEditDataPath.setText(file)
 
     def browseOutputFile(self):
         """Open file dialog to choose where to save the output layer."""
         file, _ = QFileDialog.getSaveFileName(
-            self, "Select Output File", "",
+            self,
+            QtCore.QCoreApplication.translate("SpaceTracePluginDialog", "Select Output File"),
+            "",
             "Shapefiles (*.shp);;GeoPackage (*.gpkg);;GeoJSON (*.geojson);;All Files (*)"
         )
         if file:
@@ -100,7 +107,12 @@ class SpaceTracePluginDialog(SpaceTracePluginDialogBase):
             filter_, ext = "Text Files (*.txt)", ".txt"
         else:
             filter_, ext = "JSON Files (*.json)", ".json"
-        file, _ = QFileDialog.getSaveFileName(self, "Select Save Path", "", filter_)
+        file, _ = QFileDialog.getSaveFileName(
+            self,
+            QtCore.QCoreApplication.translate("SpaceTracePluginDialog", "Select Save Path"),
+            "",
+            filter_
+        )
         if file:
             if not file.lower().endswith(ext):
                 file += ext
@@ -111,7 +123,11 @@ class SpaceTracePluginDialog(SpaceTracePluginDialogBase):
         login = self.lineEditLogin.text().strip()
         password = self.lineEditPassword.text().strip()
         if not login or not password:
-            QtWidgets.QMessageBox.warning(self, "Error", "Please enter SpaceTrack login and password.")
+            QtWidgets.QMessageBox.warning(
+                self,
+                QtCore.QCoreApplication.translate("SpaceTracePluginDialog", "Error"),
+                QtCore.QCoreApplication.translate("SpaceTracePluginDialog", "Please enter SpaceTrack login and password.")
+            )
             return
         dlg = SpaceTrackDialog(self, login=login, password=password, 
                              log_callback=self.appendLog, translator=self.translator)
