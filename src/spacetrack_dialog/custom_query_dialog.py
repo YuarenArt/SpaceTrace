@@ -1,7 +1,7 @@
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtWidgets import (
     QVBoxLayout, QTableWidget, QLineEdit, QPushButton, QHeaderView,
-    QDialog, QComboBox, QMessageBox, QTableWidgetItem
+    QDialog, QComboBox, QMessageBox, QTableWidgetItem, QGroupBox, QHBoxLayout
 )
 from PyQt5.QtCore import QCoreApplication
 
@@ -51,9 +51,19 @@ class Ui_CustomQueryDialog:
     def setup_ui(self, dialog):
         """Set up UI components for the custom query dialog."""
         dialog.setWindowTitle(QtCore.QCoreApplication.translate("CustomQueryDialog", "Custom Query"))
-        dialog.resize(600, 400)
+        dialog.resize(800, 600)  # Increased size for better visibility
+        dialog.setWindowFlags(dialog.windowFlags() & ~QtCore.Qt.WindowContextHelpButtonHint)  # Remove help button
+        
         self.layout = QVBoxLayout(dialog)
+        self.layout.setSpacing(10)
+        self.layout.setContentsMargins(10, 10, 10, 10)
 
+        # Table group
+        table_group = QGroupBox(dialog)
+        table_group.setStyleSheet("QGroupBox { font-weight: bold; }")
+        table_layout = QVBoxLayout(table_group)
+        table_layout.setContentsMargins(0, 0, 0, 0)
+        
         self.table = QTableWidget(0, 4, dialog)
         self.table.setHorizontalHeaderLabels([
             QtCore.QCoreApplication.translate("CustomQueryDialog", "Attribute"),
@@ -62,15 +72,28 @@ class Ui_CustomQueryDialog:
             QtCore.QCoreApplication.translate("CustomQueryDialog", "Value")
         ])
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.layout.addWidget(self.table)
+        self.table.setAlternatingRowColors(True)
+        self.table.verticalHeader().setVisible(False)
+        table_layout.addWidget(self.table)
+        self.layout.addWidget(table_group)
 
+        # Buttons group
+        button_group = QGroupBox(dialog)
+        button_group.setStyleSheet("QGroupBox { font-weight: bold; }")
+        button_layout = QHBoxLayout(button_group)
+        button_layout.setSpacing(5)
+        
         self.button_add = QPushButton(QtCore.QCoreApplication.translate("CustomQueryDialog", "Add Condition"), dialog)
         self.button_remove = QPushButton(QtCore.QCoreApplication.translate("CustomQueryDialog", "Remove Condition"), dialog)
         self.button_search = QPushButton(QtCore.QCoreApplication.translate("CustomQueryDialog", "Search"), dialog)
         self.button_cancel = QPushButton(QtCore.QCoreApplication.translate("CustomQueryDialog", "Cancel"), dialog)
-
+        
         for button in (self.button_add, self.button_remove, self.button_search, self.button_cancel):
-            self.layout.addWidget(button)
+            button.setFixedWidth(120)
+            button_layout.addWidget(button)
+        
+        button_layout.addStretch()
+        self.layout.addWidget(button_group)
 
     def retranslate_ui(self, dialog):
         """Translate all UI strings for localization."""

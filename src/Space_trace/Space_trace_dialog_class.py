@@ -13,14 +13,22 @@ class SpaceTracePluginDialogBase(QDialog):
         self.translator = translator
         self._setup_ui()
         self.tabWidget.setCurrentIndex(0)
+        self._apply_styles()
+
+    def _apply_styles(self):
+        """Apply modern styling to the dialog."""
+        pass
 
     def _setup_ui(self):
         """Create and arrange all widgets and layouts."""
         self.resize(600, 450)
         self.setObjectName("SpaceTracePluginDialog")
+        self.setWindowFlags(self.windowFlags() & ~QtCore.Qt.WindowContextHelpButtonHint)  # Remove help button
 
         # Main layout
         self.verticalLayout = QtWidgets.QVBoxLayout(self)
+        self.verticalLayout.setSpacing(10)
+        self.verticalLayout.setContentsMargins(10, 10, 10, 10)
 
         # Tab widget
         self.tabWidget = QtWidgets.QTabWidget(self)
@@ -29,10 +37,13 @@ class SpaceTracePluginDialogBase(QDialog):
         # --- Main Tab ---
         self.tabMain = QtWidgets.QWidget()
         main_layout = QtWidgets.QVBoxLayout(self.tabMain)
+        main_layout.setSpacing(10)
 
         # Data Source Group
         self.groupBoxDataSource = QGroupBox(self.tabMain)
         ds_layout = QtWidgets.QVBoxLayout(self.groupBoxDataSource)
+        ds_layout.setSpacing(5)
+        
         self.radioLocalFile = QRadioButton(self.groupBoxDataSource)
         self.radioSpaceTrack = QRadioButton(self.groupBoxDataSource)
         self.radioSpaceTrack.setChecked(True)
@@ -46,13 +57,18 @@ class SpaceTracePluginDialogBase(QDialog):
         # Local File Settings
         self.groupBoxLocalFile = QGroupBox(self.tabMain)
         lf_layout = QtWidgets.QVBoxLayout(self.groupBoxLocalFile)
+        lf_layout.setSpacing(5)
+        
         hl_data = QtWidgets.QHBoxLayout()
+        hl_data.setSpacing(5)
         self.lineEditDataPath = QtWidgets.QLineEdit(self.groupBoxLocalFile)
         self.lineEditDataPath.setPlaceholderText("Specify the path to the TLE/OMM data file")
         self.pushButtonBrowseData = QPushButton("Browse", self.groupBoxLocalFile)
+        self.pushButtonBrowseData.setFixedWidth(80)
         hl_data.addWidget(self.lineEditDataPath)
         hl_data.addWidget(self.pushButtonBrowseData)
         lf_layout.addLayout(hl_data)
+        
         self.comboBoxDataFormatLocal = QtWidgets.QComboBox(self.groupBoxLocalFile)
         self.comboBoxDataFormatLocal.addItems(["TLE", "OMM"])
         lf_layout.addWidget(self.comboBoxDataFormatLocal)
@@ -63,21 +79,28 @@ class SpaceTracePluginDialogBase(QDialog):
         # SpaceTrack API Settings
         self.groupBoxSpaceTrack = QGroupBox(self.tabMain)
         st_layout = QtWidgets.QVBoxLayout(self.groupBoxSpaceTrack)
+        st_layout.setSpacing(5)
+        
         hl_norad = QtWidgets.QHBoxLayout()
+        hl_norad.setSpacing(5)
         self.lineEditSatID = QtWidgets.QLineEdit(self.groupBoxSpaceTrack)
         self.lineEditSatID.setPlaceholderText("Enter satellite's NORAD ID")
         self.lineEditSatID.setValidator(QtGui.QIntValidator(1, 999999, self))
         self.pushButtonSearchSatellites = QPushButton("Search", self.groupBoxSpaceTrack)
+        self.pushButtonSearchSatellites.setFixedWidth(80)
         hl_norad.addWidget(self.lineEditSatID)
         hl_norad.addWidget(self.pushButtonSearchSatellites)
         st_layout.addLayout(hl_norad)
+        
         self.lineEditLogin = QtWidgets.QLineEdit(self.groupBoxSpaceTrack)
         self.lineEditLogin.setPlaceholderText("Enter your SpaceTrack account email")
         st_layout.addWidget(self.lineEditLogin)
+        
         self.lineEditPassword = QtWidgets.QLineEdit(self.groupBoxSpaceTrack)
         self.lineEditPassword.setPlaceholderText("Enter your SpaceTrack account password")
         self.lineEditPassword.setEchoMode(QtWidgets.QLineEdit.Password)
         st_layout.addWidget(self.lineEditPassword)
+        
         self.comboBoxDataFormatSpaceTrack = QtWidgets.QComboBox(self.groupBoxSpaceTrack)
         self.comboBoxDataFormatSpaceTrack.addItems(["TLE", "OMM"])
         st_layout.addWidget(self.comboBoxDataFormatSpaceTrack)
@@ -112,35 +135,48 @@ class SpaceTracePluginDialogBase(QDialog):
         # Output Settings
         self.groupBoxOutput = QGroupBox(self.tabMain)
         out_layout = QtWidgets.QVBoxLayout(self.groupBoxOutput)
+        out_layout.setSpacing(5)
+        
         hl_out = QtWidgets.QHBoxLayout()
+        hl_out.setSpacing(5)
         self.lineEditOutputPath = QtWidgets.QLineEdit(self.groupBoxOutput)
         self.lineEditOutputPath.setPlaceholderText("Specify the path to save file (leave empty for temporary layer)")
         self.pushButtonBrowseOutput = QPushButton("Browse", self.groupBoxOutput)
+        self.pushButtonBrowseOutput.setFixedWidth(80)
         hl_out.addWidget(self.lineEditOutputPath)
         hl_out.addWidget(self.pushButtonBrowseOutput)
         out_layout.addLayout(hl_out)
+        
         self.checkBoxAddLayer = QtWidgets.QCheckBox("Add created layer to project", self.groupBoxOutput)
         self.checkBoxAddLayer.setChecked(True)
         out_layout.addWidget(self.checkBoxAddLayer)
+        
         self.checkBoxCreateLineLayer = QtWidgets.QCheckBox("Create line layer", self.groupBoxOutput)
         self.checkBoxCreateLineLayer.setChecked(True)
         out_layout.addWidget(self.checkBoxCreateLineLayer)
+        
         main_layout.addWidget(self.groupBoxOutput)
 
         # Save Data Settings
         self.groupBoxSaveData = QGroupBox(self.tabMain)
         sd_layout = QtWidgets.QVBoxLayout(self.groupBoxSaveData)
+        sd_layout.setSpacing(5)
+        
         self.checkBoxSaveData = QtWidgets.QCheckBox("Save TLE/OMM data", self.groupBoxSaveData)
         sd_layout.addWidget(self.checkBoxSaveData)
+        
         hl_save = QtWidgets.QHBoxLayout()
+        hl_save.setSpacing(5)
         self.lineEditSaveDataPath = QtWidgets.QLineEdit(self.groupBoxSaveData)
         self.lineEditSaveDataPath.setPlaceholderText("Specify the path to save received data")
         self.lineEditSaveDataPath.setEnabled(False)
         self.pushButtonBrowseSaveData = QPushButton("Browse", self.groupBoxSaveData)
         self.pushButtonBrowseSaveData.setEnabled(False)
+        self.pushButtonBrowseSaveData.setFixedWidth(80)
         hl_save.addWidget(self.lineEditSaveDataPath)
         hl_save.addWidget(self.pushButtonBrowseSaveData)
         sd_layout.addLayout(hl_save)
+        
         main_layout.addWidget(self.groupBoxSaveData)
 
         self.tabWidget.addTab(self.tabMain, "")
@@ -148,6 +184,7 @@ class SpaceTracePluginDialogBase(QDialog):
         # --- Log Tab ---
         self.tabLog = QtWidgets.QWidget()
         log_layout = QtWidgets.QVBoxLayout(self.tabLog)
+        log_layout.setContentsMargins(0, 0, 0, 0)
         self.textEditLog = QtWidgets.QTextEdit(self.tabLog)
         self.textEditLog.setReadOnly(True)
         log_layout.addWidget(self.textEditLog)
@@ -156,6 +193,7 @@ class SpaceTracePluginDialogBase(QDialog):
         # --- Help Tab ---
         self.tabHelp = QtWidgets.QWidget()
         help_layout = QtWidgets.QVBoxLayout(self.tabHelp)
+        help_layout.setContentsMargins(0, 0, 0, 0)
         self.textBrowserHelp = QTextBrowser(self.tabHelp)
         self.textBrowserHelp.setOpenExternalLinks(False) 
         self.textBrowserHelp.anchorClicked.connect(self._open_link_in_browser)
@@ -185,7 +223,6 @@ class SpaceTracePluginDialogBase(QDialog):
         self.lineEditLogin.setPlaceholderText(_translate("SpaceTracePluginDialog", "Enter your SpaceTrack account email"))
         self.lineEditPassword.setPlaceholderText(_translate("SpaceTracePluginDialog", "Enter your SpaceTrack account password"))
         self.groupBoxTrackSettings.setTitle(_translate("SpaceTracePluginDialog", "Track Settings"))
-        self.labelDuration.setText(_translate("SpaceTracePluginDialog", "Duration (hours):"))
         self.groupBoxOutput.setTitle(_translate("SpaceTracePluginDialog", "Output Settings"))
         self.pushButtonBrowseOutput.setText(_translate("SpaceTracePluginDialog", "Browse"))
         self.checkBoxAddLayer.setText(_translate("SpaceTracePluginDialog", "Add created layer to project"))

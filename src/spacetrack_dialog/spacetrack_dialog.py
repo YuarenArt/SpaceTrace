@@ -17,7 +17,8 @@ class Ui_SpaceTrackDialog:
     """UI setup for the SpaceTrack dialog interface."""
 
     def setup_ui(self, dialog: QDialog) -> None:
-        dialog.resize(900, 500)
+        dialog.resize(900, 600)  # Increased size for better visibility
+        dialog.setWindowFlags(dialog.windowFlags() & ~QtCore.Qt.WindowContextHelpButtonHint)  # Remove help button
         self._create_main_layout(dialog)
         self._create_search_type_group(dialog)
         self._create_search_inputs(dialog)
@@ -65,37 +66,56 @@ class Ui_SpaceTrackDialog:
 
     def _create_main_layout(self, dialog: QDialog) -> None:
         self.main_layout = QVBoxLayout(dialog)
+        self.main_layout.setSpacing(10)
+        self.main_layout.setContentsMargins(10, 10, 10, 10)
 
     def _create_search_type_group(self, dialog: QDialog) -> None:
         self.group_box = QGroupBox(dialog)
+        self.group_box.setStyleSheet("QGroupBox { font-weight: bold; }")
         layout = QHBoxLayout(self.group_box)
+        layout.setSpacing(10)
+        
         self.radio_name = QRadioButton(self.group_box)
         self.radio_active = QRadioButton(self.group_box)
         self.radio_country = QRadioButton(self.group_box)
         self.radio_norad = QRadioButton(self.group_box)
+        
         for widget in (self.radio_name, self.radio_active, self.radio_country, self.radio_norad):
             layout.addWidget(widget)
+            layout.setAlignment(widget, QtCore.Qt.AlignLeft)
+        
         self.main_layout.addWidget(self.group_box)
 
     def _create_search_inputs(self, dialog: QDialog) -> None:
+        search_group = QGroupBox(dialog)
+        search_group.setStyleSheet("QGroupBox { font-weight: bold; }")
+        search_layout = QVBoxLayout(search_group)
+        search_layout.setSpacing(5)
+        
         self.label_search = QLabel(dialog)
         self.line_edit_search = QLineEdit(dialog)
-        self.push_button_search = QPushButton(dialog)
-        
         self.line_edit_search.textChanged.connect(self._on_search_text_changed)
         
-        self.main_layout.addWidget(self.label_search)
-        self.main_layout.addWidget(self.line_edit_search)
+        search_layout.addWidget(self.label_search)
+        search_layout.addWidget(self.line_edit_search)
 
         button_layout = QHBoxLayout()
+        button_layout.setSpacing(5)
+        self.push_button_search = QPushButton(dialog)
+        self.push_button_search.setFixedWidth(100)
+        self.push_button_custom = QPushButton(dialog)
+        self.push_button_custom.setFixedWidth(120)
         button_layout.addStretch()
         button_layout.addWidget(self.push_button_search)
+        button_layout.addWidget(self.push_button_custom)
         button_layout.addStretch()
-        self.main_layout.addLayout(button_layout)
+        search_layout.addLayout(button_layout)
+        
+        self.main_layout.addWidget(search_group)
 
     def _create_error_label(self, dialog: QDialog) -> None:
         self.error_label = QLabel(dialog)
-        self.error_label.setStyleSheet("color: red;")
+        self.error_label.setStyleSheet("color: red; font-weight: bold;")
         self.error_label.setVisible(False)
         self.main_layout.addWidget(self.error_label)
 
@@ -153,23 +173,31 @@ class Ui_SpaceTrackDialog:
             self.line_edit_search.setPlaceholderText(self._translate("Enter NORAD ID, range (e.g., 25544-25550), or list (e.g., 25544,25545)"))
 
     def _create_limit_selector(self, dialog: QDialog) -> None:
+        limit_group = QGroupBox(dialog)
+        limit_group.setStyleSheet("QGroupBox { font-weight: bold; }")
+        limit_layout = QHBoxLayout(limit_group)
+        limit_layout.setSpacing(5)
+        
         self.label_limit = QLabel(dialog)
         self.combo_limit = QComboBox(dialog)
         self.combo_limit.addItems(["1", "5", "10", "25", "50", "100", "500", "1000"])
         self.combo_limit.setCurrentText("10")
-        layout = QHBoxLayout()
-        layout.addWidget(self.label_limit)
-        layout.addWidget(self.combo_limit)
-        layout.addStretch()
-        self.main_layout.addLayout(layout)
+        self.combo_limit.setFixedWidth(100)
+        
+        limit_layout.addWidget(self.label_limit)
+        limit_layout.addWidget(self.combo_limit)
+        limit_layout.addStretch()
+        
+        self.main_layout.addWidget(limit_group)
 
     def _create_results_table(self, dialog: QDialog) -> None:
-        headers = [
-            "NORAD_CAT_ID", "SATNAME", "COUNTRY", "LAUNCH",
-            "ECCENTRICITY", "PERIGEE", "APOGEE", "INCLINATION"
-        ]
+        table_group = QGroupBox(dialog)
+        table_group.setStyleSheet("QGroupBox { font-weight: bold; }")
+        table_layout = QVBoxLayout(table_group)
+        table_layout.setContentsMargins(0, 0, 0, 0)
+        
         self.table_result = QTableWidget(dialog)
-        self.table_result.setColumnCount(len(headers))
+        self.table_result.setColumnCount(8)
         display_headers = [
             QtCore.QCoreApplication.translate("SpaceTrackDialog", "NORAD ID"),
             QtCore.QCoreApplication.translate("SpaceTrackDialog", "Name"),
@@ -185,30 +213,49 @@ class Ui_SpaceTrackDialog:
         self.table_result.setEditTriggers(QTableWidget.NoEditTriggers)
         self.table_result.horizontalHeader().setStretchLastSection(True)
         self.table_result.setSortingEnabled(True)
-        self.main_layout.addWidget(self.table_result)
+        self.table_result.setAlternatingRowColors(True)
+        self.table_result.verticalHeader().setVisible(False)
+        
+        table_layout.addWidget(self.table_result)
+        self.main_layout.addWidget(table_group)
 
     def _create_save_controls(self, dialog: QDialog) -> None:
+        save_group = QGroupBox(dialog)
+        save_group.setStyleSheet("QGroupBox { font-weight: bold; }")
+        save_layout = QHBoxLayout(save_group)
+        save_layout.setSpacing(5)
+        
         self.label_save_format = QLabel(dialog)
         self.combo_save_format = QComboBox(dialog)
         self.combo_save_format.addItems(["OMM", "TLE"])
+        self.combo_save_format.setFixedWidth(100)
         self.push_button_save = QPushButton(dialog)
-        layout = QHBoxLayout()
-        layout.addWidget(self.label_save_format)
-        layout.addWidget(self.combo_save_format)
-        layout.addWidget(self.push_button_save)
-        layout.addStretch()
-        self.main_layout.addLayout(layout)
+        self.push_button_save.setFixedWidth(100)
+        
+        save_layout.addWidget(self.label_save_format)
+        save_layout.addWidget(self.combo_save_format)
+        save_layout.addWidget(self.push_button_save)
+        save_layout.addStretch()
+        
+        self.main_layout.addWidget(save_group)
 
     def _create_progress_bar(self, dialog: QDialog) -> None:
         self.progress_bar = QtWidgets.QProgressBar(dialog)
         self.progress_bar.setVisible(False)
+        self.progress_bar.setTextVisible(True)
+        self.progress_bar.setAlignment(QtCore.Qt.AlignCenter)
         self.main_layout.addWidget(self.progress_bar)
 
     def _create_bottom_buttons(self, dialog: QDialog) -> None:
-        self.push_button_custom = QPushButton(dialog)
+        button_layout = QHBoxLayout()
+        button_layout.setSpacing(5)
+        
         self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, parent=dialog)
-        self.main_layout.addWidget(self.push_button_custom, 0, QtCore.Qt.AlignRight)
-        self.main_layout.addWidget(self.button_box)
+        
+        button_layout.addStretch()
+        button_layout.addWidget(self.button_box)
+        
+        self.main_layout.addLayout(button_layout)
 
 
 class SpaceTrackDialog(QtWidgets.QDialog):
@@ -232,6 +279,10 @@ class SpaceTrackDialog(QtWidgets.QDialog):
         self._connect_signals()
         self.ui.radio_name.setChecked(True)
         self.ui._update_placeholder_text()  # Initialize placeholder text
+
+    def _translate(self, text: str) -> str:
+        """Translate text using Qt's translation system."""
+        return QtCore.QCoreApplication.translate("SpaceTrackDialog", text)
 
     def _init_logger(self):
         """Initialize the logger."""
@@ -460,13 +511,13 @@ class SpaceTrackDialog(QtWidgets.QDialog):
         ext = 'json' if fmt == 'OMM' else 'txt'
         if len(ids) == 1:
             default = f"satellite_{ids[0]}.{ext}"
-            path, _ = QFileDialog.getSaveFileName(self, "Save Satellite Data", default, f"{fmt} (*.{ext});;All Files (*)")
+            path, _ = QFileDialog.getSaveFileName(self, self._translate("Save Satellite Data"), default, f"{fmt} (*.{ext});;All Files (*)")
             if path:
                 return [(ids[0], path)]
             self._log("Save cancelled.")
             return []
 
-        dir_path = QFileDialog.getExistingDirectory(self, "Select directory to save data", "", QFileDialog.ShowDirsOnly)
+        dir_path = QFileDialog.getExistingDirectory(self, self._translate("Select directory to save data"), "", QFileDialog.ShowDirsOnly)
         if not dir_path:
             self._log("Save cancelled.")
             return []
@@ -507,11 +558,11 @@ class SpaceTrackDialog(QtWidgets.QDialog):
         if failures:
             self._handle_error(f"Failed to save IDs: {', '.join(failures)}.")
         else:
-            QtWidgets.QMessageBox.information(self, "Success", "All data saved.")
+            QtWidgets.QMessageBox.information(self, self._translate("Success"), self._translate("All data saved."))
             self._log("Save complete.")
 
     def _warn(self, message: str) -> None:
-        QtWidgets.QMessageBox.warning(self, "Warning", message)
+        QtWidgets.QMessageBox.warning(self, self._translate("Warning"), message)
         self._log(f"Warning: {message}", "WARNING")
 
     def get_selected_norad_ids(self) -> list:
