@@ -157,6 +157,21 @@ class SpaceTracePlugin:
             self.dlg.appendLog(formatted_message)
         QApplication.processEvents()
 
+    def _parse_norad_ids(self, text: str):
+        """Parse user input for NORAD IDs: single, comma-separated, or ranges."""
+        ids = set()
+        parts = [p.strip() for p in text.split(',') if p.strip()]
+        for part in parts:
+            if '-' in part:
+                start, end = part.split('-')
+                start_i, end_i = int(start), int(end)
+                if start_i > end_i:
+                    raise ValueError(f"Invalid range {part}")
+                ids.update(range(start_i, end_i + 1))
+            else:
+                ids.add(int(part))
+        return sorted(ids)
+
     def _gather_user_inputs(self):
         """
         Retrieve user inputs from the dialog.
@@ -166,57 +181,38 @@ class SpaceTracePlugin:
         return self.dlg.get_inputs()
         
     def _validate_inputs(self, inputs):
-        """
-        Validate user inputs and process satellite ID and file format.
-
-        Args:
-            inputs (dict): Dictionary of user input values.
-
-        Returns:
-            tuple: (sat_id, file_format) after validation.
-
-        Raises:
-            Exception: If validation fails.
-        """
-        # Validate data source specific inputs
         if not inputs["data_file_path"]:
-            # SpaceTrack mode
             if not inputs["sat_id_text"]:
-                raise Exception(self.tr("Please enter a satellite NORAD ID."))
+                raise Exception(self.tr("Please enter at least one NORAD ID."))
+            try:
+                sat_ids = self._parse_norad_ids(inputs["sat_id_text"])
+            except Exception:
+                raise Exception(self.tr("Invalid NORAD ID format."))
             if not inputs["login"] or not inputs["password"]:
                 raise Exception(self.tr("Please provide SpaceTrack login and password."))
-            try:
-                sat_id = int(inputs["sat_id_text"])
-                if sat_id <= 0:
-                    raise ValueError
-            except ValueError:
-                raise Exception(self.tr("Invalid NORAD ID: Please enter a positive integer."))
         else:
-            # Local file mode
-            if not os.path.isfile(inputs["data_file_path"]) or not os.access(inputs["data_file_path"], os.R_OK):
+            sat_ids = [None]
+            if not os.path.isfile(inputs["data_file_path"]):
                 raise Exception(self.tr("Local data file does not exist or is not readable."))
-            sat_id = None
 
-        # Validate output file path
         if inputs["output_path"]:
             _, ext = os.path.splitext(inputs["output_path"])
-            file_format = ext[1:].lower()
-            supported_formats = {"shp", "gpkg", "geojson"}
-            if file_format not in supported_formats:
+            fmt = ext[1:].lower()
+            if fmt not in {"shp", "gpkg", "geojson"}:
                 raise Exception(self.tr("Unsupported file format. Use .shp, .gpkg, or .geojson."))
             output_dir = os.path.dirname(inputs["output_path"])
-            if output_dir and (not os.path.isdir(output_dir) or not os.access(output_dir, os.W_OK)):
+            if output_dir and not os.path.isdir(output_dir):
                 raise Exception(self.tr("Output directory does not exist or is not writable."))
+            file_format = fmt
         else:
             file_format = None
 
-        # Validate save data path
         if inputs["save_data"] and inputs["save_data_path"]:
             save_dir = os.path.dirname(inputs["save_data_path"])
-            if save_dir and (not os.path.isdir(save_dir) or not os.access(save_dir, os.W_OK)):
+            if save_dir and not os.path.isdir(save_dir):
                 raise Exception(self.tr("Save data directory does not exist or is not writable."))
 
-        return sat_id, file_format
+        return sat_ids, file_format
 
     def _create_config(self, inputs, sat_id, file_format):
         """
@@ -227,12 +223,22 @@ class SpaceTracePlugin:
         :param file_format: Validated file format (or None).
         :return: An OrbitalConfig instance.
         """
+        # Determine save_data_path per satellite if it's a directory
+        save_data_path = inputs['save_data_path']
+        if inputs['save_data'] and save_data_path and os.path.isdir(save_data_path):
+            save_data_path = os.path.join(save_data_path, f"{sat_id}.tle")
+
+        # Determine output_path per satellite if multiple IDs and output is a directory
+        output_path = inputs['output_path']
+        if output_path and os.path.isdir(output_path):
+            output_path = os.path.join(output_path, f"{sat_id}")
+
         return OrbitalConfig(
             sat_id=sat_id,
             start_datetime=inputs['start_datetime'],
             duration_hours=inputs['duration_hours'],
             step_minutes=inputs['step_minutes'],
-            output_path=inputs['output_path'],
+            output_path=output_path,
             file_format=file_format,
             add_layer=inputs['add_layer'],
             login=inputs['login'] if inputs['login'] else None,
@@ -241,24 +247,10 @@ class SpaceTracePlugin:
             create_line_layer=inputs['create_line_layer'],
             save_data=inputs['save_data'],
             data_file_path=inputs['data_file_path'],
-            save_data_path=inputs['save_data_path']
+            save_data_path=save_data_path
         )
 
-    def _process_track(self, config):
-        """
-        Process the orbital track based on the configuration.
-        
-        :param config: An OrbitalConfig instance.
-        """
-
-        
-        if config.data_file_path:
-            retriever = LocalFileRetriever(log_callback=self.log_message)
-        else:
-            retriever = SpaceTrackRetriever(config.login, config.password, log_callback=self.log_message)
-
-        facade = OrbitalTrackFacade(retriever, log_callback=self.log_message)
-        self.log_message("OrbitalFacade initialized", "DEBUG")
+    def _process_track(self, config, facade):
         if config.output_path:
             point_file, line_file = facade.process_persistent_track(config)
             self.log_message(f"Files created: Point={point_file}, Line={line_file}", "INFO")
@@ -315,23 +307,39 @@ class SpaceTracePlugin:
             start_time = time.time()
 
             inputs = self._gather_user_inputs()
-            sat_id, file_format = self._validate_inputs(inputs)
+            sat_ids, file_format = self._validate_inputs(inputs)
 
-            self.log_message(
-                f"User input: Sat ID={sat_id}, Start Datetime={inputs['start_datetime']}, "
-                f"Duration Hours={inputs['duration_hours']}, File Format={file_format}, "
-                f"Step Minutes={inputs['step_minutes']}, Output Path={inputs['output_path']}, "
-                f"Data Format={inputs['data_format']}, Save Data={inputs['save_data']}, "
-                f"Data File Path={inputs['data_file_path']}",
-                "DEBUG"
-            )
+            multiple_satellites = len(sat_ids) > 1
 
-            config = self._create_config(inputs, sat_id, file_format)
-            self._process_track(config)
+            # Ensure save_data_path is a directory if multiple satellites
+            if multiple_satellites and inputs["save_data"]:
+                save_dir = inputs["save_data_path"]
+                if not save_dir or not os.path.isdir(save_dir):
+                    raise Exception(self.tr("When saving multiple satellites, 'Save data path' must be a valid directory."))
+
+            if multiple_satellites and inputs["output_path"]:
+                output_dir = inputs["output_path"]
+                if not os.path.isdir(output_dir):
+                    raise Exception(self.tr("When saving multiple satellites, 'Output path' must be a directory."))
+                
+                    
+            if inputs["data_file_path"]:
+                retriever = LocalFileRetriever(log_callback=self.log_message)
+            else:
+                retriever = SpaceTrackRetriever(inputs["login"], inputs["password"], log_callback=self.log_message)
+
+            facade = OrbitalTrackFacade(retriever, log_callback=self.log_message)
+            self.log_message("OrbitalTrackFacade initialized", "DEBUG")
+
+            for sid in sat_ids:
+                config = self._create_config(inputs, sid, file_format)
+                self.log_message(f"Processing NORAD ID={sid}", "DEBUG")
+                self._process_track(config, facade)
 
             end_time = time.time()
             duration = end_time - start_time
             self.log_message(f"Process completed in {duration:.2f} seconds.", "INFO")
+            self.log_message("All tracks generated.", "INFO")
 
         except Exception as e:
             self.iface.messageBar().pushMessage("Error", str(e), level=3)

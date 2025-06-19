@@ -114,7 +114,7 @@ class OrbitalTrackFacade:
         
         return self.logic_handler.create_persistent_orbital_track(
         data, config.data_format, config.start_datetime, config.duration_hours, config.step_minutes,
-        config.output_path, config.file_format, config.create_line_layer
+        config.output_path, config.file_format, config.create_line_layer, config.sat_id
     )
 
     def process_in_memory_track(self, config):
@@ -145,5 +145,6 @@ class OrbitalTrackFacade:
         
         data = self._retrieve_data(config)
         return self.logic_handler.create_in_memory_layers(
-            data, config.data_format, config.start_datetime, config.duration_hours, config.step_minutes, config.create_line_layer
+            data, config.data_format, config.start_datetime, config.duration_hours, 
+            config.step_minutes, config.create_line_layer, config.sat_id
         )

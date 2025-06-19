@@ -101,22 +101,37 @@ class SpaceTracePluginDialog(SpaceTracePluginDialogBase):
             self.lineEditOutputPath.setText(file)
 
     def browseSaveDataFile(self):
-        """Open file dialog to choose where to save the raw TLE/OMM data."""
+        """Open file/folder dialog depending on data format and save mode."""
         fmt = self.comboBoxDataFormatLocal.currentText() if self.radioLocalFile.isChecked() else self.comboBoxDataFormatSpaceTrack.currentText()
+
+        # Determine file extension and filter
         if fmt == "TLE":
             filter_, ext = "Text Files (*.txt)", ".txt"
         else:
             filter_, ext = "JSON Files (*.json)", ".json"
-        file, _ = QFileDialog.getSaveFileName(
-            self,
-            QtCore.QCoreApplication.translate("SpaceTracePluginDialog", "Select Save Path"),
-            "",
-            filter_
-        )
-        if file:
-            if not file.lower().endswith(ext):
-                file += ext
-            self.lineEditSaveDataPath.setText(file)
+
+        # Determine whether it's a batch save operation
+        if self.checkBoxSaveData.isChecked() and self.radioSpaceTrack.isChecked():
+            # Multiple satellites => use folder selection
+            directory = QFileDialog.getExistingDirectory(
+                self,
+                QtCore.QCoreApplication.translate("SpaceTracePluginDialog", "Select Folder to Save Data"),
+                ""
+            )
+            if directory:
+                self.lineEditSaveDataPath.setText(directory)
+        else:
+            # Single file save
+            file, _ = QFileDialog.getSaveFileName(
+                self,
+                QtCore.QCoreApplication.translate("SpaceTracePluginDialog", "Select Save Path"),
+                "",
+                filter_
+            )
+            if file:
+                if not file.lower().endswith(ext):
+                    file += ext
+                self.lineEditSaveDataPath.setText(file)
 
     def open_space_track_dialog(self):
         """Open the SpaceTrack API search dialog."""

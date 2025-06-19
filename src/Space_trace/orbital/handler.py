@@ -79,23 +79,17 @@ class OrbitalLogicHandler:
                 for seg in segments]
     
 
-    def _adjust_output_path(self, output_path, file_format):
-        """
-        Adjust the output file path based on the file format.
-
-        :param output_path: Original output path.
-        :param file_format: 'shp', 'gpkg', or 'geojson'.
-        :return: Adjusted output file path.
-        """
+    def _adjust_output_path(self, output_path, file_format, norad_id=None):
         base, ext = os.path.splitext(output_path)
+        suffix = f"_line_{norad_id}" if norad_id else "_line"
         if file_format == 'shp':
-            return f"{base}_line.shp"
+            return f"{base}{suffix}.shp"
         elif file_format == 'gpkg':
-            return f"{base}_line.gpkg"
+            return f"{base}{suffix}.gpkg"
         elif file_format == 'geojson':
-            return f"{base}_line.geojson"
+            return f"{base}{suffix}.geojson"
 
-    def create_track_from_points(self, points, output_path, file_format, create_line):
+    def create_track_from_points(self, points, output_path, file_format, create_line, norad_id=None):
         """
         Save point and optional line shapefiles from propagated points.
         """
@@ -116,19 +110,19 @@ class OrbitalLogicHandler:
         saver = factory.get_saver(log_callback=self.log_callback, input_crs=input_crs)
         
         try:
-            saver.save_points(points, output_path)
+            saver.save_points(points, output_path, norad_id=norad_id)
             line_file = None
             if create_line:
                 geometries = self.generate_line_geometries([(pt[1], pt[2]) for pt in points])
-                line_output_path = self._adjust_output_path(output_path, file_format)
-                saver.save_lines(geometries, line_output_path)
+                line_output_path = self._adjust_output_path(output_path, file_format, norad_id)
+                saver.save_lines(geometries, line_output_path, norad_id)
                 line_file = line_output_path
             return output_path, line_file
         except Exception as e:
             self._log(f"Error creating track: {str(e)}", "ERROR")
             raise RuntimeError(f"Failed to create track: {str(e)}")
 
-    def create_memory_layers_from_points(self, points, data_format, create_line):
+    def create_memory_layers_from_points(self, points, data_format, create_line,  norad_id=None):
         """
         Create in-memory QGIS layers from propagated points.
         """
@@ -139,14 +133,14 @@ class OrbitalLogicHandler:
 
         factory = FactoryProvider.get_factory("memory")
         saver = factory.get_saver(log_callback=self.log_callback, input_crs=input_crs)
-        point_layer = saver.save_points(points)
+        point_layer = saver.save_points(points, norad_id=norad_id)
         line_layer = None
         if create_line:
             geometries = self.generate_line_geometries([(pt[1], pt[2]) for pt in points])
-            line_layer = saver.save_lines(geometries, f"Orbital Track {data_format} Line")
+            line_layer = saver.save_lines(geometries, f"Orbital Track {data_format} Line", norad_id)
         return point_layer, line_layer
 
-    def create_persistent_orbital_track(self, data, data_format, start_datetime, duration_hours, step_minutes, output_path, file_format, create_line):
+    def create_persistent_orbital_track(self, data, data_format, start_datetime, duration_hours, step_minutes, output_path, file_format, create_line, norad_id):
         """
         Create persistent orbital track files from data.
 
@@ -162,9 +156,9 @@ class OrbitalLogicHandler:
         """
         processor = self._get_processor(data, data_format)
         points = processor.propagate(start_datetime, duration_hours, step_minutes)
-        return self.create_track_from_points(points, output_path, file_format, create_line)
+        return self.create_track_from_points(points, output_path, file_format, create_line, norad_id)
 
-    def create_in_memory_layers(self, data, data_format, start_datetime, duration_hours, step_minutes, create_line):
+    def create_in_memory_layers(self, data, data_format, start_datetime, duration_hours, step_minutes, create_line, norad_id):
         """
         Create in-memory QGIS layers from data.
 
@@ -179,7 +173,7 @@ class OrbitalLogicHandler:
         
         processor = self._get_processor(data, data_format)
         points = processor.propagate(start_datetime, duration_hours, step_minutes)
-        return self.create_memory_layers_from_points(points, data_format, create_line)
+        return self.create_memory_layers_from_points(points, data_format, create_line, norad_id)
     
     def _get_processor(self, data, data_format):
         """

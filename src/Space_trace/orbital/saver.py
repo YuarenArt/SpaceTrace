@@ -114,7 +114,8 @@ class FileSaver(ABC):
     def save_points(
         self,
         points,
-        output_path_or_layername: Optional[str] = None
+        output_path_or_layername: Optional[str] = None,
+        norad_id: Optional[int] = None
     ) -> Optional[QgsVectorLayer]:
         """
         Save point data to a layer or file.
@@ -132,8 +133,12 @@ class FileSaver(ABC):
                 "ERROR"
             )
             raise ValueError(f"Output path is required for {self.format_name} format")
+        
+        if self.is_memory():
+            layer_name = output_path_or_layername or f"points_{norad_id}" if norad_id else "Points"
+        else:
+            layer_name = output_path_or_layername
 
-        layer_name = output_path_or_layername or "Points"
         self._log(
             f"Creating point layer '{layer_name}' in CRS {self.project_crs.authid()}",
             "DEBUG"
@@ -218,7 +223,8 @@ class FileSaver(ABC):
     def save_lines(
         self,
         geometries,
-        output_path_or_layername: Optional[str] = None
+        output_path_or_layername: Optional[str] = None,
+        norad_id: Optional[int] = None
     ) -> Optional[QgsVectorLayer]:
         """
         Save line geometries to a layer or file.
@@ -236,7 +242,11 @@ class FileSaver(ABC):
             )
             raise ValueError(f"Output path is required for {self.format_name} format")
 
-        layer_name = output_path_or_layername or "Lines"
+        if self.is_memory():
+            layer_name = output_path_or_layername or f"line_{norad_id}" if norad_id else "Lines"
+        else:
+            layer_name = output_path_or_layername
+
         self._log(
             f"Creating line layer '{layer_name}' in CRS {self.project_crs.authid()}",
             "DEBUG"
