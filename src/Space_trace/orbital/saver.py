@@ -135,7 +135,7 @@ class FileSaver(ABC):
             raise ValueError(f"Output path is required for {self.format_name} format")
         
         if self.is_memory():
-            layer_name = output_path_or_layername or f"points_{norad_id}" if norad_id else "Points"
+            layer_name = output_path_or_layername or f"Points_{norad_id}" if norad_id else "Points"
         else:
             layer_name = output_path_or_layername
 

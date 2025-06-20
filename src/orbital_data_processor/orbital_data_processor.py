@@ -37,10 +37,3 @@ class OrbitalDataProcessorInterface(ABC):
         Generate propagated orbital parameters from start over duration with given step.
         """
         pass
-
-    @abstractmethod
-    def get_norad_id(self) -> int:
-        """
-        Return the NORAD catalog number of the satellite.
-        """
-        pass

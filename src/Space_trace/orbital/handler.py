@@ -137,7 +137,7 @@ class OrbitalLogicHandler:
         line_layer = None
         if create_line:
             geometries = self.generate_line_geometries([(pt[1], pt[2]) for pt in points])
-            line_layer = saver.save_lines(geometries, f"Orbital Track {data_format} Line", norad_id)
+            line_layer = saver.save_lines(geometries, norad_id=norad_id)
         return point_layer, line_layer
 
     def create_persistent_orbital_track(self, data, data_format, start_datetime, duration_hours, step_minutes, output_path, file_format, create_line, norad_id):
