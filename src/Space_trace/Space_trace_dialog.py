@@ -134,7 +134,7 @@ class SpaceTracePluginDialog(SpaceTracePluginDialogBase):
                 self.lineEditSaveDataPath.setText(file)
 
     def open_space_track_dialog(self):
-        """Open the SpaceTrack API search dialog."""
+        """Open the SpaceTrack API search dialog and pass selected IDs as list or range."""
         login = self.lineEditLogin.text().strip()
         password = self.lineEditPassword.text().strip()
         if not login or not password:
@@ -144,12 +144,36 @@ class SpaceTracePluginDialog(SpaceTracePluginDialogBase):
                 QtCore.QCoreApplication.translate("SpaceTracePluginDialog", "Please enter SpaceTrack login and password.")
             )
             return
+
         dlg = SpaceTrackDialog(self, login=login, password=password, 
-                             log_callback=self.appendLog, translator=self.translator)
+                            log_callback=self.appendLog, translator=self.translator)
         if dlg.exec_() == QDialog.Accepted:
-            norad = dlg.get_selected_norad_ids()
-            if norad:
-                self.lineEditSatID.setText(norad[0])
+            norad_list = dlg.get_selected_norad_ids()
+            if norad_list:
+                # Convert list of strings to sorted list of ints
+                ids_int = sorted(int(i) for i in norad_list)
+                
+                # Group consecutive IDs into ranges
+                ranges = []
+                start = ids_int[0]
+                prev = start
+                
+                for current in ids_int[1:] + [None]:  # Add None as sentinel
+                    if current is None or current > prev + 1:
+                        # End of a range or sequence
+                        if start == prev:
+                            ranges.append(str(start))  # Single ID
+                        else:
+                            ranges.append(f"{start}-{prev}")  # Range
+                        if current is not None:
+                            start = current
+                    prev = current if current is not None else prev
+                
+                # Join ranges and single IDs with commas
+                text = ",".join(ranges)
+                
+                # Set combined text into the main dialog
+                self.lineEditSatID.setText(text)
 
     def appendLog(self, message):
         """Append a line to the log text box."""

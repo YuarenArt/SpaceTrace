@@ -125,14 +125,7 @@ class Ui_SpaceTrackDialog:
             return
 
         # Get current search type
-        if self.radio_name.isChecked():
-            if len(text) < 2:
-                QMessageBox.warning(
-                    None,
-                    self._translate("Validation Error"),
-                    self._translate("Satellite name must be at least 2 characters long")
-                )
-        elif self.radio_country.isChecked():
+        if self.radio_country.isChecked():
             if not text.isalpha() or len(text) != 2:
                 QMessageBox.warning(
                     None,
