@@ -95,7 +95,7 @@ class OrbitalLogicHandler:
         """
         if not points:
             raise ValueError("No points provided to create track.")
-
+        
         if output_path:
             output_dir = os.path.dirname(output_path)
             if output_dir and not os.path.exists(output_dir):
@@ -104,6 +104,7 @@ class OrbitalLogicHandler:
                 except OSError as e:
                     self._log(f"Failed to create output directory: {str(e)}", "ERROR")
                     raise RuntimeError(f"Failed to create output directory: {str(e)}")
+
 
         input_crs = QgsCoordinateReferenceSystem("EPSG:4326")
         factory = FactoryProvider.get_factory(file_format)

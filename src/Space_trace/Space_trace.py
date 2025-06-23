@@ -195,12 +195,25 @@ class SpaceTracePlugin:
             if not os.path.isfile(inputs["data_file_path"]):
                 raise Exception(self.tr("Local data file does not exist or is not readable."))
 
-        if inputs["output_path"]:
-            _, ext = os.path.splitext(inputs["output_path"])
+        output_path = inputs["output_path"]
+        file_format = None
+        # Новый разбор: если output_path содержит '|', значит это папка и формат
+        if output_path and '|' in output_path:
+            directory, fmt = output_path.split('|', 1)
+            directory = directory.strip()
+            fmt = fmt.strip().lower()
+            if fmt not in {"shp", "gpkg", "geojson"}:
+                raise Exception(self.tr("Unsupported file format. Use .shp, .gpkg, or .geojson."))
+            if not os.path.isdir(directory):
+                raise Exception(self.tr("Output directory does not exist or is not writable."))
+            output_path = directory
+            file_format = fmt
+        elif output_path:
+            _, ext = os.path.splitext(output_path)
             fmt = ext[1:].lower()
             if fmt not in {"shp", "gpkg", "geojson"}:
                 raise Exception(self.tr("Unsupported file format. Use .shp, .gpkg, or .geojson."))
-            output_dir = os.path.dirname(inputs["output_path"])
+            output_dir = os.path.dirname(output_path)
             if output_dir and not os.path.isdir(output_dir):
                 raise Exception(self.tr("Output directory does not exist or is not writable."))
             file_format = fmt
@@ -212,26 +225,27 @@ class SpaceTracePlugin:
             if save_dir and not os.path.isdir(save_dir):
                 raise Exception(self.tr("Save data directory does not exist or is not writable."))
 
-        return sat_ids, file_format
+        return sat_ids, file_format, output_path
 
     def _create_config(self, inputs, sat_id, file_format):
-        """
-        Create an OrbitalConfig object based on validated inputs.
-
-        :param inputs: Dictionary of user input values.
-        :param sat_id: Validated satellite NORAD ID (or None).
-        :param file_format: Validated file format (or None).
-        :return: An OrbitalConfig instance.
-        """
-        # Determine save_data_path per satellite if it's a directory
+        """Create an OrbitalConfig object based on validated inputs."""
         save_data_path = inputs['save_data_path']
         if inputs['save_data'] and save_data_path and os.path.isdir(save_data_path):
             save_data_path = os.path.join(save_data_path, f"{sat_id}.tle")
 
-        # Determine output_path per satellite if multiple IDs and output is a directory
         output_path = inputs['output_path']
+        # Убираем возможный разделитель формата (|) из пути
+        if output_path and '|' in output_path:
+            output_path = output_path.split('|', 1)[0].strip()
+
+        # Если batch-режим (output_path — папка), формируем имя файла с расширением
         if output_path and os.path.isdir(output_path):
-            output_path = os.path.join(output_path, f"{sat_id}")
+            base_name = f"sat_{sat_id}_points"
+            if file_format:
+                output_path = os.path.join(output_path, f"{base_name}.{file_format}")
+            else:
+                output_path = os.path.join(output_path, base_name)
+        # Если output_path — файл, оставляем как есть
 
         return OrbitalConfig(
             sat_id=sat_id,
@@ -307,7 +321,7 @@ class SpaceTracePlugin:
             start_time = time.time()
 
             inputs = self._gather_user_inputs()
-            sat_ids, file_format = self._validate_inputs(inputs)
+            sat_ids, file_format, output_path = self._validate_inputs(inputs)
 
             multiple_satellites = len(sat_ids) > 1
 
@@ -317,12 +331,11 @@ class SpaceTracePlugin:
                 if not save_dir or not os.path.isdir(save_dir):
                     raise Exception(self.tr("When saving multiple satellites, 'Save data path' must be a valid directory."))
 
-            if multiple_satellites and inputs["output_path"]:
-                output_dir = inputs["output_path"]
-                if not os.path.isdir(output_dir):
+            # Исправлено: output_path уже разобран и всегда папка при batch-режиме
+            if multiple_satellites and output_path:
+                if not os.path.isdir(output_path):
                     raise Exception(self.tr("When saving multiple satellites, 'Output path' must be a directory."))
                 
-                    
             if inputs["data_file_path"]:
                 retriever = LocalFileRetriever(log_callback=self.log_message)
             else:

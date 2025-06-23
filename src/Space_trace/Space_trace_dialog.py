@@ -91,14 +91,61 @@ class SpaceTracePluginDialog(SpaceTracePluginDialogBase):
 
     def browseOutputFile(self):
         """Open file dialog to choose where to save the output layer."""
-        file, _ = QFileDialog.getSaveFileName(
-            self,
-            QtCore.QCoreApplication.translate("SpaceTracePluginDialog", "Select Output File"),
-            "",
-            "Shapefiles (*.shp);;GeoPackage (*.gpkg);;GeoJSON (*.geojson);;All Files (*)"
-        )
-        if file:
-            self.lineEditOutputPath.setText(file)
+        sat_id_text = self.lineEditSatID.text().strip()
+        multiple_ids = False
+        if sat_id_text:
+            ids = set()
+            parts = [p.strip() for p in sat_id_text.split(',') if p.strip()]
+            for part in parts:
+                if '-' in part:
+                    try:
+                        start, end = part.split('-')
+                        start_i, end_i = int(start), int(end)
+                        if start_i > end_i:
+                            continue
+                        ids.update(range(start_i, end_i + 1))
+                    except Exception:
+                        continue
+                else:
+                    try:
+                        ids.add(int(part))
+                    except Exception:
+                        continue
+            multiple_ids = len(ids) > 1
+
+        if multiple_ids:
+            directory = QFileDialog.getExistingDirectory(
+                self,
+                QtCore.QCoreApplication.translate("SpaceTracePluginDialog", "Select Folder to Save Layers"),
+                ""
+            )
+            if directory:
+                # Показываем диалог для выбора формата
+                format_dialog = QtWidgets.QDialog(self)
+                format_dialog.setWindowTitle("Select Output Format")
+                layout = QtWidgets.QVBoxLayout(format_dialog)
+                label = QtWidgets.QLabel("Select format for saving layers:", format_dialog)
+                layout.addWidget(label)
+                combo = QtWidgets.QComboBox(format_dialog)
+                combo.addItems(["shp", "gpkg", "geojson"])
+                layout.addWidget(combo)
+                btns = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel, format_dialog)
+                layout.addWidget(btns)
+                btns.accepted.connect(format_dialog.accept)
+                btns.rejected.connect(format_dialog.reject)
+                if format_dialog.exec_() == QtWidgets.QDialog.Accepted:
+                    fmt = combo.currentText()
+                    # Сохраняем путь и формат через разделитель (например, 'C:/folder|shp')
+                    self.lineEditOutputPath.setText(f"{directory}|{fmt}")
+        else:
+            file, _ = QFileDialog.getSaveFileName(
+                self,
+                QtCore.QCoreApplication.translate("SpaceTracePluginDialog", "Select Output File"),
+                "",
+                "Shapefiles (*.shp);;GeoPackage (*.gpkg);;GeoJSON (*.geojson);;All Files (*)"
+            )
+            if file:
+                self.lineEditOutputPath.setText(file)
 
     def browseSaveDataFile(self):
         """Open file/folder dialog depending on data format and save mode."""
