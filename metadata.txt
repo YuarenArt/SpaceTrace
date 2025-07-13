@@ -23,7 +23,7 @@ hasProcessingProvider=no
 changelog=  
             Version 1.9
             * Added support for pole crossing in line segmentation.
-            * Minor bugs fixed
+            * Added multiple file processing for local data sources.
             * 
             Version 1.8
             * Updated user interface
