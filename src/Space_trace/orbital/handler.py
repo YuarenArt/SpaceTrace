@@ -44,27 +44,47 @@ class OrbitalLogicHandler:
 
         segments = []
         current_segment = [points[0]]
+
         for i in range(len(points) - 1):
             p1 = points[i]
             p2 = points[i + 1]
-            delta_lon = p2[0] - p1[0]
-            if abs(delta_lon) <= 180:
-                current_segment.append(p2)
-            else:
+            lon1, lat1 = p1
+            lon2, lat2 = p2
+
+            delta_lon = lon2 - lon1
+            delta_lat = lat2 - lat1
+
+            cross_antimeridian = abs(delta_lon) > 180
+            cross_pole = abs(lat1) > 80 and abs(lat2) > 80 and (lat1 * lat2 < 0)
+
+            if cross_antimeridian:
                 if delta_lon < -180:
-                    t = (180 - p1[0]) / (p2[0] + 360 - p1[0])
-                    lat_interp = p1[1] + t * (p2[1] - p1[1])
+                    t = (180 - lon1) / (lon2 + 360 - lon1)
+                    lat_interp = lat1 + t * delta_lat
                     current_segment.append((180, lat_interp))
                     segments.append(current_segment)
                     current_segment = [(-180, lat_interp), p2]
                 elif delta_lon > 180:
-                    t = (-180 - p1[0]) / (p2[0] - 360 - p1[0])
-                    lat_interp = p1[1] + t * (p2[1] - p1[1])
+                    t = (-180 - lon1) / (lon2 - 360 - lon1)
+                    lat_interp = lat1 + t * delta_lat
                     current_segment.append((-180, lat_interp))
                     segments.append(current_segment)
                     current_segment = [(180, lat_interp), p2]
+            elif cross_pole:
+                # Interpolate crossing at the pole (lat = ±90), longitude undefined, but we use ±180
+                t = (90 - abs(lat1)) / (abs(lat2 - lat1))
+                pole_lat = 90.0 if lat2 > lat1 else -90.0
+                pole_lon = 180.0  # Or any constant, as longitude at pole is degenerate
+                interpolated_point = (pole_lon, pole_lat)
+                current_segment.append(interpolated_point)
+                segments.append(current_segment)
+                current_segment = [interpolated_point, p2]
+            else:
+                current_segment.append(p2)
+
         if current_segment:
             segments.append(current_segment)
+
         return segments
 
     def generate_line_geometries(self, points):
