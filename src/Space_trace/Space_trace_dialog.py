@@ -70,19 +70,22 @@ class SpaceTracePluginDialog(SpaceTracePluginDialogBase):
         self.pushButtonBrowseSaveData.setEnabled(enabled)
 
     def _on_browse_data_file(self):
-        """Select input data file (TLE or JSON)."""
+        """Select input data file(s) (TLE or JSON)."""
         fmt = (self.comboBoxDataFormatLocal.currentText()
                if self.radioLocalFile.isChecked()
                else self.comboBoxDataFormatSpaceTrack.currentText())
         filter_ = "Text Files (*.txt)" if fmt == "TLE" else "JSON Files (*.json)"
-        path, _ = QFileDialog.getOpenFileName(
+        
+        # Allow multiple file selection for local files
+        paths, _ = QFileDialog.getOpenFileNames(
             self,
-            self.tr("Select Data File"),
+            self.tr("Select Data File(s)"),
             "",
             filter_
         )
-        if path:
-            self.lineEditDataPath.setText(path)
+        if paths:
+            # Join multiple paths with semicolon separator
+            self.lineEditDataPath.setText(";".join(paths))
 
     def _on_browse_output_file(self):
         """Select output path for layer(s), handling multiple IDs."""
@@ -214,8 +217,18 @@ class SpaceTracePluginDialog(SpaceTracePluginDialogBase):
         """Collect current dialog values into a dictionary."""
         data_source_local = self.radioLocalFile.isChecked()
         save_data = self.checkBoxSaveData.isChecked()
+        
+        # Handle multiple file paths for local files
+        data_file_path = self.lineEditDataPath.text().strip()
+        if data_source_local and data_file_path:
+            # Split multiple file paths by semicolon
+            data_file_paths = [path.strip() for path in data_file_path.split(';') if path.strip()]
+        else:
+            data_file_paths = [data_file_path] if data_file_path else []
+        
         return {
-            "data_file_path": self.lineEditDataPath.text().strip() if data_source_local else "",
+            "data_file_paths": data_file_paths,  # List of file paths for local files
+            "data_file_path": data_file_path,    # Original single path (for backward compatibility)
             "sat_id_text": self.lineEditSatID.text().strip(),
             "start_datetime": self.dateTimeEdit.dateTime().toPyDateTime(),
             "duration_hours": self.spinBoxDuration.value(),
