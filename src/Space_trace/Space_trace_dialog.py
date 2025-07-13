@@ -1,20 +1,18 @@
 # -*- coding: utf-8 -*-
 import os
+import webbrowser
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtWidgets import (
-    QDialog, QGroupBox, QRadioButton, QButtonGroup,
-    QDialogButtonBox, QPushButton, QTextBrowser, QFileDialog
+    QDialog, QFileDialog, QDialogButtonBox
 )
-
 from PyQt5.QtCore import QUrl
-import webbrowser
-
 from ..spacetrack_dialog.spacetrack_dialog import SpaceTrackDialog
 from .Space_trace_dialog_class import SpaceTracePluginDialogBase
 
+
 class SpaceTracePluginDialog(SpaceTracePluginDialogBase):
     """Logic implementation for Space Trace Tool dialog."""
-    
+
     def __init__(self, parent=None, translator=None):
         super().__init__(parent, translator)
         self._connect_signals()
@@ -22,231 +20,216 @@ class SpaceTracePluginDialog(SpaceTracePluginDialogBase):
         self._load_help_content()
 
     def _connect_signals(self):
-        """Connect all signals to their respective slots."""
-        self.radioLocalFile.toggled.connect(self.toggle_data_source)
-        self.radioSpaceTrack.toggled.connect(self.toggle_data_source)
-        self.checkBoxSaveData.toggled.connect(self.toggle_save_data_path)
-        self.pushButtonBrowseData.clicked.connect(self.browseDataFile)
-        self.pushButtonBrowseOutput.clicked.connect(self.browseOutputFile)
-        self.pushButtonBrowseSaveData.clicked.connect(self.browseSaveDataFile)
-        self.pushButtonSearchSatellites.clicked.connect(self.open_space_track_dialog)
-        
-        # Connect quick duration buttons
-        for text, hrs in [("1 hour", 1.0), ("1 day", 24.0), ("1 week", 168.0)]:
-            btn = getattr(self, f"quickButton_{text.replace(' ', '_')}")
-            btn.clicked.connect(lambda _, h=hrs: self.spinBoxDuration.setValue(h))
+        """Connect UI signals to slots."""
+        self.radioLocalFile.toggled.connect(self._on_toggle_data_source)
+        self.radioSpaceTrack.toggled.connect(self._on_toggle_data_source)
+        self.checkBoxSaveData.toggled.connect(self._on_toggle_save_data)
+        self.pushButtonBrowseData.clicked.connect(self._on_browse_data_file)
+        self.pushButtonBrowseOutput.clicked.connect(self._on_browse_output_file)
+        self.pushButtonBrowseSaveData.clicked.connect(self._on_browse_save_data)
+        self.pushButtonSearchSatellites.clicked.connect(self._on_open_space_track_dialog)
+
+        # Quick duration buttons
+        durations = {"1 hour": 1.0, "1 day": 24.0, "1 week": 168.0}
+        for label, hours in durations.items():
+            btn = getattr(self, f"quickButton_{label.replace(' ', '_')}")
+            btn.clicked.connect(lambda _, h=hours: self.spinBoxDuration.setValue(h))
 
     def _load_help_content(self):
-        """Load 'readme.html' into the help tab, or show error if missing."""
+        """Load help.html into help browser or show missing message."""
         ui_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        help_file = os.path.join(ui_dir, "help.html")
-        if os.path.exists(help_file):
-            with open(help_file, "r", encoding="utf-8") as f:
-                self.textBrowserHelp.setHtml(f.read())
+        help_path = os.path.join(ui_dir, "help.html")
+        if os.path.exists(help_path):
+            with open(help_path, "r", encoding="utf-8") as f:
+                html = f.read()
+            self.textBrowserHelp.setHtml(html)
         else:
             self.textBrowserHelp.setPlainText("Help file not found.")
-
         self.textBrowserHelp.setOpenLinks(False)
-        self.textBrowserHelp.setOpenExternalLinks(False)
+        self.textBrowserHelp.anchorClicked.connect(self._open_link_in_browser)
 
     def _open_link_in_browser(self, url: QUrl):
+        """Open clicked link in external web browser."""
         webbrowser.open(url.toString())
         self.textBrowserHelp.setSource(QtCore.QUrl())
 
-    def toggle_data_source(self):
-        """Enable/disable and show/hide groups based on data source selection."""
-        if self.radioLocalFile.isChecked():
-            self.groupBoxLocalFile.setEnabled(True)
-            self.groupBoxLocalFile.show()
-            self.groupBoxSpaceTrack.setEnabled(False)
-            self.groupBoxSpaceTrack.hide()
-            self.groupBoxSaveData.setEnabled(False)
-            self.groupBoxSaveData.hide()
-        else:
-            self.groupBoxLocalFile.setEnabled(False)
-            self.groupBoxLocalFile.hide()
-            self.groupBoxSpaceTrack.setEnabled(True)
-            self.groupBoxSpaceTrack.show()
-            self.groupBoxSaveData.setEnabled(True)
-            self.groupBoxSaveData.show()
+    def _on_toggle_data_source(self):
+        """Show or hide UI groups based on selected data source."""
+        use_local = self.radioLocalFile.isChecked()
+        self.groupBoxLocalFile.setVisible(use_local)
+        self.groupBoxLocalFile.setEnabled(use_local)
+        self.groupBoxSpaceTrack.setVisible(not use_local)
+        self.groupBoxSpaceTrack.setEnabled(not use_local)
+        self.groupBoxSaveData.setVisible(not use_local)
+        self.groupBoxSaveData.setEnabled(not use_local)
 
-    def toggle_save_data_path(self):
-        """Enable/disable save path widgets when saving data."""
+    def _on_toggle_save_data(self):
+        """Enable or disable save-data path inputs."""
         enabled = self.checkBoxSaveData.isChecked()
         self.lineEditSaveDataPath.setEnabled(enabled)
         self.pushButtonBrowseSaveData.setEnabled(enabled)
 
-    def browseDataFile(self):
-        """Open file dialog to select data file (TLE or JSON)."""
-        fmt = self.comboBoxDataFormatLocal.currentText() if self.radioLocalFile.isChecked() else self.comboBoxDataFormatSpaceTrack.currentText()
+    def _on_browse_data_file(self):
+        """Select input data file (TLE or JSON)."""
+        fmt = (self.comboBoxDataFormatLocal.currentText()
+               if self.radioLocalFile.isChecked()
+               else self.comboBoxDataFormatSpaceTrack.currentText())
         filter_ = "Text Files (*.txt)" if fmt == "TLE" else "JSON Files (*.json)"
-        file, _ = QFileDialog.getOpenFileName(
+        path, _ = QFileDialog.getOpenFileName(
             self,
-            QtCore.QCoreApplication.translate("SpaceTracePluginDialog", "Select Data File"),
+            self.tr("Select Data File"),
             "",
             filter_
         )
-        if file:
-            self.lineEditDataPath.setText(file)
+        if path:
+            self.lineEditDataPath.setText(path)
 
-    def browseOutputFile(self):
-        """Open file dialog to choose where to save the output layer."""
-        sat_id_text = self.lineEditSatID.text().strip()
-        multiple_ids = False
-        if sat_id_text:
-            ids = set()
-            parts = [p.strip() for p in sat_id_text.split(',') if p.strip()]
-            for part in parts:
-                if '-' in part:
-                    try:
-                        start, end = part.split('-')
-                        start_i, end_i = int(start), int(end)
-                        if start_i > end_i:
-                            continue
-                        ids.update(range(start_i, end_i + 1))
-                    except Exception:
-                        continue
-                else:
-                    try:
-                        ids.add(int(part))
-                    except Exception:
-                        continue
-            multiple_ids = len(ids) > 1
-
-        if multiple_ids:
+    def _on_browse_output_file(self):
+        """Select output path for layer(s), handling multiple IDs."""
+        sat_ids = self._parse_satellite_ids(self.lineEditSatID.text())
+        if len(sat_ids) > 1:
             directory = QFileDialog.getExistingDirectory(
                 self,
-                QtCore.QCoreApplication.translate("SpaceTracePluginDialog", "Select Folder to Save Layers"),
+                self.tr("Select Folder to Save Layers"),
                 ""
             )
             if directory:
-                # Показываем диалог для выбора формата
-                format_dialog = QtWidgets.QDialog(self)
-                format_dialog.setWindowTitle("Select Output Format")
-                layout = QtWidgets.QVBoxLayout(format_dialog)
-                label = QtWidgets.QLabel("Select format for saving layers:", format_dialog)
-                layout.addWidget(label)
-                combo = QtWidgets.QComboBox(format_dialog)
-                combo.addItems(["shp", "gpkg", "geojson"])
-                layout.addWidget(combo)
-                btns = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel, format_dialog)
-                layout.addWidget(btns)
-                btns.accepted.connect(format_dialog.accept)
-                btns.rejected.connect(format_dialog.reject)
-                if format_dialog.exec_() == QtWidgets.QDialog.Accepted:
-                    fmt = combo.currentText()
-                    # Сохраняем путь и формат через разделитель (например, 'C:/folder|shp')
+                fmt = self._show_format_selection_dialog()
+                if fmt:
                     self.lineEditOutputPath.setText(f"{directory}|{fmt}")
         else:
-            file, _ = QFileDialog.getSaveFileName(
+            path, _ = QFileDialog.getSaveFileName(
                 self,
-                QtCore.QCoreApplication.translate("SpaceTracePluginDialog", "Select Output File"),
+                self.tr("Select Output File"),
                 "",
                 "Shapefiles (*.shp);;GeoPackage (*.gpkg);;GeoJSON (*.geojson);;All Files (*)"
             )
-            if file:
-                self.lineEditOutputPath.setText(file)
+            if path:
+                self.lineEditOutputPath.setText(path)
 
-    def browseSaveDataFile(self):
-        """Open file/folder dialog depending on data format and save mode."""
-        fmt = self.comboBoxDataFormatLocal.currentText() if self.radioLocalFile.isChecked() else self.comboBoxDataFormatSpaceTrack.currentText()
+    def _show_format_selection_dialog(self) -> str:
+        """Show dialog for selecting folder export format; return chosen format."""
+        dlg = QDialog(self)
+        dlg.setWindowTitle(self.tr("Select Output Format"))
+        layout = QtWidgets.QVBoxLayout(dlg)
+        layout.addWidget(QtWidgets.QLabel(self.tr("Select format for saving layers:")))
+        combo = QtWidgets.QComboBox(dlg)
+        combo.addItems(["shp", "gpkg", "geojson"])
+        layout.addWidget(combo)
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, dlg)
+        buttons.accepted.connect(dlg.accept)
+        buttons.rejected.connect(dlg.reject)
+        layout.addWidget(buttons)
+        return combo.currentText() if dlg.exec_() == QDialog.Accepted else ""
 
-        # Determine file extension and filter
-        if fmt == "TLE":
-            filter_, ext = "Text Files (*.txt)", ".txt"
-        else:
-            filter_, ext = "JSON Files (*.json)", ".json"
+    def _on_browse_save_data(self):
+        """Select save path for downloaded data, file or folder based on mode."""
+        fmt = (self.comboBoxDataFormatLocal.currentText()
+               if self.radioLocalFile.isChecked()
+               else self.comboBoxDataFormatSpaceTrack.currentText())
+        ext = ".txt" if fmt == "TLE" else ".json"
 
-        # Determine whether it's a batch save operation
         if self.checkBoxSaveData.isChecked() and self.radioSpaceTrack.isChecked():
-            # Multiple satellites => use folder selection
             directory = QFileDialog.getExistingDirectory(
                 self,
-                QtCore.QCoreApplication.translate("SpaceTracePluginDialog", "Select Folder to Save Data"),
+                self.tr("Select Folder to Save Data"),
                 ""
             )
             if directory:
                 self.lineEditSaveDataPath.setText(directory)
         else:
-            # Single file save
-            file, _ = QFileDialog.getSaveFileName(
+            path, _ = QFileDialog.getSaveFileName(
                 self,
-                QtCore.QCoreApplication.translate("SpaceTracePluginDialog", "Select Save Path"),
+                self.tr("Select Save Path"),
                 "",
-                filter_
+                f"{fmt} (*{ext})"
             )
-            if file:
-                if not file.lower().endswith(ext):
-                    file += ext
-                self.lineEditSaveDataPath.setText(file)
+            if path:
+                if not path.lower().endswith(ext):
+                    path += ext
+                self.lineEditSaveDataPath.setText(path)
 
-    def open_space_track_dialog(self):
-        """Open the SpaceTrack API search dialog and pass selected IDs as list or range."""
+    def _on_open_space_track_dialog(self):
+        """Open SpaceTrack API dialog and update satellite ID field."""
         login = self.lineEditLogin.text().strip()
         password = self.lineEditPassword.text().strip()
         if not login or not password:
             QtWidgets.QMessageBox.warning(
                 self,
-                QtCore.QCoreApplication.translate("SpaceTracePluginDialog", "Error"),
-                QtCore.QCoreApplication.translate("SpaceTracePluginDialog", "Please enter SpaceTrack login and password.")
+                self.tr("Error"),
+                self.tr("Please enter SpaceTrack login and password.")
             )
             return
 
-        dlg = SpaceTrackDialog(self, login=login, password=password, 
-                            log_callback=self.appendLog, translator=self.translator)
+        dlg = SpaceTrackDialog(self, login=login, password=password,
+                               log_callback=self.appendLog, translator=self.translator)
         if dlg.exec_() == QDialog.Accepted:
-            norad_list = dlg.get_selected_norad_ids()
-            if norad_list:
-                # Convert list of strings to sorted list of ints
-                ids_int = sorted(int(i) for i in norad_list)
-                
-                # Group consecutive IDs into ranges
-                ranges = []
-                start = ids_int[0]
-                prev = start
-                
-                for current in ids_int[1:] + [None]:  # Add None as sentinel
-                    if current is None or current > prev + 1:
-                        # End of a range or sequence
-                        if start == prev:
-                            ranges.append(str(start))  # Single ID
-                        else:
-                            ranges.append(f"{start}-{prev}")  # Range
-                        if current is not None:
-                            start = current
-                    prev = current if current is not None else prev
-                
-                # Join ranges and single IDs with commas
-                text = ",".join(ranges)
-                
-                # Set combined text into the main dialog
-                self.lineEditSatID.setText(text)
+            ids = sorted(int(i) for i in dlg.get_selected_norad_ids())
+            self.lineEditSatID.setText(self._format_id_ranges(ids))
 
-    def appendLog(self, message):
+    def _parse_satellite_ids(self, text: str) -> list:
+        """Parse comma/range-separated satellite IDs into a list of ints."""
+        ids = set()
+        for part in text.split(','):
+            part = part.strip()
+            if not part:
+                continue
+            if '-' in part:
+                try:
+                    start, end = map(int, part.split('-', 1))
+                    if start <= end:
+                        ids.update(range(start, end + 1))
+                except ValueError:
+                    continue
+            else:
+                try:
+                    ids.add(int(part))
+                except ValueError:
+                    continue
+        return sorted(ids)
+
+    def _format_id_ranges(self, ids: list) -> str:
+        """Convert sorted list of ints into comma-/dash-separated string."""
+        if not ids:
+            return ""
+        ranges, start, prev = [], ids[0], ids[0]
+        for curr in ids[1:] + [None]:
+            if curr is None or curr > prev + 1:
+                ranges.append(f"{start}-{prev}" if start != prev else str(start))
+                if curr is not None:
+                    start = curr
+            prev = curr if curr is not None else prev
+        return ",".join(ranges)
+
+    def appendLog(self, message: str):
         """Append a line to the log text box."""
         self.textEditLog.append(message)
 
     def switch_to_log_tab(self):
-        """Programmatically switch to the Log tab."""
-        self.tabWidget.setCurrentIndex(self.tabWidget.indexOf(self.tabLog))
+        """Switch programmatically to the Log tab."""
+        idx = self.tabWidget.indexOf(self.tabLog)
+        self.tabWidget.setCurrentIndex(idx)
 
-    def get_inputs(self):
-        """Gather all current user inputs into a dict for processing."""
+    def get_inputs(self) -> dict:
+        """Collect current dialog values into a dictionary."""
+        data_source_local = self.radioLocalFile.isChecked()
+        save_data = self.checkBoxSaveData.isChecked()
         return {
-            "data_file_path": self.lineEditDataPath.text().strip() if self.radioLocalFile.isChecked() else "",
+            "data_file_path": self.lineEditDataPath.text().strip() if data_source_local else "",
             "sat_id_text": self.lineEditSatID.text().strip(),
             "start_datetime": self.dateTimeEdit.dateTime().toPyDateTime(),
             "duration_hours": self.spinBoxDuration.value(),
             "step_minutes": self.spinBoxStepMinutes.value(),
             "output_path": self.lineEditOutputPath.text().strip(),
             "add_layer": self.checkBoxAddLayer.isChecked(),
-            "login": self.lineEditLogin.text().strip() if not self.radioLocalFile.isChecked() else "",
-            "password": self.lineEditPassword.text().strip() if not self.radioLocalFile.isChecked() else "",
+            "login": "" if data_source_local else self.lineEditLogin.text().strip(),
+            "password": "" if data_source_local else self.lineEditPassword.text().strip(),
             "data_format": (
-                self.comboBoxDataFormatLocal.currentText() if self.radioLocalFile.isChecked()
+                self.comboBoxDataFormatLocal.currentText()
+                if data_source_local
                 else self.comboBoxDataFormatSpaceTrack.currentText()
             ),
             "create_line_layer": self.checkBoxCreateLineLayer.isChecked(),
-            "save_data": self.checkBoxSaveData.isChecked(),
-            "save_data_path": self.lineEditSaveDataPath.text().strip() if self.checkBoxSaveData.isChecked() else ""
+            "save_data": save_data,
+            "save_data_path": self.lineEditSaveDataPath.text().strip() if save_data else ""
         }

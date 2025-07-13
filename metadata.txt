@@ -23,8 +23,8 @@ hasProcessingProvider=no
 changelog=  
             Version 1.9
             * Added support for pole crossing in line segmentation.
-            *
-            *
+            * Minor bugs fixed
+            * 
             Version 1.8
             * Updated user interface
             * Added support for handling a range of NORAD IDs in data processing and saving functions.
