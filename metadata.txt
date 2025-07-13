@@ -6,7 +6,7 @@
 name=Space Trace
 qgisMinimumVersion=3.40.0
 description=Draws a spacecraft's ground trace over the Earth's surface.
-version=1.7
+version=1.9
 author=Yuriy Malyshev
 email=yuaren@yandex.ru
 
@@ -21,6 +21,10 @@ repository=https://github.com/YuarenArt/SpaceTrace
 hasProcessingProvider=no
 # Uncomment the following line and add your changelog:
 changelog=  
+            Version 1.9
+            * Added support for pole crossing in line segmentation.
+            *
+            *
             Version 1.8
             * Updated user interface
             * Added support for handling a range of NORAD IDs in data processing and saving functions.

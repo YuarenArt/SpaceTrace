@@ -344,15 +344,56 @@ class SpaceTracePlugin:
             facade = OrbitalTrackFacade(retriever, log_callback=self.log_message)
             self.log_message("OrbitalTrackFacade initialized", "DEBUG")
 
+            successful_satellites = []
+            failed_satellites = []
+            
             for sid in sat_ids:
-                config = self._create_config(inputs, sid, file_format)
-                self.log_message(f"Processing NORAD ID={sid}", "DEBUG")
-                self._process_track(config, facade)
+                try:
+                    config = self._create_config(inputs, sid, file_format)
+                    self.log_message(f"Processing NORAD ID={sid}", "INFO")
+                    self._process_track(config, facade)
+                    successful_satellites.append(sid)
+                    self.log_message(f"Successfully processed NORAD ID={sid}", "INFO")
+                except Exception as e:
+                    error_msg = f"Error processing NORAD ID={sid}: {str(e)}"
+                    self.log_message(error_msg, "ERROR")
+                    self.iface.messageBar().pushMessage(
+                        self.tr("Warning"), 
+                        f"Failed to process satellite {sid}: {str(e)}", 
+                        level=2
+                    )
+                    failed_satellites.append(sid)
+                    # Continue processing other satellites
+                    continue
 
             end_time = time.time()
             duration = end_time - start_time
+            
+            # Log final statistics
+            total_satellites = len(sat_ids)
+            successful_count = len(successful_satellites)
+            failed_count = len(failed_satellites)
+            
             self.log_message(f"Process completed in {duration:.2f} seconds.", "INFO")
-            self.log_message("All tracks generated.", "INFO")
+            self.log_message(f"Processing summary: {successful_count}/{total_satellites} satellites processed successfully.", "INFO")
+            
+            if successful_count > 0:
+                self.log_message(f"Successfully processed satellites: {', '.join(map(str, successful_satellites))}", "INFO")
+            
+            if failed_count > 0:
+                self.log_message(f"Failed to process satellites: {', '.join(map(str, failed_satellites))}", "WARNING")
+                self.iface.messageBar().pushMessage(
+                    self.tr("Processing Complete"), 
+                    f"Processed {successful_count}/{total_satellites} satellites. {failed_count} failed.", 
+                    level=1
+                )
+            else:
+                self.log_message("All tracks generated successfully.", "INFO")
+                self.iface.messageBar().pushMessage(
+                    self.tr("Success"), 
+                    f"All {total_satellites} satellites processed successfully.", 
+                    level=0
+                )
 
         except Exception as e:
             self.iface.messageBar().pushMessage("Error", str(e), level=3)
