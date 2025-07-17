@@ -8,7 +8,7 @@ for orbital track computation and layer creation from TLE or OMM data.
 import os
 from qgis.core import (QgsGeometry, QgsPointXY, QgsCoordinateReferenceSystem)
 from .saver import FactoryProvider
-from ...orbital_data_processor.pyorbital_processor import PyOrbitalDataProcessor
+from ...orbital_data_processor.skyfield import SkyfieldOrbitalDataProcessor
 
 
 class OrbitalLogicHandler:
@@ -218,13 +218,13 @@ class OrbitalLogicHandler:
             self._log(f"[_get_processor] TLE_LINE2 is {'not empty' if tle2 else 'EMPTY'}", 
                       "WARNING" if not tle2 else "DEBUG")
 
-            return PyOrbitalDataProcessor("N", tle1, tle2, inc, self.log_callback)
+            return SkyfieldOrbitalDataProcessor("N", tle1, tle2, self.log_callback)
         
         elif data_format == "OMM":
             record = data[0]
             tle_1 = record.get("TLE_LINE1")
             tle_2 = record.get("TLE_LINE2")
             inc = record.get("INCLINATION")
-            return PyOrbitalDataProcessor("N", tle_1, tle_2, inc, self.log_callback)
+            return SkyfieldOrbitalDataProcessor("N", tle_1, tle_2, self.log_callback)
         else:
             raise ValueError(f"Unsupported data format: {data_format}")
