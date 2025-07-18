@@ -195,7 +195,16 @@ class SpaceTracePlugin:
             return directory, fmt
 
         if num_items > 1:
-            raise Exception(self.tr("For multiple items, output path must be 'directory|format'."))
+            output_dir = os.path.dirname(output_path)
+            if not output_dir:
+                output_dir = os.getcwd()
+            _, ext = os.path.splitext(output_path)
+            fmt = ext[1:].lower() if ext else "shp"
+            if fmt not in {"shp", "gpkg", "geojson"}:
+                raise Exception(self.tr("Unsupported format. Use shp, gpkg, or geojson."))
+            if not os.path.isdir(output_dir):
+                raise Exception(self.tr("Output directory does not exist or is not writable."))
+            return output_dir, fmt
 
         _, ext = os.path.splitext(output_path)
         fmt = ext[1:].lower()
@@ -484,6 +493,7 @@ class SpaceTracePlugin:
             inputs = self.dlg.get_inputs()
             sat_ids, file_format, validated_output_path = self._validate_inputs(inputs)
             inputs["output_path"] = validated_output_path
+            inputs["file_format"] = file_format
             successful, failed = self._process_satellites(sat_ids, inputs, file_format)
             self._log_summary(successful, failed, inputs, time.time() - start_time)
         except Exception as e:

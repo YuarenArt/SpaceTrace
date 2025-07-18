@@ -94,9 +94,17 @@ class SpaceTracePluginDialog(SpaceTracePluginDialogBase):
             self.lineEditDataPath.setText(";".join(paths))
 
     def _on_browse_output_file(self):
-        """Select output path for layer(s), handling multiple IDs."""
-        sat_ids = self._parse_satellite_ids(self.lineEditSatID.text())
-        if len(sat_ids) > 1:
+        """Select output path for layer(s), handling multiple IDs or files."""
+
+        data_source_local = self.radioLocalFile.isChecked()
+        if data_source_local:
+            data_file_path = self.lineEditDataPath.text().strip()
+            num_items = len([path.strip() for path in data_file_path.split(';') if path.strip()]) if data_file_path else 1
+        else:
+            sat_ids = self._parse_satellite_ids(self.lineEditSatID.text())
+            num_items = len(sat_ids) if sat_ids else 1
+
+        if num_items > 1:
             directory = QFileDialog.getExistingDirectory(
                 self,
                 self.tr("Select Folder to Save Layers"),
@@ -107,6 +115,7 @@ class SpaceTracePluginDialog(SpaceTracePluginDialogBase):
                 if fmt:
                     self.lineEditOutputPath.setText(f"{directory}|{fmt}")
         else:
+        
             path, _ = QFileDialog.getSaveFileName(
                 self,
                 self.tr("Select Output File"),
