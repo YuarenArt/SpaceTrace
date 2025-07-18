@@ -23,8 +23,9 @@ hasProcessingProvider=no
 changelog=  
             Version 1.9
             * Added support for pole crossing in line segmentation.
-            * Added multiple file processing for local data sources.
-            * Added handling of deep space calculations (orbital period more than 225 min.)
+            * Added batch processing of multiple local TLE/OMM files.
+            * Added support for deep space object calculations (orbital period > 225 min).
+            * Replaced pyorbital dependency with skyfield for more accurate orbital mechanics and long-term ephemeris
             Version 1.8
             * Updated user interface
             * Added support for handling a range of NORAD IDs in data processing and saving functions.
@@ -70,7 +71,7 @@ deprecated=False
 # Since QGIS 3.8, a comma separated list of plugins to be installed
 # (or upgraded) can be specified.
 # Check the documentation for more information.
-plugin_dependencies=poliastro, pyorbital, spacetrack
+plugin_dependencies=qpip
 
 Category of the plugin: Raster, Vector, Database or Web
 # category=Vector

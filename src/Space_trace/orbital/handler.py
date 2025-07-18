@@ -8,8 +8,6 @@ for orbital track computation and layer creation from TLE or OMM data.
 import os
 from qgis.core import (QgsGeometry, QgsPointXY, QgsCoordinateReferenceSystem)
 from .saver import FactoryProvider
-from ...orbital_data_processor.skyfield import SkyfieldOrbitalDataProcessor
-
 
 class OrbitalLogicHandler:
     """
@@ -205,6 +203,8 @@ class OrbitalLogicHandler:
         :return: OrbitalDataProcessorInterface instance.
         :raises ValueError: If data format is unsupported.
         """
+        from ...orbital_data_processor.skyfield import SkyfieldOrbitalDataProcessor
+
         if data_format == "TLE":
             if not isinstance(data, (list, tuple)) or len(data) < 3:
                 error_msg = f"Incorrect TLE data: expected at least 3 elements (got {type(data)} of length {len(data)})"

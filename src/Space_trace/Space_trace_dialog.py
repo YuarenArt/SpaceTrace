@@ -1,14 +1,11 @@
 # -*- coding: utf-8 -*-
 import os
-import webbrowser
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtWidgets import (
     QDialog, QFileDialog, QDialogButtonBox
 )
 from PyQt5.QtCore import QUrl
-from ..spacetrack_dialog.spacetrack_dialog import SpaceTrackDialog
 from .Space_trace_dialog_class import SpaceTracePluginDialogBase
-
 
 class SpaceTracePluginDialog(SpaceTracePluginDialogBase):
     """Logic implementation for Space Trace Tool dialog."""
@@ -163,6 +160,8 @@ class SpaceTracePluginDialog(SpaceTracePluginDialogBase):
 
     def _on_open_space_track_dialog(self):
         """Open SpaceTrack API dialog and update satellite ID field."""
+        from ..spacetrack_dialog.spacetrack_dialog import SpaceTrackDialog
+
         login = self.lineEditLogin.text().strip()
         password = self.lineEditPassword.text().strip()
         if not login or not password:

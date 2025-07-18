@@ -13,8 +13,6 @@ from ...resources import *
 from .Space_trace_dialog import SpaceTracePluginDialog
 from .orbital.facade import OrbitalTrackFacade
 from ..config.orbital import OrbitalConfig
-from ..data_retriver.data_retriver import LocalFileRetriever
-from ..data_retriver.spacetrack_retriver import SpaceTrackRetriever
 
 
 class SpaceTracePlugin:
@@ -425,6 +423,9 @@ class SpaceTracePlugin:
         Returns:
             tuple[list[int], list[int]]: (successful IDs, failed IDs).
         """
+        from ..data_retriver.data_retriver import LocalFileRetriever
+        from ..data_retriver.spacetrack_retriver import SpaceTrackRetriever
+
         retriever = (
             LocalFileRetriever(log_callback=self.log_message) if inputs["data_file_paths"]
             else SpaceTrackRetriever(inputs["login"], inputs["password"], log_callback=self.log_message)
@@ -481,7 +482,8 @@ class SpaceTracePlugin:
         try:
             start_time = time.time()
             inputs = self.dlg.get_inputs()
-            sat_ids, file_format, output_path = self._validate_inputs(inputs)
+            sat_ids, file_format, validated_output_path = self._validate_inputs(inputs)
+            inputs["output_path"] = validated_output_path
             successful, failed = self._process_satellites(sat_ids, inputs, file_format)
             self._log_summary(successful, failed, inputs, time.time() - start_time)
         except Exception as e:
