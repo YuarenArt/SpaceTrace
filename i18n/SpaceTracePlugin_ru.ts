@@ -61,7 +61,7 @@
     <message>
         <location filename="../../../../space trace/SpaceTrace/src/spacetrack_dialog/custom_query_dialog.py" line="167"/>
         <source>Enter date as YYYY-MM-DD (e.g., 2023-01-01)</source>
-        <translation>Введите дату в виде ГГГГ-ММ-ДД (например, 2023-01-01)</translation>
+        <translation type="obsolete">Введите дату в виде ГГГГ-ММ-ДД (например, 2023-01-01)</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="191"/>
@@ -81,12 +81,12 @@
     <message>
         <location filename="../../../../space trace/SpaceTrace/src/spacetrack_dialog/custom_query_dialog.py" line="312"/>
         <source>Please select a row to remove.</source>
-        <translation>Пожалуйста, выберите строку для удаления.</translation>
+        <translation type="obsolete">Пожалуйста, выберите строку для удаления.</translation>
     </message>
     <message>
         <location filename="../../../../space trace/SpaceTrace/src/spacetrack_dialog/custom_query_dialog.py" line="313"/>
         <source>Please fill all fields in each condition.</source>
-        <translation>Пожалуйста, заполните все поля в каждом условии.</translation>
+        <translation type="obsolete">Пожалуйста, заполните все поля в каждом условии.</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="22"/>
@@ -211,7 +211,7 @@
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="190"/>
         <source>Enter date as YYYY-MM-DD (e.g., 2023-01-01) or NULL</source>
-        <translation></translation>
+        <translation type="unfinished">Введите дату в формате ГГГГ-ММ-ДД (например 2000-01-01) или NULL</translation>
     </message>
 </context>
 <context>
@@ -219,100 +219,100 @@
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Duration (hours):</source>
-        <translation>Продолжительность (в часах)</translation>
+        <translation type="obsolete">Продолжительность (в часах)</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>1 hour</source>
-        <translation>1 час</translation>
+        <translation type="obsolete">1 час</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>1 day</source>
-        <translation>1 день</translation>
+        <translation type="obsolete">1 день</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>1 week</source>
-        <translation>1 неделя</translation>
+        <translation type="obsolete">1 неделя</translation>
     </message>
 </context>
 <context>
     <name>SpaceTracePlugin</name>
     <message>
-        <location filename="../src/Space_trace/Space_trace.py" line="34"/>
+        <location filename="../src/Space_trace/Space_trace.py" line="33"/>
         <source>Space trace</source>
         <translation>Space trace</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Draw flight path lines</source>
-        <translation>Нарисовать пути полета</translation>
+        <translation type="obsolete">Нарисовать пути полета</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Please enter the satellite NORAD ID.</source>
-        <translation>Пожалуйста, введите NORAD ID спутника.</translation>
+        <translation type="obsolete">Пожалуйста, введите NORAD ID спутника.</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Please enter your SpaceTrack account login and password.</source>
-        <translation>Пожалуйста, введите логин и пароль вашей учетной записи SpaceTrack.</translation>
+        <translation type="obsolete">Пожалуйста, введите логин и пароль вашей учетной записи SpaceTrack.</translation>
     </message>
     <message>
         <location filename="../src/Space_trace/Space_trace.py" line="202"/>
         <source>Unsupported file format. Use .shp, .gpkg, or .geojson.</source>
-        <translation>Неподдерживаемый формат файла. Используйте .shp, .gpkg или .geojson.</translation>
+        <translation type="obsolete">Неподдерживаемый формат файла. Используйте .shp, .gpkg или .geojson.</translation>
     </message>
     <message>
-        <location filename="../src/Space_trace/Space_trace.py" line="257"/>
+        <location filename="../src/Space_trace/Space_trace.py" line="480"/>
         <source>Success</source>
         <translation>Успешно</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>%1 created successfully</source>
-        <translation>%1 успешно создан</translation>
+        <translation type="obsolete">%1 успешно создан</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Error</source>
-        <translation>Ошибка</translation>
+        <translation type="obsolete">Ошибка</translation>
     </message>
     <message>
-        <location filename="../src/Space_trace/Space_trace.py" line="121"/>
+        <location filename="../src/Space_trace/Space_trace.py" line="107"/>
         <source>Draw flight path</source>
         <translation>Нарисовать траекторию</translation>
     </message>
     <message>
         <location filename="../src/Space_trace/Space_trace.py" line="132"/>
         <source>&amp;Space trace</source>
-        <translation>&amp;Space trace</translation>
+        <translation type="obsolete">&amp;Space trace</translation>
     </message>
     <message>
         <location filename="../../../../space trace/SpaceTrace/src/Space_trace/Space_trace.py" line="185"/>
         <source>Please enter a satellite NORAD ID.</source>
-        <translation>Пожалуйста, введите NORAD ID спутнкиа</translation>
+        <translation type="obsolete">Пожалуйста, введите NORAD ID спутнкиа</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Invalid NORAD ID: Please enter a valid positive integer.</source>
-        <translation>Некорректный NORAD ID: это должено быть целое положительное число</translation>
+        <translation type="obsolete">Некорректный NORAD ID: это должено быть целое положительное число</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Unsupported save data format. Use .txt for TLE or .json for OMM.</source>
-        <translation>Неподдерживаемый формат сохранения данных. Используйте .txt для форума или .json.</translation>
+        <translation type="obsolete">Неподдерживаемый формат сохранения данных. Используйте .txt для форума или .json.</translation>
     </message>
     <message>
         <location filename="../src/Space_trace/Space_trace.py" line="257"/>
         <source>{} created successfully</source>
-        <translation>Создано</translation>
+        <translation type="obsolete">Создано</translation>
     </message>
     <message>
         <location filename="../src/Space_trace/Space_trace.py" line="192"/>
         <source>Please provide SpaceTrack login and password.</source>
-        <translation>Введите логин и пароль от Spacetrack</translation>
+        <translation type="obsolete">Введите логин и пароль от Spacetrack</translation>
     </message>
     <message>
         <location filename="../../../../space trace/SpaceTrace/src/Space_trace/Space_trace.py" line="193"/>
@@ -322,37 +322,62 @@
     <message>
         <location filename="../src/Space_trace/Space_trace.py" line="196"/>
         <source>Local data file does not exist or is not readable.</source>
-        <translation>Локальный файл данных не существует или недоступен для чтения.</translation>
+        <translation type="obsolete">Локальный файл данных не существует или недоступен для чтения.</translation>
     </message>
     <message>
-        <location filename="../src/Space_trace/Space_trace.py" line="205"/>
+        <location filename="../src/Space_trace/Space_trace.py" line="215"/>
         <source>Output directory does not exist or is not writable.</source>
         <translation>Выходной каталог не существует или недоступен для записи.</translation>
     </message>
     <message>
-        <location filename="../src/Space_trace/Space_trace.py" line="213"/>
+        <location filename="../src/Space_trace/Space_trace.py" line="238"/>
         <source>Save data directory does not exist or is not writable.</source>
         <translation>Каталог сохранения данных не существует или недоступен для записи.</translation>
     </message>
     <message>
-        <location filename="../src/Space_trace/Space_trace.py" line="186"/>
-        <source>Please enter at least one NORAD ID.</source>
+        <location filename="../src/Space_trace/Space_trace.py" line="212"/>
+        <source>Unsupported format. Use shp, gpkg, or geojson.</source>
+        <translation>Неподдерживаемый формат. Используйте: shp gpkg или geojson</translation>
+    </message>
+    <message>
+        <location filename="../src/Space_trace/Space_trace.py" line="234"/>
+        <source>For multiple items, save data path must be a directory.</source>
+        <translation>Для множества объектов путь к сохраняемым файлам должен быть директорией</translation>
+    </message>
+    <message>
+        <location filename="../src/Space_trace/Space_trace.py" line="257"/>
+        <source>File {i+1} is not readable: {file_path}</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../src/Space_trace/Space_trace.py" line="190"/>
-        <source>Invalid NORAD ID format.</source>
-        <translation></translation>
+        <location filename="../src/Space_trace/Space_trace.py" line="260"/>
+        <source>Enter at least one NORAD ID.</source>
+        <translation>Нужно ввести хотя бы один NORAD ID</translation>
     </message>
     <message>
-        <location filename="../src/Space_trace/Space_trace.py" line="318"/>
-        <source>When saving multiple satellites, &apos;Save data path&apos; must be a valid directory.</source>
-        <translation></translation>
+        <location filename="../src/Space_trace/Space_trace.py" line="263"/>
+        <source>Provide SpaceTrack login and password.</source>
+        <translation>Введите логин и пароль от SpaceTrack</translation>
     </message>
     <message>
-        <location filename="../src/Space_trace/Space_trace.py" line="323"/>
-        <source>When saving multiple satellites, &apos;Output path&apos; must be a directory.</source>
-        <translation></translation>
+        <location filename="../src/Space_trace/Space_trace.py" line="375"/>
+        <source>{config.file_format.capitalize()} created</source>
+        <translation>{config.file_format.capitalize()} created</translation>
+    </message>
+    <message>
+        <location filename="../src/Space_trace/Space_trace.py" line="386"/>
+        <source>Temporary layers created</source>
+        <translation>Врменные слои созданы</translation>
+    </message>
+    <message>
+        <location filename="../src/Space_trace/Space_trace.py" line="417"/>
+        <source>Warning</source>
+        <translation>Предупреждение</translation>
+    </message>
+    <message>
+        <location filename="../src/Space_trace/Space_trace.py" line="474"/>
+        <source>Processing Complete</source>
+        <translation>Выполнено</translation>
     </message>
 </context>
 <context>
@@ -360,7 +385,7 @@
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Space Trace Tool</source>
-        <translation>Space Trace Tool</translation>
+        <translation type="obsolete">Space Trace Tool</translation>
     </message>
     <message>
         <location filename="../src/Space_trace/Space_trace_dialog_class.py" line="220"/>
@@ -405,7 +430,7 @@
     <message>
         <location filename="../../../../space trace/SpaceTrace/src/Space_trace/Space_trace_dialog_class.py" line="222"/>
         <source>Enter satellite&apos;s NORAD ID</source>
-        <translation>Введите NORAD ID спутника</translation>
+        <translation type="obsolete">Введите NORAD ID спутника</translation>
     </message>
     <message>
         <location filename="../src/Space_trace/Space_trace_dialog_class.py" line="222"/>
@@ -495,7 +520,7 @@
     <message>
         <location filename="../src/Space_trace/Space_trace_dialog_class.py" line="240"/>
         <source>Specify the path to the TLE/OMM data file</source>
-        <translation>Укажите путь к файлу TLE/OMM</translation>
+        <translation type="obsolete">Укажите путь к файлу TLE/OMM</translation>
     </message>
     <message>
         <location filename="../src/Space_trace/Space_trace_dialog_class.py" line="241"/>
@@ -508,7 +533,7 @@
         <translation>Укажите путь сохраняемого файла</translation>
     </message>
     <message>
-        <location filename="../src/Space_trace/Space_trace_dialog.py" line="141"/>
+        <location filename="../src/Space_trace/Space_trace_dialog.py" line="177"/>
         <source>Error</source>
         <translation>Ошибка</translation>
     </message>
@@ -520,27 +545,52 @@
     <message>
         <location filename="../src/Space_trace/Space_trace_dialog.py" line="83"/>
         <source>Select Data File</source>
-        <translation>Выберите источник данных</translation>
+        <translation type="obsolete">Выберите источник данных</translation>
     </message>
     <message>
-        <location filename="../src/Space_trace/Space_trace_dialog.py" line="94"/>
+        <location filename="../src/Space_trace/Space_trace_dialog.py" line="119"/>
         <source>Select Output File</source>
         <translation>Укажите файл для сохранения</translation>
     </message>
     <message>
-        <location filename="../src/Space_trace/Space_trace_dialog.py" line="116"/>
+        <location filename="../src/Space_trace/Space_trace_dialog.py" line="151"/>
         <source>Select Folder to Save Data</source>
         <translation>Укажите папку для сохранения</translation>
     </message>
     <message>
-        <location filename="../src/Space_trace/Space_trace_dialog.py" line="125"/>
+        <location filename="../src/Space_trace/Space_trace_dialog.py" line="159"/>
         <source>Select Save Path</source>
         <translation>Укажите путь</translation>
     </message>
     <message>
-        <location filename="../src/Space_trace/Space_trace_dialog.py" line="141"/>
+        <location filename="../src/Space_trace/Space_trace_dialog.py" line="177"/>
         <source>Please enter SpaceTrack login and password.</source>
         <translation>Введите логин и пароль от SpaceTrack.</translation>
+    </message>
+    <message>
+        <location filename="../src/Space_trace/Space_trace_dialog.py" line="86"/>
+        <source>Select Data File(s)</source>
+        <translation>Укажите файлы с данными</translation>
+    </message>
+    <message>
+        <location filename="../src/Space_trace/Space_trace_dialog.py" line="108"/>
+        <source>Select Folder to Save Layers</source>
+        <translation>Укажите папку для сохранения слоёв</translation>
+    </message>
+    <message>
+        <location filename="../src/Space_trace/Space_trace_dialog.py" line="131"/>
+        <source>Select Output Format</source>
+        <translation>Выберите формат вывода</translation>
+    </message>
+    <message>
+        <location filename="../src/Space_trace/Space_trace_dialog.py" line="133"/>
+        <source>Select format for saving layers:</source>
+        <translation>Выберите формат для сохранения:</translation>
+    </message>
+    <message>
+        <location filename="../src/Space_trace/Space_trace_dialog_class.py" line="240"/>
+        <source>Specify the path to the TLE/OMM data file(s)</source>
+        <translation>Укажите путь к данным TLE/OMM</translation>
     </message>
 </context>
 <context>
@@ -548,167 +598,182 @@
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Space Trace</source>
-        <translation>Space Trace</translation>
+        <translation type="obsolete">Space Trace</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Enter satellite&apos;s NORAD ID</source>
-        <translation>Введите NORAD ID спутника</translation>
+        <translation type="obsolete">Введите NORAD ID спутника</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Enter your SpaceTrack account email</source>
-        <translation>Введите email вашей учетной записи SpaceTrack</translation>
+        <translation type="obsolete">Введите email вашей учетной записи SpaceTrack</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Enter your SpaceTrack account password</source>
-        <translation>Введите пароль вашей учетной записи SpaceTrack</translation>
+        <translation type="obsolete">Введите пароль вашей учетной записи SpaceTrack</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Specify the path to save file (leave empty for temporary layer)</source>
-        <translation>Укажите путь для сохранения файла (оставьте пустым для временного слоя)</translation>
+        <translation type="obsolete">Укажите путь для сохранения файла (оставьте пустым для временного слоя)</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Browse</source>
-        <translation>Обзор</translation>
+        <translation type="obsolete">Обзор</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Add created layer to project</source>
-        <translation>Добавить созданный слой в проект</translation>
+        <translation type="obsolete">Добавить созданный слой в проект</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Select data format: TLE or OMM</source>
-        <translation>Выберите формат данных: TLE или OMM</translation>
+        <translation type="obsolete">Выберите формат данных: TLE или OMM</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Main</source>
-        <translation>Основное</translation>
+        <translation type="obsolete">Основное</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Log</source>
-        <translation>Журнал</translation>
+        <translation type="obsolete">Журнал</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Execute</source>
-        <translation>Выполнить</translation>
+        <translation type="obsolete">Выполнить</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Close</source>
-        <translation>Закрыть</translation>
+        <translation type="obsolete">Закрыть</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Create line layer</source>
-        <translation>Создать линейный слой</translation>
+        <translation type="obsolete">Создать линейный слой</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Data Source</source>
-        <translation>Источник данных</translation>
+        <translation type="obsolete">Источник данных</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Load from local file</source>
-        <translation>Загрузить данные из локальногоф файла</translation>
+        <translation type="obsolete">Загрузить данные из локальногоф файла</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Fetch from SpaceTrack API</source>
-        <translation>Получить данные через SpaceTrack</translation>
+        <translation type="obsolete">Получить данные через SpaceTrack</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Local File Settings</source>
-        <translation>Настройки загрузки локального файла</translation>
+        <translation type="obsolete">Настройки загрузки локального файла</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Specify the path to the TLE/OMM data file</source>
-        <translation>Укажите путь к файлу TLE/OMM</translation>
+        <translation type="obsolete">Укажите путь к файлу TLE/OMM</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>SpaceTrack API Settings</source>
-        <translation>Настройки SpaceTrack</translation>
+        <translation type="obsolete">Настройки SpaceTrack</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Track Settings</source>
-        <translation>Настройки траектории</translation>
+        <translation type="obsolete">Настройки траектории</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Output Settings</source>
-        <translation>Настройки вывода</translation>
+        <translation type="obsolete">Настройки вывода</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Save Received Data</source>
-        <translation>Сохранить полученные данные</translation>
+        <translation type="obsolete">Сохранить полученные данные</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Save TLE/OMM data</source>
-        <translation>Сохранить данные TLE/OMM</translation>
+        <translation type="obsolete">Сохранить данные TLE/OMM</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Specify the path to save received data</source>
-        <translation>Укажите путь сохраняемого файла</translation>
+        <translation type="obsolete">Укажите путь сохраняемого файла</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Help</source>
-        <translation>Помощь</translation>
+        <translation type="obsolete">Помощь</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>TLE</source>
-        <translation>TLE</translation>
+        <translation type="obsolete">TLE</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>OMM</source>
-        <translation>OMM</translation>
+        <translation type="obsolete">OMM</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>yyyy-MM-dd HH:mm:ss</source>
-        <translation>yyyy-MM-dd HH:mm:ss</translation>
+        <translation type="obsolete">yyyy-MM-dd HH:mm:ss</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Duration (hours):</source>
-        <translation>Продолжительность (в часах)</translation>
+        <translation type="obsolete">Продолжительность (в часах)</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>1 hour</source>
-        <translation>1 час</translation>
+        <translation type="obsolete">1 час</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>1 day</source>
-        <translation>1 день</translation>
+        <translation type="obsolete">1 день</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>1 week</source>
-        <translation>1 неделя</translation>
+        <translation type="obsolete">1 неделя</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source> minutes</source>
-        <translation>минут</translation>
+        <translation type="obsolete">минут</translation>
+    </message>
+    <message>
+        <location filename="../src/Space_trace/Space_trace_dialog_base.ui" line="14"/>
+        <source>Space trace</source>
+        <translation>Space trace</translation>
+    </message>
+    <message>
+        <location filename="../src/Space_trace/Space_trace_dialog_base.ui" line="20"/>
+        <source>Enter sattelite&apos;s NORAD ID</source>
+        <translation>Введите NORAD ID объекта</translation>
+    </message>
+    <message>
+        <location filename="../src/Space_trace/Space_trace_dialog_base.ui" line="57"/>
+        <source>Specify the path to save the shapefile.</source>
+        <translation></translation>
     </message>
 </context>
 <context>
@@ -771,50 +836,50 @@
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Warning</source>
-        <translation>Предупреждение</translation>
+        <translation type="obsolete">Предупреждение</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Error</source>
-        <translation>Ошибка</translation>
+        <translation type="obsolete">Ошибка</translation>
     </message>
     <message>
-        <location filename="../src/spacetrack_dialog/spacetrack_dialog.py" line="202"/>
+        <location filename="../src/spacetrack_dialog/spacetrack_dialog.py" line="195"/>
         <source>NORAD ID</source>
         <translation>NORAD ID</translation>
     </message>
     <message>
-        <location filename="../src/spacetrack_dialog/spacetrack_dialog.py" line="203"/>
+        <location filename="../src/spacetrack_dialog/spacetrack_dialog.py" line="196"/>
         <source>Name</source>
         <translation>Название</translation>
     </message>
     <message>
-        <location filename="../src/spacetrack_dialog/spacetrack_dialog.py" line="204"/>
+        <location filename="../src/spacetrack_dialog/spacetrack_dialog.py" line="197"/>
         <source>Country</source>
         <translation>Страна</translation>
     </message>
     <message>
-        <location filename="../src/spacetrack_dialog/spacetrack_dialog.py" line="205"/>
+        <location filename="../src/spacetrack_dialog/spacetrack_dialog.py" line="198"/>
         <source>Launch Date</source>
         <translation>Дата старта</translation>
     </message>
     <message>
-        <location filename="../src/spacetrack_dialog/spacetrack_dialog.py" line="206"/>
+        <location filename="../src/spacetrack_dialog/spacetrack_dialog.py" line="199"/>
         <source>Eccentricity</source>
         <translation>Эксцентриситет</translation>
     </message>
     <message>
-        <location filename="../src/spacetrack_dialog/spacetrack_dialog.py" line="207"/>
+        <location filename="../src/spacetrack_dialog/spacetrack_dialog.py" line="200"/>
         <source>Perigee (km)</source>
         <translation>Перицентр (км)</translation>
     </message>
     <message>
-        <location filename="../src/spacetrack_dialog/spacetrack_dialog.py" line="208"/>
+        <location filename="../src/spacetrack_dialog/spacetrack_dialog.py" line="201"/>
         <source>Apogee (km)</source>
         <translation>Апоцентр (км)</translation>
     </message>
     <message>
-        <location filename="../src/spacetrack_dialog/spacetrack_dialog.py" line="209"/>
+        <location filename="../src/spacetrack_dialog/spacetrack_dialog.py" line="202"/>
         <source>Inclination (°)</source>
         <translation>Наклонение (°)</translation>
     </message>
@@ -831,127 +896,127 @@
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Please select at least one satellite to save its data.</source>
-        <translation>Выберите хотя бы один спутник для сохранения данных.</translation>
+        <translation type="obsolete">Выберите хотя бы один спутник для сохранения данных.</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Preparing to save data for NORAD IDs {&apos;, &apos;.join(self.selected_norad_ids)} in {format_type} format.</source>
-        <translation>Подготовка к сохранению данных для NORAD IDs {&apos;, &apos;.join(self.selected_norad_ids)} in {format_type} format.</translation>
+        <translation type="obsolete">Подготовка к сохранению данных для NORAD IDs {&apos;, &apos;.join(self.selected_norad_ids)} in {format_type} format.</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Select Directory to Save Satellite Data</source>
-        <translation>Выберите каталог для сохранения спутниковых данных</translation>
+        <translation type="obsolete">Выберите каталог для сохранения спутниковых данных</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Save operation cancelled.</source>
-        <translation>Операция сохранения отменена.</translation>
+        <translation type="obsolete">Операция сохранения отменена.</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Saving data for NORAD ID {norad_id} to {file_name}.</source>
-        <translation>Сохранение данных для NORAD ID {norad_id} to {file_name}.</translation>
+        <translation type="obsolete">Сохранение данных для NORAD ID {norad_id} to {file_name}.</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Successfully saved {format_type} data for NORAD ID {norad_id} to {file_name}.</source>
-        <translation>Сохранено как {format_type} data for NORAD ID {norad_id} to {file_name}.</translation>
+        <translation type="obsolete">Сохранено как {format_type} data for NORAD ID {norad_id} to {file_name}.</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Failed to save {format_type} data for NORAD ID {norad_id}: {e}</source>
-        <translation>Не полчулось сохранить {format_type} data for NORAD ID {norad_id}: {e}</translation>
+        <translation type="obsolete">Не полчулось сохранить {format_type} data for NORAD ID {norad_id}: {e}</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Failed to save data for NORAD IDs: {&apos;, &apos;.join(failed_satellites)}. See log for details.</source>
-        <translation>Не удалось сохранить данные для NORAD IDs: {&apos;, &apos;.join(failed_satellites)}. See log for details.</translation>
+        <translation type="obsolete">Не удалось сохранить данные для NORAD IDs: {&apos;, &apos;.join(failed_satellites)}. See log for details.</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>All satellite data saved successfully.</source>
-        <translation>Все спутниковые данные успешно сохранены.</translation>
+        <translation type="obsolete">Все спутниковые данные успешно сохранены.</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Selected satellite NORAD IDs: {&apos;, &apos;.join(self.selected_norad_ids) if self.selected_norad_ids else &apos;None&apos;}</source>
-        <translation>Выбраны следующие  NORAD ID: {&apos;, &apos;.join(self.selected_norad_ids) if self.selected_norad_ids else &apos;None&apos;}</translation>
+        <translation type="obsolete">Выбраны следующие  NORAD ID: {&apos;, &apos;.join(self.selected_norad_ids) if self.selected_norad_ids else &apos;None&apos;}</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Satellites {&apos;, &apos;.join(self.selected_norad_ids)} selected; accepting.</source>
-        <translation>Спутники {&apos;, &apos;.join(self.selected_norad_ids)} выбраны;</translation>
+        <translation type="obsolete">Спутники {&apos;, &apos;.join(self.selected_norad_ids)} выбраны;</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Please select at least one satellite from the list.</source>
-        <translation>Пожалуйста, выберите хотя бы один спутник из списка</translation>
+        <translation type="obsolete">Пожалуйста, выберите хотя бы один спутник из списка</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Save Satellite Data</source>
-        <translation>Сохранить данные спутника</translation>
+        <translation type="obsolete">Сохранить данные спутника</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Saving data for NORAD ID {norad_id} to {file_path}.</source>
-        <translation>Сохранение данных для NORAD ID {norad_id} to {file_path}.</translation>
+        <translation type="obsolete">Сохранение данных для NORAD ID {norad_id} to {file_path}.</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Successfully saved {format_type} data for NORAD ID {norad_id}.</source>
-        <translation>Успешно сохранен {format_type} data for NORAD ID {norad_id}.</translation>
+        <translation type="obsolete">Успешно сохранен {format_type} data for NORAD ID {norad_id}.</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Success</source>
-        <translation>Успешно</translation>
+        <translation type="obsolete">Успешно</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>All selected satellite data have been successfully saved.</source>
-        <translation>Все выбранные спутниковые данные были успешно сохранены.</translation>
+        <translation type="obsolete">Все выбранные спутниковые данные были успешно сохранены.</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Validation Error</source>
-        <translation>Ошибка валидации</translation>
+        <translation type="obsolete">Ошибка валидации</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Satellite name must be at least 2 characters long</source>
-        <translation>Название спутника должно содержать не менее 2 символов</translation>
+        <translation type="obsolete">Название спутника должно содержать не менее 2 символов</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Country code must be 2 letters (e.g., US)</source>
-        <translation>Код страны должен состоять из 2 букв (например, US)</translation>
+        <translation type="obsolete">Код страны должен состоять из 2 букв (например, US)</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Invalid NORAD ID format. Use single ID, range (e.g., 25544-25550), or list (e.g., 25544,25545)</source>
-        <translation>Неверный формат NORAD ID. Используйте одиночный ID, диапазон (например, 25544-25550) или список (например, 25544,25545)</translation>
+        <translation type="obsolete">Неверный формат NORAD ID. Используйте одиночный ID, диапазон (например, 25544-25550) или список (например, 25544,25545)</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Enter satellite name (e.g., STARLINK-1234)</source>
-        <translation>Введите название спутника (например, STARLINK-1234)</translation>
+        <translation type="obsolete">Введите название спутника (например, STARLINK-1234)</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>No input needed - will show all active satellites</source>
-        <translation>Ввод не требуется - будут показаны все активные спутники</translation>
+        <translation type="obsolete">Ввод не требуется - будут показаны все активные спутники</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Enter country code (e.g., US)</source>
-        <translation>Введите код страны (например, US)</translation>
+        <translation type="obsolete">Введите код страны (например, US)</translation>
     </message>
     <message>
         <location filename="../src/spacetrack_dialog/custom_query_dialog.py" line="45"/>
         <source>Enter NORAD ID, range (e.g., 25544-25550), or list (e.g., 25544,25545)</source>
-        <translation>Введите NORAD ID, диапазон (например, 25544-25550) или список (например, 25544,25545)</translation>
+        <translation type="obsolete">Введите NORAD ID, диапазон (например, 25544-25550) или список (например, 25544,25545)</translation>
     </message>
 </context>
 </TS>

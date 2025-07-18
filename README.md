@@ -152,7 +152,6 @@
 1. Open the **OSGeo4W Shell** (included with QGIS).
 2. Install required Python libraries:
    ```bash
-   python3 -m pip install pyorbital -U --user
    python3 -m pip install spacetrack -U --user
    python3 -m pip install poliastro -U --user
    python3 -m pip install skyfield -U --user
@@ -378,7 +377,6 @@ A: See the Log tab in the plugin or open `SpaceTracePlugin.log` in the plugin di
 1. Откройте **OSGeo4W Shell** (идет в комплекте с QGIS).
 2. Установите необходимые библиотеки Python:
    ```bash
-   python3 -m pip install pyorbital -U --user
    python3 -m pip install spacetrack -U --user
    python3 -m pip install poliastro -U --user
    python3 -m pip install skyfield -U --user
