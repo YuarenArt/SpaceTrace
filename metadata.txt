@@ -24,7 +24,7 @@ changelog=
             Version 1.9
             * Added support for pole crossing in line segmentation.
             * Added multiple file processing for local data sources.
-            * 
+            * Added handling of deep space calculations (orbital period more than 225 min.)
             Version 1.8
             * Updated user interface
             * Added support for handling a range of NORAD IDs in data processing and saving functions.

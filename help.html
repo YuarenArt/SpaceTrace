@@ -2,16 +2,33 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Space Trace Plugin Help</title>
+  <title>Space Trace Plugin — User Guide & Help</title>
   <style>
-    body { font-family: Arial, sans-serif; line-height: 1.6; margin: 20px; }
-    h1, h2, h3 { color: #2c3e50; }
+    body { font-family: Arial, sans-serif; line-height: 1.7; margin: 24px; background: #f9f9f9; color: #222; }
+    h1, h2, h3, h4 { color: #2c3e50; }
+    h1 { margin-top: 0; }
+    nav { background: #eaeaea; padding: 12px 18px; border-radius: 8px; margin-bottom: 32px; }
+    nav ul { list-style: none; padding: 0; margin: 0; }
+    nav ul li { margin: 6px 0; }
+    nav ul li a { color: #2980b9; text-decoration: none; }
+    nav ul li a:hover { text-decoration: underline; }
+    .tip { background: #e3f7e3; border-left: 4px solid #27ae60; padding: 8px 16px; margin: 16px 0; border-radius: 4px; }
+    .warn { background: #fff3cd; border-left: 4px solid #ffc107; padding: 8px 16px; margin: 16px 0; border-radius: 4px; }
+    .faq { background: #eaf6fb; border-left: 4px solid #3498db; padding: 8px 16px; margin: 16px 0; border-radius: 4px; }
     hr { margin: 40px 0; }
+    .lang-switch { float: right; font-size: 0.95em; }
+    .lang-switch a { color: #888; margin-left: 10px; text-decoration: none; }
+    .lang-switch a.active { color: #222; font-weight: bold; }
+    .section { margin-bottom: 48px; }
+    code, pre { background: #f4f4f4; border-radius: 4px; padding: 2px 6px; }
+    pre { padding: 12px; }
+    ul, ol { margin-bottom: 0.7em; }
   </style>
 </head>
 <body>
 
-<div class="feedback-section">
+<!-- Feedback block at the top -->
+<div class="feedback-section" style="background:#f4f8ff; border-left:4px solid #2980b9; padding:18px 24px; margin-bottom:32px; border-radius:6px;">
   <h2>📝 Help & Feedback</h2>
   <p><strong>EN:</strong> We kindly ask you to take a minute and share your feedback about using the plugin. It will help us improve the project. Please fill out the form by the link below:</p>
   <p><strong>RU:</strong> Пожалуйста, уделите минуту и поделитесь обратной связью об использовании плагина. Это поможет нам улучшить проект. Заполните форму по ссылке ниже:</p>
@@ -25,123 +42,317 @@
   </ul>
 </div>
 
-<h1>Space Trace Plugin for QGIS</h1>
+<div class="lang-switch">
+  <a href="#en" class="active">EN</a> |
+  <a href="#ru">RU</a>
+</div>
 
-<h2>Installation of Dependencies</h2>
-<ol>
-  <li>Open the <strong>OSGeo4W Shell</strong> (included with QGIS installation).</li>
-  <li>Run the following commands to install the required libraries:
-    <pre><code>python3 -m pip install pyorbital -U --user
+<h1>Space Trace Plugin for QGIS — User Guide</h1>
+
+<nav>
+  <ul>
+    <li><a href="#intro">Introduction</a></li>
+    <li><a href="#install">Installation & Dependencies</a></li>
+    <li><a href="#features">Features Overview</a></li>
+    <li><a href="#workflow">Step-by-Step Usage</a></li>
+    <li><a href="#search">Satellite Search & Custom Queries</a></li>
+    <li><a href="#advanced">Advanced Options</a></li>
+    <li><a href="#faq">FAQ & Troubleshooting</a></li>
+    <li><a href="#feedback">Feedback & Support</a></li>
+    <li><a href="#ru">Русская версия</a></li>
+  </ul>
+</nav>
+
+<div class="section" id="intro">
+  <h2>Introduction</h2>
+  <p><strong>Space Trace</strong> is a QGIS plugin for visualizing and analyzing satellite orbits. It allows you to fetch, process, and display orbital tracks using TLE or OMM data from the SpaceTrack API or local files. The plugin supports advanced search, custom queries, and flexible export options for geospatial analysis.</p>
+</div>
+
+<div class="section" id="install">
+  <h2>Installation & Dependencies</h2>
+  <ol>
+    <li>Open the <strong>OSGeo4W Shell</strong> (included with QGIS).</li>
+    <li>Install required Python libraries:
+      <pre><code>python3 -m pip install pyorbital -U --user
 python3 -m pip install spacetrack -U --user
-python3 -m pip install poliastro -U --user</code></pre>
-  </li>
-</ol>
+python3 -m pip install poliastro -U --user
+python3 -m pip install skyfield -U --user</code></pre>
+    </li>
+    <li>Restart QGIS after installation.</li>
+  </ol>
+  <div class="tip">If you encounter import errors, ensure you are using the correct Python environment bundled with QGIS.</div>
+</div>
 
-<h2>Features</h2>
-<ul>
-  <li><strong>Data Sources:</strong> Fetch orbital data (TLE or OMM) from the SpaceTrack API or load from a local file.</li>
-  <li><strong>Track Generation:</strong> Create point and line layers representing a satellite's path for a selected date.</li>
-  <li><strong>Customization:</strong> Configure the time step (in minutes) for orbital path calculation.</li>
-  <li><strong>Output Options:</strong>
-    <ul>
-      <li>Save output as Shapefile, GeoPackage, or GeoJSON.</li>
-      <li>Add generated layers directly into the QGIS project.</li>
-    </ul>
-  </li>
-  <li><strong>Data Saving:</strong> Optionally save TLE/OMM data retrieved from the API.</li>
-  <li><strong>Logging:</strong> Monitor processing steps and results via the log tab.</li>
-</ul>
+<div class="section" id="features">
+  <h2>Features Overview</h2>
+  <ul>
+    <li><strong>Data Sources:</strong> Fetch TLE/OMM from SpaceTrack API or load from local files (multi-file supported).</li>
+    <li><strong>Track Generation:</strong> Create point and line layers for satellite orbits for any date and duration.</li>
+    <li><strong>Customizable Time Step:</strong> Set time step (0.01–60 min) and duration (0.1–168 hours).</li>
+    <li><strong>Output Formats:</strong> Save as Shapefile, GeoPackage, GeoJSON, or add as a temporary QGIS layer.</li>
+    <li><strong>Satellite Search:</strong> Search by name, country, NORAD ID, or use advanced custom queries.</li>
+    <li><strong>Batch Processing:</strong> Process multiple satellites or files in one run.</li>
+    <li><strong>Data Saving:</strong> Optionally save raw TLE/OMM data for later use.</li>
+    <li><strong>Logging:</strong> All actions and errors are logged in the Log tab and to a file.</li>
+    <li><strong>Localization:</strong> English and Russian UI support.</li>
+  </ul>
+</div>
 
-<h2>Usage</h2>
-<ol>
-  <li>Open the plugin from the <em>Vector</em> menu: <strong>Space Trace &gt; Draw flight path</strong>.</li>
-  <li>Select the data source: local file or SpaceTrack API.</li>
-  <li>Configure date and time step for the orbit track.</li>
-  <li>Specify output format and file path (optional).</li>
-  <li>Enable saving options as needed.</li>
-  <li>Click <strong>Execute</strong> to generate the track.</li>
-</ol>
+<div class="section" id="workflow">
+  <h2>Step-by-Step Usage</h2>
+  <ol>
+    <li>Open the plugin: <em>Vector</em> menu → <strong>Space Trace &gt; Draw flight path</strong>.</li>
+    <li>Select data source:
+      <ul>
+        <li><strong>Local File</strong>: Browse and select one or more TLE/OMM files.</li>
+        <li><strong>SpaceTrack API</strong>: Enter your SpaceTrack login and password.</li>
+      </ul>
+    </li>
+    <li>Set satellite(s):
+      <ul>
+        <li>For API: Enter NORAD IDs (single, range, or comma-separated list), or use the <strong>Search</strong> button.</li>
+        <li>For local: Satellite IDs are inferred from files.</li>
+      </ul>
+    </li>
+    <li>Configure <strong>Date/Time</strong>, <strong>Duration</strong>, and <strong>Step</strong> (min).</li>
+    <li>Choose <strong>Output</strong>:
+      <ul>
+        <li>Leave blank for temporary layers, or specify file/folder and format.</li>
+        <li>For multiple satellites, use <code>directory|format</code> (e.g., <code>C:/output|shp</code>).</li>
+      </ul>
+    </li>
+    <li>Enable <strong>Add to project</strong> and <strong>Create line layer</strong> as needed.</li>
+    <li>Optionally enable <strong>Save TLE/OMM data</strong> and specify path.</li>
+    <li>Click <strong>Execute</strong> to generate tracks. Progress and logs appear in the Log tab.</li>
+  </ol>
+  <div class="tip">Use the <strong>Help</strong> tab in the plugin for quick access to this guide.</div>
+</div>
 
-<h2>Satellite Search and Query Builder</h2>
-<ul>
-  <li><strong>Search Modes:</strong> 
-    <ul>
-      <li>By Name</li>
-      <li>All Active Satellites</li>
-      <li>By Country Code (e.g., US)</li>
-      <li>By NORAD ID (single, range, or list)</li>
-    </ul>
-  </li>
-  <li><strong>Custom Query Builder:</strong>
-    <ul>
-      <li>Select any field (e.g., Launch Date, Eccentricity)</li>
-      <li>Choose comparison operators (=, !=, &lt;, &gt;, LIKE)</li>
-      <li>Enter values with automatic input hints</li>
-      <li>Combine multiple conditions</li>
-    </ul>
-  </li>
-  <li><strong>Result Table:</strong> Sortable columns with satellite info. When you select a line and click OK, the norad ID of the selected satellite is copied to the main dialog.</li>
-</ul>
+<div class="section" id="search">
+  <h2>Satellite Search & Custom Queries</h2>
+  <h3>Search Modes</h3>
+  <ul>
+    <li><strong>By Name</strong>: Enter part or full satellite name.</li>
+    <li><strong>All Active</strong>: Lists all currently active satellites.</li>
+    <li><strong>By Country</strong>: Enter 2-letter country code (e.g., <code>US</code>).</li>
+    <li><strong>By NORAD ID</strong>: Enter single ID, range (<code>25544-25550</code>), or list (<code>25544,25545</code>).</li>
+  </ul>
+  <h3>Custom Query Builder</h3>
+  <ol>
+    <li>Click <strong>Custom Query</strong> in the search dialog.</li>
+    <li>Add conditions: select field, operator, and value (with hints for type and format).</li>
+    <li>Combine multiple conditions for advanced filtering.</li>
+    <li>Run the query and select satellites from the results table.</li>
+  </ol>
+  <div class="tip">Selected NORAD IDs are automatically transferred to the main dialog for track generation.</div>
+</div>
+
+<div class="section" id="advanced">
+  <h2>Advanced Options & Tips</h2>
+  <ul>
+    <li><strong>Batch Export:</strong> For multiple satellites, output must be a directory with format (e.g., <code>C:/output|geojson</code>).</li>
+    <li><strong>Temporary Layers:</strong> If output is blank, layers are created in-memory and can be added to QGIS.</li>
+    <li><strong>Engines:</strong> Uses both <code>pyorbital</code> and <code>skyfield</code> for accurate propagation (deep space supported).</li>
+    <li><strong>Quick Duration:</strong> Use 1 hour, 1 day, 1 week buttons for fast setup.</li>
+    <li><strong>Localization:</strong> Language auto-detected from QGIS settings.</li>
+    <li><strong>Logging:</strong> All actions/errors are saved to <code>SpaceTracePlugin.log</code> in the plugin folder.</li>
+    <li><strong>Data Validation:</strong> The plugin checks all paths, formats, and credentials before processing.</li>
+  </ul>
+</div>
+
+<div class="section" id="faq">
+  <h2>FAQ & Troubleshooting</h2>
+  <div class="faq">
+    <strong>Q: I get an error about missing dependencies.</strong><br>
+    A: Make sure you installed all required Python packages in the QGIS Python environment.
+  </div>
+  <div class="faq">
+    <strong>Q: My output file is not created or is empty.</strong><br>
+    A: Check that the output path is valid and writable. For multiple satellites, use a directory with format (e.g., <code>C:/output|shp</code>).
+  </div>
+  <div class="faq">
+    <strong>Q: SpaceTrack login fails.</strong><br>
+    A: Double-check your credentials and internet connection. SpaceTrack may block accounts after too many failed attempts.
+  </div>
+  <div class="faq">
+    <strong>Q: The plugin UI is in the wrong language.</strong><br>
+    A: The language is set by QGIS. Change your QGIS locale in settings and restart.
+  </div>
+  <div class="faq">
+    <strong>Q: How do I process a custom list of satellites?</strong><br>
+    A: Use the search or custom query dialog, select satellites, and confirm. Their NORAD IDs will be used for track generation.
+  </div>
+  <div class="faq">
+    <strong>Q: Where are logs saved?</strong><br>
+    A: See the Log tab in the plugin, or open <code>SpaceTracePlugin.log</code> in the plugin directory.
+  </div>
+</div>
+
+<div class="section" id="feedback">
+  <h2>Feedback & Support</h2>
+  <p>We value your feedback! Please fill out our form to help us improve the plugin:</p>
+  <p><a href="https://docs.google.com/forms/d/e/1FAIpQLSeBbJ04MGpFDky_4aFa9_UeEwnK2lI7itQFHYkwmcPIWe9giQ/viewform?usp=header" target="_blank">Submit Feedback / Отправить отзыв</a></p>
+  <ul>
+    <li>Describe your use case and any issues you encountered.</li>
+    <li>Suggest new features or improvements.</li>
+  </ul>
+</div>
 
 <hr>
 
-<h1>Плагин Space Trace для QGIS</h1>
+<!-- =================== RUSSIAN VERSION =================== -->
 
-<h2>Установка зависимостей</h2>
-<ol>
-  <li>Откройте <strong>OSGeo4W Shell</strong> (поставляется с QGIS).</li>
-  <li>Выполните следующие команды для установки необходимых библиотек:
-    <pre><code>python3 -m pip install pyorbital -U --user
+<div class="section" id="ru">
+  <h1>Плагин Space Trace для QGIS — Руководство пользователя</h1>
+
+  <nav>
+    <ul>
+      <li><a href="#ru-intro">Введение</a></li>
+      <li><a href="#ru-install">Установка и зависимости</a></li>
+      <li><a href="#ru-features">Обзор возможностей</a></li>
+      <li><a href="#ru-workflow">Пошаговое использование</a></li>
+      <li><a href="#ru-search">Поиск спутников и пользовательские запросы</a></li>
+      <li><a href="#ru-advanced">Расширенные опции</a></li>
+      <li><a href="#ru-faq">Вопросы и решения</a></li>
+      <li><a href="#feedback">Обратная связь</a></li>
+    </ul>
+  </nav>
+
+  <div class="section" id="ru-intro">
+    <h2>Введение</h2>
+    <p><strong>Space Trace</strong> — это плагин для QGIS, предназначенный для визуализации и анализа орбит спутников. Позволяет получать, обрабатывать и отображать траектории по данным TLE или OMM из SpaceTrack API или локальных файлов. Поддерживает расширенный поиск, пользовательские запросы и гибкий экспорт для геоаналитики.</p>
+  </div>
+
+  <div class="section" id="ru-install">
+    <h2>Установка и зависимости</h2>
+    <ol>
+      <li>Откройте <strong>OSGeo4W Shell</strong> (идет в комплекте с QGIS).</li>
+      <li>Установите необходимые библиотеки Python:
+        <pre><code>python3 -m pip install pyorbital -U --user
 python3 -m pip install spacetrack -U --user
-python3 -m pip install poliastro -U --user</code></pre>
-  </li>
-</ol>
+python3 -m pip install poliastro -U --user
+python3 -m pip install skyfield -U --user</code></pre>
+      </li>
+      <li>Перезапустите QGIS после установки.</li>
+    </ol>
+    <div class="tip">Если возникают ошибки импорта, убедитесь, что используете правильную среду Python из QGIS.</div>
+  </div>
 
-<h2>Функциональность</h2>
-<ul>
-  <li><strong>Источники данных:</strong> Получение орбитальных данных (TLE или OMM) из API SpaceTrack или из локального файла.</li>
-  <li><strong>Построение траектории:</strong> Создание точечных и линейных слоев орбитального пути спутника на указанную дату.</li>
-  <li><strong>Настройки:</strong> Выбор шага времени (в минутах) для расчета траектории.</li>
-  <li><strong>Опции вывода:</strong>
+  <div class="section" id="ru-features">
+    <h2>Обзор возможностей</h2>
     <ul>
-      <li>Сохранение в формате Shapefile, GeoPackage или GeoJSON.</li>
-      <li>Добавление слоев непосредственно в проект QGIS.</li>
+      <li><strong>Источники данных:</strong> Получение TLE/OMM из SpaceTrack API или загрузка из локальных файлов (поддержка нескольких файлов).</li>
+      <li><strong>Построение траекторий:</strong> Создание точечных и линейных слоев орбит спутников на любую дату и длительность.</li>
+      <li><strong>Настраиваемый шаг:</strong> Шаг времени от 0.01 до 60 минут, длительность — от 0.1 до 168 часов.</li>
+      <li><strong>Форматы вывода:</strong> Shapefile, GeoPackage, GeoJSON или временный слой в QGIS.</li>
+      <li><strong>Поиск спутников:</strong> По имени, стране, NORAD ID или через расширенный конструктор запросов.</li>
+      <li><strong>Пакетная обработка:</strong> Одновременная обработка нескольких спутников или файлов.</li>
+      <li><strong>Сохранение данных:</strong> Возможность сохранять исходные TLE/OMM для повторного использования.</li>
+      <li><strong>Логирование:</strong> Все действия и ошибки отображаются во вкладке Лог и сохраняются в файл.</li>
+      <li><strong>Локализация:</strong> Поддержка английского и русского языков.</li>
     </ul>
-  </li>
-  <li><strong>Сохранение данных:</strong> можно сохранить полученные TLE/OMM данные.</li>
-  <li><strong>Журнал:</strong> просмотр логов выполнения внутри интерфейса плагина.</li>
-</ul>
+  </div>
 
-<h2>Использование</h2>
-<ol>
-  <li>Откройте плагин через меню <em>Вектор</em>: <strong>Space Trace &gt; Нарисовать траекторию полета</strong>.</li>
-  <li>Выберите источник данных: локальный файл или API SpaceTrack.</li>
-  <li>Настройте дату и шаг времени для построения траектории.</li>
-  <li>Укажите путь и формат вывода (опционально).</li>
-  <li>Настройте опции сохранения данных (опционально).</li>
-  <li>Нажмите <strong>Выполнить</strong> для запуска построения.</li>
-</ol>
+  <div class="section" id="ru-workflow">
+    <h2>Пошаговое использование</h2>
+    <ol>
+      <li>Откройте плагин: меню <em>Вектор</em> → <strong>Space Trace &gt; Нарисовать траекторию полета</strong>.</li>
+      <li>Выберите источник данных:
+        <ul>
+          <li><strong>Локальный файл</strong>: выберите один или несколько файлов TLE/OMM.</li>
+          <li><strong>SpaceTrack API</strong>: введите логин и пароль от SpaceTrack.</li>
+        </ul>
+      </li>
+      <li>Укажите спутники:
+        <ul>
+          <li>Для API: введите NORAD ID (один, диапазон или список через запятую) или используйте кнопку <strong>Поиск</strong>.</li>
+          <li>Для локальных файлов: спутники определяются по файлам.</li>
+        </ul>
+      </li>
+      <li>Настройте <strong>дату/время</strong>, <strong>длительность</strong> и <strong>шаг</strong> (мин.).</li>
+      <li>Выберите <strong>вывод</strong>:
+        <ul>
+          <li>Оставьте пустым для временных слоев или укажите файл/папку и формат.</li>
+          <li>Для нескольких спутников используйте <code>папка|формат</code> (например, <code>C:/output|shp</code>).</li>
+        </ul>
+      </li>
+      <li>Включите <strong>Добавить в проект</strong> и <strong>Создать линейный слой</strong> по необходимости.</li>
+      <li>При необходимости включите <strong>Сохранить TLE/OMM</strong> и укажите путь.</li>
+      <li>Нажмите <strong>Выполнить</strong> для построения траекторий. Прогресс и логи — во вкладке Лог.</li>
+    </ol>
+    <div class="tip">Для быстрого доступа к справке используйте вкладку <strong>Help</strong> в плагине.</div>
+  </div>
 
-<h2>Поиск спутников и создание пользовательских запросов</h2>
-<ul>
-  <li><strong>Режимы поиска:</strong>
+  <div class="section" id="ru-search">
+    <h2>Поиск спутников и пользовательские запросы</h2>
+    <h3>Режимы поиска</h3>
     <ul>
-      <li>По имени</li>
-      <li>Все активные спутники</li>
-      <li>По коду страны (например, US)</li>
-      <li>По NORAD ID (один, диапазон или список)</li>
+      <li><strong>По имени</strong>: введите часть или полное имя спутника.</li>
+      <li><strong>Все активные</strong>: список всех действующих спутников.</li>
+      <li><strong>По стране</strong>: введите 2-буквенный код страны (например, <code>US</code>).</li>
+      <li><strong>По NORAD ID</strong>: введите один ID, диапазон (<code>25544-25550</code>) или список (<code>25544,25545</code>).</li>
     </ul>
-  </li>
-  <li><strong>Конструктор запросов:</strong>
+    <h3>Конструктор пользовательских запросов</h3>
+    <ol>
+      <li>Нажмите <strong>Пользовательский запрос</strong> в окне поиска.</li>
+      <li>Добавьте условия: выберите поле, оператор и значение (с подсказками по типу и формату).</li>
+      <li>Комбинируйте несколько условий для сложной фильтрации.</li>
+      <li>Выполните запрос и выберите спутники из таблицы результатов.</li>
+    </ol>
+    <div class="tip">Выбранные NORAD ID автоматически переносятся в основной диалог для построения траекторий.</div>
+  </div>
+
+  <div class="section" id="ru-advanced">
+    <h2>Расширенные опции и советы</h2>
     <ul>
-      <li>Выбор поля (дата запуска, эксцентриситет и т.д.)</li>
-      <li>Выбор оператора (=, !=, &lt;, &gt;, LIKE)</li>
-      <li>Ввод значения с контекстной подсказкой</li>
-      <li>Комбинирование условий в один запрос</li>
+      <li><strong>Пакетный экспорт:</strong> Для нескольких спутников вывод — только в папку с указанием формата (например, <code>C:/output|geojson</code>).</li>
+      <li><strong>Временные слои:</strong> Если путь вывода пуст, слои создаются во временной памяти и могут быть добавлены в QGIS.</li>
+      <li><strong>Движки:</strong> Используются <code>pyorbital</code> и <code>skyfield</code> для точного расчета (поддержка глубокого космоса).</li>
+      <li><strong>Быстрый выбор длительности:</strong> Кнопки 1 час, 1 день, 1 неделя для быстрого ввода.</li>
+      <li><strong>Локализация:</strong> Язык определяется автоматически по настройкам QGIS.</li>
+      <li><strong>Логирование:</strong> Все действия/ошибки сохраняются в <code>SpaceTracePlugin.log</code> в папке плагина.</li>
+      <li><strong>Проверка данных:</strong> Плагин проверяет все пути, форматы и учетные данные перед запуском.</li>
     </ul>
-  </li>
-  <li><strong>Таблица результатов:</strong> сортируемые колонки со спутниковыми данными. При выборе строки и нажатии кнопки ОК norad ID выбранного спутника скопируется в оснвной диалог.</li>
-</ul>
+  </div>
+
+  <div class="section" id="ru-faq">
+    <h2>Вопросы и решения</h2>
+    <div class="faq">
+      <strong>В: Ошибка о недостающих зависимостях.</strong><br>
+      О: Убедитесь, что все необходимые библиотеки Python установлены в среде QGIS.
+    </div>
+    <div class="faq">
+      <strong>В: Файл вывода не создается или пустой.</strong><br>
+      О: Проверьте, что путь вывода существует и доступен для записи. Для нескольких спутников используйте папку с форматом (например, <code>C:/output|shp</code>).
+    </div>
+    <div class="faq">
+      <strong>В: Не удается войти в SpaceTrack.</strong><br>
+      О: Проверьте правильность логина и пароля, а также интернет-соединение. После нескольких неудачных попыток аккаунт может быть временно заблокирован.
+    </div>
+    <div class="faq">
+      <strong>В: Интерфейс плагина не на том языке.</strong><br>
+      О: Язык определяется настройками QGIS. Измените локаль в настройках и перезапустите QGIS.
+    </div>
+    <div class="faq">
+      <strong>В: Как обработать список спутников?</strong><br>
+      О: Используйте окно поиска или конструктор запросов, выберите спутники и подтвердите. Их NORAD ID будут использованы для построения траекторий.
+    </div>
+    <div class="faq">
+      <strong>В: Где хранятся логи?</strong><br>
+      О: Смотрите вкладку Лог в плагине или откройте <code>SpaceTracePlugin.log</code> в папке плагина.
+    </div>
+  </div>
+
+  <div class="section" id="ru-feedback">
+    <h2>Обратная связь и поддержка</h2>
+    <p>Мы ценим ваши отзывы! Пожалуйста, заполните форму, чтобы помочь нам улучшить плагин:</p>
+    <p><a href="https://docs.google.com/forms/d/e/1FAIpQLSeBbJ04MGpFDky_4aFa9_UeEwnK2lI7itQFHYkwmcPIWe9giQ/viewform?usp=header" target="_blank">Отправить отзыв / Submit Feedback</a></p>
+    <ul>
+      <li>Опишите ваш сценарий использования и возможные проблемы.</li>
+      <li>Предлагайте новые функции и улучшения.</li>
+    </ul>
+  </div>
+</div>
 
 </body>
 </html>

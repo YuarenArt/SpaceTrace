@@ -49,9 +49,18 @@ class SpaceTracePluginDialog(SpaceTracePluginDialogBase):
         self.textBrowserHelp.anchorClicked.connect(self._open_link_in_browser)
 
     def _open_link_in_browser(self, url: QUrl):
-        """Open clicked link in external web browser."""
-        webbrowser.open(url.toString())
-        self.textBrowserHelp.setSource(QtCore.QUrl())
+        """Handle anchor clicks: scroll to anchor in widget for #links, open browser for external links."""
+        url_str = url.toString()
+        if url_str.startswith('#') or (not url.isRelative() and url.scheme() == ''):
+            # Internal anchor: scroll inside QTextBrowser
+            self.textBrowserHelp.setSource(url)
+        elif url_str.startswith('http') or url_str.startswith('mailto:'):
+            # External link: open in browser
+            import webbrowser
+            webbrowser.open(url_str)
+        else:
+            # Fallback: try to scroll in widget
+            self.textBrowserHelp.setSource(url)
 
     def _on_toggle_data_source(self):
         """Show or hide UI groups based on selected data source."""
