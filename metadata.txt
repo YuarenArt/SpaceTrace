@@ -24,6 +24,7 @@ changelog=
             Version 1.9
             * Added support for pole crossing in line segmentation.
             * Added batch processing of multiple local TLE/OMM files.
+            * Added support for automatic pip dependency installation via QPip
             * Added support for deep space object calculations (orbital period > 225 min).
             * Replaced pyorbital dependency with skyfield for more accurate orbital mechanics and long-term ephemeris
             Version 1.8
