@@ -3,12 +3,14 @@ This module contains the SpacetrackClientWrapper class for SpaceTrack API commun
 It provides methods to retrieve TLE and OMM data.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import spacetrack.operators as op
 from spacetrack import SpaceTrackClient
 import json
+import math
 
 from ..spacetrack_dialog.custom_query_dialog import field_types
+from ..orbital_data_processor.tle_validation import validate_tle_lines
 
 class SpacetrackClientWrapper:
     """
@@ -26,6 +28,23 @@ class SpacetrackClientWrapper:
         """
         self.client = SpaceTrackClient(identity=username, password=password)
 
+    def _get_elements(self, sat_id, start_datetime, output_format):
+        """Use current GP for a current track and history for a past track."""
+        instant = start_datetime.replace(tzinfo=timezone.utc) if start_datetime.tzinfo is None else start_datetime.astimezone(timezone.utc)
+        age = datetime.now(timezone.utc) - instant
+        if -timedelta(hours=1) <= age <= timedelta(hours=24):
+            return self.client.gp(norad_cat_id=sat_id, format=output_format)
+
+        start_range = instant - timedelta(days=30)
+        daterange = op.inclusive_range(
+            start_range.strftime('%Y-%m-%d'),
+            instant.strftime('%Y-%m-%d %H:%M:%S')
+        )
+        return self.client.gp_history(
+            norad_cat_id=sat_id, epoch=daterange,
+            orderby='epoch desc', limit=1, format=output_format
+        )
+
     def get_tle(self, sat_id, start_datetime):
         """
         Retrieve TLE data for the specified satellite based on start_datetime.
@@ -35,22 +54,17 @@ class SpacetrackClientWrapper:
         :return: Tuple (tle_1, tle_2, orb_incl) containing the TLE lines and orbital inclination.
         :raises Exception: If TLE data cannot be retrieved.
         """
-        start_range = start_datetime - timedelta(days=30)
-        daterange = op.inclusive_range(start_range.strftime('%Y-%m-%d'),
-                                       start_datetime.strftime('%Y-%m-%d %H:%M:%S'))
-
-        data = self.client.gp_history(
-            norad_cat_id=sat_id,
-            epoch=daterange,
-            orderby='epoch desc',
-            limit=1,
-            format='tle'
-        )
+        data = self._get_elements(sat_id, start_datetime, 'tle')
         if not data:
             raise Exception(f'No TLE data found for satellite {sat_id} before {start_datetime}')
-        tle_1 = data[0:69]
-        tle_2 = data[70:139]
-        orb_incl = data[78:86]
+        lines = [line.strip() for line in data.splitlines() if line.strip()]
+        tle_1 = next((line for line in lines if line.startswith('1 ')), None)
+        tle_2 = next((line for line in lines if line.startswith('2 ')), None)
+        try:
+            validate_tle_lines(tle_1, tle_2)
+        except ValueError as error:
+            raise ValueError(f"SpaceTrack returned an invalid TLE response: {error}") from error
+        orb_incl = float(tle_2[8:16])
         return tle_1, tle_2, orb_incl
 
     def get_omm(self, sat_id, start_datetime):
@@ -62,20 +76,10 @@ class SpacetrackClientWrapper:
         :return: OMM data as a parsed JSON object.
         :raises Exception: If OMM data cannot be retrieved.
         """
-        start_range = start_datetime - timedelta(days=30)
-        daterange = op.inclusive_range(start_range.strftime('%Y-%m-%d'),
-                                       start_datetime.strftime('%Y-%m-%d %H:%M:%S'))
-
-        data = self.client.gp_history(
-            norad_cat_id=sat_id,
-            epoch=daterange,
-            orderby='epoch desc',
-            limit=1,
-            format='json'
-        )
+        data = self._get_elements(sat_id, start_datetime, 'json')
         if not data:
             raise Exception(f'No OMM data found for satellite {sat_id} before {start_datetime}')
-        return json.loads(data)
+        return json.loads(data) if isinstance(data, str) else data
 
     def search_by_name(self, name, limit=100):
         """
@@ -127,22 +131,24 @@ class SpacetrackClientWrapper:
         if '-' in norad_input:
             try:
                 start, end = map(int, norad_input.split('-'))
-                if start > end:
-                    raise ValueError("Start of range must be less than or equal to end.")
+                if start <= 0 or start > end or end - start >= 1000:
+                    raise ValueError("Range must contain 1 to 1000 positive IDs.")
                 norad_ids = op.inclusive_range(start, end)
             except ValueError as e:
                 raise ValueError(f"Invalid NORAD ID range format: {norad_input}. Use e.g., '25544-25550'.") from e
         elif ',' in norad_input:
             try:
                 norad_ids_list = [int(id.strip()) for id in norad_input.split(',')]
-                if not norad_ids_list:
-                    raise ValueError("NORAD ID list cannot be empty.")
+                if not norad_ids_list or len(norad_ids_list) > 1000 or any(n <= 0 for n in norad_ids_list):
+                    raise ValueError("NORAD ID list must contain 1 to 1000 positive IDs.")
                 norad_ids = ','.join(map(str, norad_ids_list))
             except ValueError as e:
                 raise ValueError(f"Invalid NORAD ID list format: {norad_input}. Use e.g., '25544,25545'.") from e
         else:
             try:
                 norad_ids = int(norad_input)
+                if norad_ids <= 0:
+                    raise ValueError("NORAD ID must be positive.")
             except ValueError as e:
                 raise ValueError(f"Invalid NORAD ID: {norad_input}. Must be a number.") from e
 
@@ -158,12 +164,23 @@ class SpacetrackClientWrapper:
         """
         Run custom conditions query and return JSON results.
         """
+        if not conditions:
+            raise ValueError("Add at least one condition.")
         predicates_by_field = {}
 
         for field, operator, value in conditions:
             if field not in field_types:
                 raise ValueError(f"Unknown field: {field}")
             field_type = field_types[field]
+            valid_operators = {
+                'int': {'=', '!=', '<', '>'},
+                'decimal': {'=', '!=', '<', '>'},
+                'date': {'=', '!=', '<', '>', 'IS NULL', 'IS NOT NULL'},
+                'string': {'=', '!=', 'LIKE'},
+                'enum': {'=', '!='},
+            }
+            if operator not in valid_operators[field_type]:
+                raise ValueError(f"Invalid operator for {field}: {operator}")
             api_field = field.lower()
 
             if field_type == 'date' and operator in ('IS NULL', 'IS NOT NULL'):
@@ -187,8 +204,10 @@ class SpacetrackClientWrapper:
                 elif field_type == 'decimal':
                     try:
                         value_converted = float(value)
-                    except ValueError:
+                    except (TypeError, ValueError):
                         raise ValueError(f"Invalid value for {field}: {value}. Must be a decimal.")
+                    if not math.isfinite(value_converted):
+                        raise ValueError(f"Invalid value for {field}: {value}. Must be a finite decimal.")
                 elif field_type == 'date':
                     if value.upper() == 'NULL':
                         value_converted = None

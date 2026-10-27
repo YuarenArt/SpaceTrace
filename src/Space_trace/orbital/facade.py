@@ -6,6 +6,7 @@ import os
 import json
 
 from .handler import OrbitalLogicHandler
+from ...orbital_data_processor.tle_validation import validate_tle_lines
 
 class OrbitalTrackFacade:
     """
@@ -51,6 +52,18 @@ class OrbitalTrackFacade:
             data = self.retriever.retrieve_data(config)
             if not self._verify_data(data, data_format):
                 raise Exception(f"No data received for format: {data_format}")
+            if config.sat_id is not None and not config.data_file_path:
+                if data_format == "TLE":
+                    line1, line2 = data[:2]
+                else:
+                    line1 = data[0].get("TLE_LINE1")
+                    line2 = data[0].get("TLE_LINE2")
+                validate_tle_lines(line1, line2)
+                if int(line1[2:7]) != int(config.sat_id):
+                    raise ValueError(
+                        f"SpaceTrack returned NORAD ID {line1[2:7].strip()} "
+                        f"for requested ID {config.sat_id}."
+                    )
             
             # Save data if specified in config
             if config.save_data and config.save_data_path:
@@ -127,22 +140,6 @@ class OrbitalTrackFacade:
         """
         self._log(f"Processing in-memory track for SatID: {config.sat_id}, Start: {config.start_datetime}, "
                 f"Duration: {config.duration_hours} hours, Format: {config.data_format}", "INFO")
-        plugin_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-        data_folder = os.path.join(plugin_dir, "data")
-        
-        try:
-            if not os.path.exists(data_folder):
-                os.makedirs(data_folder)
-                self._log(f"Created data folder at: {data_folder}", "INFO")
-            elif not os.access(data_folder, os.W_OK):
-                raise Exception(f"Data folder {data_folder} is not writable")
-        except Exception as e:
-            self._log(f"Failed to create or access data folder: {str(e)}", "ERROR")
-            raise
-        
-        default_output_path = os.path.join(data_folder, f"{config.sat_id or 'local'}_{config.start_datetime.strftime('%Y%m%d%H%M')}")
-        config.save_data_path = config.save_data_path or default_output_path
-        
         data = self._retrieve_data(config)
         return self.logic_handler.create_in_memory_layers(
             data, config.data_format, config.start_datetime, config.duration_hours, 

@@ -2,10 +2,9 @@ from skyfield.api import load, EarthSatellite
 from datetime import datetime, timedelta
 from typing import List, Tuple
 import numpy as np
-from poliastro.twobody.angles import M_to_nu
-from pandas import date_range
 
 from .orbital_data_processor import OrbitalDataProcessorInterface
+from .anomaly import mean_to_true_anomaly
 
 class SkyfieldOrbitalDataProcessor(OrbitalDataProcessorInterface):
     """
@@ -13,6 +12,7 @@ class SkyfieldOrbitalDataProcessor(OrbitalDataProcessorInterface):
     Supports deep space orbits (periods > 225 minutes).
     Optimized for performance using vectorized computations.
     """
+    MAX_TRACK_POINTS = 10000
 
     def __init__(self, tle_name: str, tle1: str, tle2: str, log_callback=None):
         """
@@ -114,15 +114,14 @@ class SkyfieldOrbitalDataProcessor(OrbitalDataProcessorInterface):
 
             # Compute true anomaly
             e = self.satellite.model.ecco  # Eccentricity
-            M0_deg = self.satellite.model.mo  # Mean anomaly at epoch
+            M0_rad = self.satellite.model.mo  # Mean anomaly at epoch, radians
             n = self.satellite.model.no_kozai  # Mean motion in radians per minute
-            t0 = np.datetime64(self.satellite.epoch.utc_datetime())
+            t0 = np.datetime64(self.satellite.epoch.utc_datetime().replace(tzinfo=None))
             times_np = np.array([np.datetime64(t) for t in times])
             times_sec = (times_np - t0) / np.timedelta64(1, 's')
-            M0_rad = np.radians(M0_deg)
-            n_rad_per_sec = n * (np.pi / (180 * 60))  # Convert to rad/sec
+            n_rad_per_sec = n / 60
             M = M0_rad + n_rad_per_sec * times_sec
-            true_anomaly = (np.degrees(M_to_nu(M, e)) + 360) % 360
+            true_anomaly = (np.degrees(mean_to_true_anomaly(M, e)) + 360) % 360
 
             # Compile results
             results = [
@@ -162,9 +161,23 @@ class SkyfieldOrbitalDataProcessor(OrbitalDataProcessorInterface):
         """
         self._log(f"Propagating orbit: start={start}, duration={duration_hours}h, step={step_minutes}m", "INFO")
 
-        # Generate time steps using pandas
         end = start + timedelta(hours=duration_hours)
-        times = date_range(start=start, end=end, freq=f"{step_minutes}min").to_pydatetime().tolist()
+        step = timedelta(minutes=step_minutes)
+        if step <= timedelta(0):
+            raise ValueError("Step size must be positive.")
+        if duration_hours <= 0:
+            raise ValueError("Duration must be positive.")
+        expected_count = int((end - start) // step) + 1
+        if expected_count > self.MAX_TRACK_POINTS:
+            raise ValueError(
+                f"Track would contain {expected_count} points; "
+                f"maximum is {self.MAX_TRACK_POINTS}. Increase the step."
+            )
+        times = []
+        current = start
+        while current <= end:
+            times.append(current)
+            current += step
 
         self._log(f"Generated {len(times)} time steps", "DEBUG")
         return self.compute_orbital_parameters(times)

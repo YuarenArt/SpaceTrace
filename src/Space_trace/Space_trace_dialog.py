@@ -197,15 +197,19 @@ class SpaceTracePluginDialog(SpaceTracePluginDialogBase):
             if '-' in part:
                 try:
                     start, end = map(int, part.split('-', 1))
-                    if start <= end:
+                    if 0 < start <= end and end - start < 1000:
                         ids.update(range(start, end + 1))
                 except ValueError:
                     continue
             else:
                 try:
-                    ids.add(int(part))
+                    value = int(part)
+                    if value > 0:
+                        ids.add(value)
                 except ValueError:
                     continue
+            if len(ids) > 1000:
+                return []
         return sorted(ids)
 
     def _format_id_ranges(self, ids: list) -> str:
@@ -230,10 +234,15 @@ class SpaceTracePluginDialog(SpaceTracePluginDialogBase):
         idx = self.tabWidget.indexOf(self.tabLog)
         self.tabWidget.setCurrentIndex(idx)
 
+    @staticmethod
+    def _to_utc_naive(qdatetime):
+        """Convert a Qt date/time with its timezone to the UTC used for propagation."""
+        return qdatetime.toUTC().toPyDateTime().replace(tzinfo=None)
+
     def get_inputs(self) -> dict:
         """Collect current dialog values into a dictionary."""
         data_source_local = self.radioLocalFile.isChecked()
-        save_data = self.checkBoxSaveData.isChecked()
+        save_data = not data_source_local and self.checkBoxSaveData.isChecked()
         
         # Handle multiple file paths for local files
         data_file_path = self.lineEditDataPath.text().strip()
@@ -241,13 +250,14 @@ class SpaceTracePluginDialog(SpaceTracePluginDialogBase):
             # Split multiple file paths by semicolon
             data_file_paths = [path.strip() for path in data_file_path.split(';') if path.strip()]
         else:
-            data_file_paths = [data_file_path] if data_file_path else []
+            data_file_paths = []
         
         return {
+            "source": "local" if data_source_local else "spacetrack",
             "data_file_paths": data_file_paths,  # List of file paths for local files
-            "data_file_path": data_file_path,    # Original single path (for backward compatibility)
+            "data_file_path": data_file_path if data_source_local else "",
             "sat_id_text": self.lineEditSatID.text().strip(),
-            "start_datetime": self.dateTimeEdit.dateTime().toPyDateTime(),
+            "start_datetime": self._to_utc_naive(self.dateTimeEdit.dateTime()),
             "duration_hours": self.spinBoxDuration.value(),
             "step_minutes": self.spinBoxStepMinutes.value(),
             "output_path": self.lineEditOutputPath.text().strip(),

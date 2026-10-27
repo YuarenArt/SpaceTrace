@@ -195,7 +195,6 @@ class SpaceTracePluginDialogBase(QDialog):
         help_layout.setContentsMargins(0, 0, 0, 0)
         self.textBrowserHelp = QTextBrowser(self.tabHelp)
         self.textBrowserHelp.setOpenExternalLinks(False) 
-        self.textBrowserHelp.anchorClicked.connect(self._open_link_in_browser)
         help_layout.addWidget(self.textBrowserHelp)
         self.tabWidget.addTab(self.tabHelp, "")
 

@@ -8,6 +8,7 @@ for orbital track computation and layer creation from TLE or OMM data.
 import os
 from qgis.core import (QgsGeometry, QgsPointXY, QgsCoordinateReferenceSystem)
 from .saver import FactoryProvider
+from ...orbital_data_processor.tle_validation import validate_tle_lines
 
 class OrbitalLogicHandler:
     """
@@ -94,7 +95,7 @@ class OrbitalLogicHandler:
         """
         segments = self.get_line_segments(points)
         return [QgsGeometry.fromPolylineXY([QgsPointXY(lon, lat) for lon, lat in seg])
-                for seg in segments]
+                for seg in segments if len(seg) >= 2]
     
 
     def _adjust_output_path(self, output_path, file_format, norad_id=None):
@@ -123,15 +124,21 @@ class OrbitalLogicHandler:
                     self._log(f"Failed to create output directory: {str(e)}", "ERROR")
                     raise RuntimeError(f"Failed to create output directory: {str(e)}")
 
+            line_output_path = self._adjust_output_path(output_path, file_format, norad_id) if create_line else None
+            if os.path.exists(output_path) or (line_output_path and os.path.exists(line_output_path)):
+                raise FileExistsError(f"Output already exists: {output_path}")
+
 
         input_crs = QgsCoordinateReferenceSystem("EPSG:4326")
         factory = FactoryProvider.get_factory(file_format)
         saver = factory.get_saver(log_callback=self.log_callback, input_crs=input_crs)
         
+        points_written = False
         try:
             saver.save_points(points, output_path, norad_id=norad_id)
+            points_written = True
             line_file = None
-            if create_line:
+            if create_line and len(points) >= 2:
                 geometries = self.generate_line_geometries([(pt[1], pt[2]) for pt in points])
                 line_output_path = self._adjust_output_path(output_path, file_format, norad_id)
                 saver.save_lines(geometries, line_output_path, norad_id)
@@ -139,7 +146,11 @@ class OrbitalLogicHandler:
             return output_path, line_file
         except Exception as e:
             self._log(f"Error creating track: {str(e)}", "ERROR")
-            raise RuntimeError(f"Failed to create track: {str(e)}")
+            if points_written:
+                raise RuntimeError(
+                    f"Failed to create track: {e}. Partial point file remains at {output_path}"
+                ) from e
+            raise RuntimeError(f"Failed to create track: {e}") from e
 
     def create_memory_layers_from_points(self, points, data_format, create_line,  norad_id=None):
         """
@@ -154,7 +165,7 @@ class OrbitalLogicHandler:
         saver = factory.get_saver(log_callback=self.log_callback, input_crs=input_crs)
         point_layer = saver.save_points(points, norad_id=norad_id)
         line_layer = None
-        if create_line:
+        if create_line and len(points) >= 2:
             geometries = self.generate_line_geometries([(pt[1], pt[2]) for pt in points])
             line_layer = saver.save_lines(geometries, norad_id=norad_id)
         return point_layer, line_layer
@@ -212,6 +223,7 @@ class OrbitalLogicHandler:
                 raise ValueError(error_msg)
             
             tle1, tle2, inc = data[0], data[1], data[2]
+            validate_tle_lines(tle1, tle2)
 
             self._log(f"[_get_processor] TLE_LINE1 is {'not empty' if tle1 else 'EMPTY'}", 
                       "WARNING" if not tle1 else "DEBUG")
@@ -221,9 +233,12 @@ class OrbitalLogicHandler:
             return SkyfieldOrbitalDataProcessor("N", tle1, tle2, self.log_callback)
         
         elif data_format == "OMM":
+            if not isinstance(data, list) or not data or not isinstance(data[0], dict):
+                raise ValueError("OMM data must be a non-empty list of records.")
             record = data[0]
             tle_1 = record.get("TLE_LINE1")
             tle_2 = record.get("TLE_LINE2")
+            validate_tle_lines(tle_1, tle_2)
             inc = record.get("INCLINATION")
             return SkyfieldOrbitalDataProcessor("N", tle_1, tle_2, self.log_callback)
         else:

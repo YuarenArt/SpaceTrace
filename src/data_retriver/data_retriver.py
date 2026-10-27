@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
-import os
 import json
+from ..orbital_data_processor.tle_validation import validate_tle_lines
 
 class DataRetriever(ABC):
     @abstractmethod
@@ -9,7 +9,7 @@ class DataRetriever(ABC):
 
 class LocalFileRetriever(DataRetriever):
     """
-    Retrieves orbital data from local files and saves it if specified.
+    Retrieves orbital data from local files.
     """
     def __init__(self, log_callback=None):
         """
@@ -29,35 +29,9 @@ class LocalFileRetriever(DataRetriever):
         if self.log_callback:
             self.log_callback(message, level)
 
-    def _save_tle_data(self, tle_data, output_path):
-        """
-        Save TLE data to a file.
-
-        :param tle_data: Tuple containing TLE lines (tle_line1, tle_line2, orb_incl).
-        :param output_path: Path to save the TLE file.
-        """
-        output_path = os.path.splitext(output_path)[0]
-        tle_filename = f"{output_path}_tle.txt"
-        with open(tle_filename, 'w') as f:
-            f.write(f"{tle_data[0]}\n{tle_data[1]}\n")
-        self._log(f"TLE data saved to {tle_filename}", "INFO")
-
-    def _save_omm_data(self, omm_data, output_path):
-        """
-        Save OMM data to a JSON file.
-
-        :param omm_data: OMM data to save.
-        :param output_path: Path to save the OMM JSON file.
-        """
-        output_path = os.path.splitext(output_path)[0]
-        json_filename = f"{output_path}_omm.json"
-        with open(json_filename, "w") as f:
-            json.dump(omm_data, f, indent=4)
-        self._log(f"OMM data saved to {json_filename}", "INFO")
-
     def retrieve_data(self, config):
         """
-        Retrieve data from a local file and save it if specified.
+        Retrieve data from a local file.
 
         :param config: OrbitalConfig instance with settings.
         :return: Retrieved TLE or OMM data.
@@ -65,27 +39,27 @@ class LocalFileRetriever(DataRetriever):
         """
         file_path = config.data_file_path
         data_format = config.data_format
-        save_data = config.save_data
-        save_data_path = config.save_data_path
-
         try:
             if data_format == 'TLE':
                 with open(file_path, 'r') as f:
                     lines = f.readlines()
                     if len(lines) < 2:
                         raise ValueError("The TLE file must contain at least two lines.")
-                    tle_line1 = lines[0].strip()
-                    tle_line2 = lines[1].strip()
+                    nonempty = [line.strip() for line in lines if line.strip()]
+                    if nonempty and not nonempty[0].startswith("1 "):
+                        nonempty = nonempty[1:]
+                    if len(nonempty) < 2:
+                        raise ValueError("The TLE file must contain two element lines.")
+                    tle_line1, tle_line2 = validate_tle_lines(nonempty[0], nonempty[1])
                     orb_incl = float(tle_line2[8:16])
                     data = (tle_line1, tle_line2, orb_incl)
-                    if save_data and save_data_path:
-                        self._save_tle_data(data, save_data_path)
                     return data
             elif data_format == 'OMM':
                 with open(file_path, 'r') as f:
                     data = json.load(f)
-                    if save_data and save_data_path:
-                        self._save_omm_data(data, save_data_path)
+                    if not isinstance(data, list) or not data or not isinstance(data[0], dict):
+                        raise ValueError("OMM data must be a non-empty list of records.")
+                    validate_tle_lines(data[0].get("TLE_LINE1"), data[0].get("TLE_LINE2"))
                     return data
             else:
                 raise ValueError("Unsupported data format.")

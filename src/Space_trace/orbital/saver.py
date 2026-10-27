@@ -46,6 +46,8 @@ class FileSaver(ABC):
         """
         self.log_callback = log_callback
         self.project_crs = QgsProject.instance().crs()
+        if not self.project_crs.isValid():
+            self.project_crs = input_crs if input_crs and input_crs.isValid() else QgsCoordinateReferenceSystem("EPSG:4326")
 
         # If the user did not specify an input CRS, assume the input is already in project CRS.
         if input_crs and input_crs.isValid():

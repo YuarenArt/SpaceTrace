@@ -21,7 +21,7 @@ class SpaceTracePlugin:
     Integrates a GUI dialog for user input and processes satellite orbital tracks using OrbitalTrackFacade.
     """
 
-    def __init__(self, iface):
+    def __init__(self, iface, log_path=None):
         """Initialize the plugin with QGIS interface.
 
         Args:
@@ -34,7 +34,9 @@ class SpaceTracePlugin:
         self.first_start = True
         self.dlg = None
         self.logger = None
+        self._file_handler = None
         self.translator = None
+        self.log_path = log_path or os.environ.get("SPACETRACE_LOG_PATH") or os.path.join(self.plugin_dir, "SpaceTracePlugin.log")
 
         self._init_logger()
         self._init_localization()
@@ -43,17 +45,16 @@ class SpaceTracePlugin:
     def _init_logger(self):
         """Set up file logging for the plugin."""
         self.logger = logging.getLogger("SpaceTracePlugin")
-        if not self.logger.handlers:
+        if self._file_handler is None:
             self.logger.setLevel(logging.DEBUG)
-            log_file = os.path.join(self.plugin_dir, "SpaceTracePlugin.log")
-            handler = logging.FileHandler(log_file, encoding="utf-8")
+            handler = logging.FileHandler(self.log_path, encoding="utf-8")
             handler.setLevel(logging.DEBUG)
             handler.setFormatter(logging.Formatter(
                 "[%(asctime)s] %(levelname)s: %(message)s",
                 datefmt="%Y-%m-%d %H:%M:%S"
             ))
             self.logger.addHandler(handler)
-            self.logger.propagate = False
+            self._file_handler = handler
 
     def _init_localization(self):
         """Configure localization based on QGIS settings."""
@@ -119,11 +120,11 @@ class SpaceTracePlugin:
         self._close_logger()
 
     def _close_logger(self):
-        """Close all logger handlers."""
-        if self.logger:
-            for handler in self.logger.handlers[:]:
-                handler.close()
-                self.logger.removeHandler(handler)
+        """Close only this plugin instance's file handler."""
+        if self.logger and self._file_handler:
+            self.logger.removeHandler(self._file_handler)
+            self._file_handler.close()
+            self._file_handler = None
 
     def log_message(self, message: str, level: str = "INFO"):
         """Log a message to file and dialog.
@@ -132,6 +133,11 @@ class SpaceTracePlugin:
             message (str): Message content.
             level (str): Log level ("INFO", "DEBUG", "WARNING", "ERROR").
         """
+        if self.dlg:
+            secrets = (self.dlg.lineEditPassword.text(), self.dlg.lineEditLogin.text())
+            for secret in sorted((value for value in secrets if value), key=len, reverse=True):
+                if secret:
+                    message = message.replace(secret, "<redacted>")
         log_func = {
             "DEBUG": self.logger.debug,
             "WARNING": self.logger.warning,
@@ -158,14 +164,26 @@ class SpaceTracePlugin:
             ValueError: If ID format or range is invalid.
         """
         ids = set()
-        for part in [p.strip() for p in text.split(',') if p.strip()]:
+        for part in (p.strip() for p in text.split(',')):
+            if not part:
+                raise ValueError("Empty NORAD ID in list.")
             if '-' in part:
-                start, end = map(int, part.split('-'))
+                pieces = part.split('-')
+                if len(pieces) != 2:
+                    raise ValueError(f"Invalid range: {part}")
+                start, end = map(int, pieces)
                 if start > end:
                     raise ValueError(f"Invalid range: {part}")
+                if start <= 0 or end - start >= 1000:
+                    raise ValueError("NORAD ID range must contain 1 to 1000 positive IDs.")
                 ids.update(range(start, end + 1))
             else:
-                ids.add(int(part))
+                value = int(part)
+                if value <= 0:
+                    raise ValueError("NORAD ID must be positive.")
+                ids.add(value)
+            if len(ids) > 1000:
+                raise ValueError("At most 1000 NORAD IDs can be processed at once.")
         return sorted(ids)
 
     def _validate_output_path(self, output_path: str, num_items: int) -> tuple[str, str]:
@@ -190,7 +208,7 @@ class SpaceTracePlugin:
             fmt = fmt.strip().lower()
             if fmt not in {"shp", "gpkg", "geojson"}:
                 raise Exception(self.tr("Unsupported format. Use shp, gpkg, or geojson."))
-            if not os.path.isdir(directory):
+            if not os.path.isdir(directory) or not os.access(directory, os.W_OK):
                 raise Exception(self.tr("Output directory does not exist or is not writable."))
             return directory, fmt
 
@@ -202,7 +220,7 @@ class SpaceTracePlugin:
             fmt = ext[1:].lower() if ext else "shp"
             if fmt not in {"shp", "gpkg", "geojson"}:
                 raise Exception(self.tr("Unsupported format. Use shp, gpkg, or geojson."))
-            if not os.path.isdir(output_dir):
+            if not os.path.isdir(output_dir) or not os.access(output_dir, os.W_OK):
                 raise Exception(self.tr("Output directory does not exist or is not writable."))
             return output_dir, fmt
 
@@ -211,7 +229,7 @@ class SpaceTracePlugin:
         if fmt not in {"shp", "gpkg", "geojson"}:
             raise Exception(self.tr("Unsupported format. Use shp, gpkg, or geojson."))
         output_dir = os.path.dirname(output_path)
-        if output_dir and not os.path.isdir(output_dir):
+        if output_dir and (not os.path.isdir(output_dir) or not os.access(output_dir, os.W_OK)):
             raise Exception(self.tr("Output directory does not exist or is not writable."))
         return output_path, fmt
 
@@ -226,15 +244,17 @@ class SpaceTracePlugin:
         Raises:
             Exception: If path is invalid for the context.
         """
-        if not save_data or not save_data_path:
+        if not save_data:
             return
+        if not save_data_path:
+            raise Exception(self.tr("Choose a path to save the received data."))
 
         if num_items > 1:
-            if not os.path.isdir(save_data_path):
+            if not os.path.isdir(save_data_path) or not os.access(save_data_path, os.W_OK):
                 raise Exception(self.tr("For multiple items, save data path must be a directory."))
         else:
             save_dir = os.path.dirname(save_data_path)
-            if save_dir and not os.path.isdir(save_dir):
+            if save_dir and (not os.path.isdir(save_dir) or not os.access(save_dir, os.W_OK)):
                 raise Exception(self.tr("Save data directory does not exist or is not writable."))
 
     def _validate_inputs(self, inputs: dict) -> tuple[list[int], str, str]:
@@ -250,7 +270,9 @@ class SpaceTracePlugin:
             Exception: If inputs are invalid.
         """
         # Handle local files or SpaceTrack data
-        if inputs["data_file_paths"]:
+        if inputs.get("source", "local" if inputs["data_file_paths"] else "spacetrack") == "local":
+            if not inputs["data_file_paths"]:
+                raise Exception(self.tr("Select at least one local data file."))
             sat_ids = list(range(len(inputs["data_file_paths"])))
             for i, file_path in enumerate(inputs["data_file_paths"]):
                 if not os.path.isfile(file_path):
@@ -281,6 +303,9 @@ class SpaceTracePlugin:
         """
         file_path = inputs["data_file_paths"][file_index]
         base_name = os.path.splitext(os.path.basename(file_path))[0]
+        if sum(os.path.splitext(os.path.basename(path))[0] == base_name
+               for path in inputs["data_file_paths"]) > 1:
+            base_name = f"{base_name}_{file_index + 1}"
         output_path = inputs["output_path"]
         save_data_path = inputs["save_data_path"]
 
@@ -323,7 +348,8 @@ class SpaceTracePlugin:
         if output_path and os.path.isdir(output_path):
             output_path = os.path.join(output_path, f"sat_{sat_id}_points.{file_format}")
         if inputs["save_data"] and save_data_path and os.path.isdir(save_data_path):
-            save_data_path = os.path.join(save_data_path, f"{sat_id}.tle")
+            ext = "json" if inputs["data_format"] == "OMM" else "tle"
+            save_data_path = os.path.join(save_data_path, f"{sat_id}.{ext}")
 
         return OrbitalConfig(
             sat_id=sat_id,
@@ -338,7 +364,7 @@ class SpaceTracePlugin:
             data_format=inputs["data_format"],
             create_line_layer=inputs["create_line_layer"],
             save_data=inputs["save_data"],
-            data_file_path=inputs["data_file_path"],
+            data_file_path="",
             save_data_path=save_data_path
         )
 
@@ -370,8 +396,9 @@ class SpaceTracePlugin:
         if config.output_path:
             point_file, line_file = facade.process_persistent_track(config)
             self.log_message(f"Files created: Point={point_file}, Line={line_file}", "INFO")
-            self._load_layer(point_file, "point")
-            self._load_layer(line_file, "line")
+            if config.add_layer:
+                self._load_layer(point_file, "point")
+                self._load_layer(line_file, "line")
             self.iface.messageBar().pushMessage(
                 self.tr("Success"),
                 self.tr(f"{config.file_format.capitalize()} created"),
@@ -381,7 +408,8 @@ class SpaceTracePlugin:
             point_layer, line_layer = facade.process_in_memory_track(config)
             if config.add_layer:
                 QgsProject.instance().addMapLayer(point_layer)
-                QgsProject.instance().addMapLayer(line_layer)
+                if line_layer is not None:
+                    QgsProject.instance().addMapLayer(line_layer)
                 self.log_message(f"Temporary layers added: {point_layer.featureCount()} points.", "INFO")
             self.iface.messageBar().pushMessage(
                 self.tr("Success"),
@@ -413,13 +441,25 @@ class SpaceTracePlugin:
             self.log_message(f"Processed {'file' if is_local else 'NORAD ID'}: {item_name}", "INFO")
             return True
         except Exception as e:
-            self.log_message(f"Error processing {'file' if is_local else 'NORAD ID'} {item_name}: {str(e)}", "ERROR")
+            error = self._redact_error(e, inputs)
+            self.log_message(f"Error processing {'file' if is_local else 'NORAD ID'} {item_name}: {error}", "ERROR")
             self.iface.messageBar().pushMessage(
                 self.tr("Warning"),
-                f"Failed to process {'file' if is_local else 'satellite'} {item_name}: {str(e)}",
+                f"Failed to process {'file' if is_local else 'satellite'} {item_name}: {error}",
                 level=2
             )
             return False
+
+    @staticmethod
+    def _redact_error(error, inputs: dict) -> str:
+        message = str(error) or type(error).__name__
+        if type(error).__name__ == "AuthenticationError":
+            message = "SpaceTrack authentication failed. Check the account credentials."
+        secrets = (inputs.get("password"), inputs.get("login"))
+        for secret in sorted((value for value in secrets if value), key=len, reverse=True):
+            if secret:
+                message = message.replace(secret, "<redacted>")
+        return message
 
     def _process_satellites(self, sat_ids: list[int], inputs: dict, file_format: str) -> tuple[list[int], list[int]]:
         """Process all satellites or files.
@@ -497,8 +537,9 @@ class SpaceTracePlugin:
             successful, failed = self._process_satellites(sat_ids, inputs, file_format)
             self._log_summary(successful, failed, inputs, time.time() - start_time)
         except Exception as e:
-            self.log_message(f"Error: {str(e)}", "ERROR")
-            self.iface.messageBar().pushMessage("Error", str(e), level=3)
+            message = self._redact_error(e, locals().get("inputs", {}))
+            self.log_message(f"Error: {message}", "ERROR")
+            self.iface.messageBar().pushMessage("Error", message, level=3)
 
     def run(self):
         """Display the plugin dialog."""

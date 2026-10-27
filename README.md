@@ -149,16 +149,15 @@
 
 ## Installation
 
-1. Open the **OSGeo4W Shell** (included with QGIS).
-2. Install required Python libraries:
+1. Install QGIS 3.44 LTR (Qt5). The plugin requires QGIS 3.40 or newer and uses PyQt5 directly; QGIS 4 has not been tested.
+2. Open the **OSGeo4W Shell** from that QGIS installation and install the Python dependencies into its Python environment:
    ```bash
-   python3 -m pip install spacetrack -U --user
-   python3 -m pip install poliastro -U --user
-   python3 -m pip install skyfield -U --user
+   python3 -m pip install --user skyfield spacetrack numpy
    ```
-3. Copy the plugin folder to your QGIS plugins directory or use the QGIS Plugin Manager (if distributed via repository).
-4. Restart QGIS.
-5. Activate Space Trace via the Plugins menu.
+3. Copy this repository into the active QGIS profile's `python/plugins/SpaceTrace` directory. For development, make a directory junction named `SpaceTrace` to this checkout instead of copying it. The plugin directory name must not contain spaces.
+4. Restart QGIS and enable **Space Trace** in Plugins > Manage and Install Plugins.
+
+For development, install the optional test dependencies with `python3 -m pip install -r requirements-dev.txt` in the same OSGeo4W Shell. Qt Designer and Qt Linguist are included with the OSGeo4W QGIS installation.
 
 ---
 
@@ -374,16 +373,41 @@ A: See the Log tab in the plugin or open `SpaceTracePlugin.log` in the plugin di
 
 ## Установка
 
-1. Откройте **OSGeo4W Shell** (идет в комплекте с QGIS).
-2. Установите необходимые библиотеки Python:
+1. Установите QGIS 3.44 LTR (Qt5). Плагину нужен QGIS 3.40 или новее; совместимость с QGIS 4 пока не проверена из-за прямых импортов PyQt5.
+2. Откройте **OSGeo4W Shell** установленного QGIS и поставьте зависимости в его окружение Python:
    ```bash
-   python3 -m pip install spacetrack -U --user
-   python3 -m pip install poliastro -U --user
-   python3 -m pip install skyfield -U --user
+   python3 -m pip install --user skyfield spacetrack numpy
    ```
-3. Скопируйте папку плагина в директорию QGIS plugins или используйте QGIS Plugin Manager (если распространяется через репозиторий).
-4. Перезапустите QGIS.
-5. Активируйте Space Trace через меню Плагины.
+3. Скопируйте репозиторий в `python/plugins/SpaceTrace` активного профиля QGIS. Для разработки вместо копии создайте ссылку на рабочую папку с именем `SpaceTrace` (без пробелов).
+4. Перезапустите QGIS и включите **Space Trace** через «Плагины» → «Управление и установка плагинов».
+
+Для разработки установите инструменты тестирования командой `python3 -m pip install -r requirements-dev.txt` в той же OSGeo4W Shell. Qt Designer и Qt Linguist входят в установку QGIS через OSGeo4W.
+
+### Автоматические тесты на Windows
+
+В PowerShell из корня репозитория выполните:
+
+```powershell
+./scripts/test-windows.ps1 -QgisRoot 'F:\QGIS'
+./scripts/test-gui-e2e-windows.ps1 -QgisRoot 'F:\QGIS'
+```
+
+Первый скрипт проверяет логику, реальные слои PyQGIS и клики по виджетам. Второй запускает сам QGIS во временном профиле, открывает плагин через его действие и выполняет сценарии локального TLE/OMM, экспорта и сохранения проекта. Оба скрипта используют Python из QGIS и удаляют свои временные данные. Матрица сценариев и границы покрытия описаны в [test/TEST_MATRIX.md](test/TEST_MATRIX.md). Живой SpaceTrack API для обычного прогона не требуется.
+
+Дополнительный режим проверяет весь путь поиска и построения через интерфейс QGIS с фиктивным ответом API:
+
+```powershell
+./scripts/test-gui-e2e-windows.ps1 -Mode mock-api
+```
+
+Чтобы отдельно проверить реальный SpaceTrack, сохраните учётные данные через Python `keyring`. Он использует хранилище секретов текущей ОС. Windows-скрипт при необходимости установит `keyring` в пользовательское окружение Python QGIS. Команда запросит пароль в терминале без вывода символов; данные не попадают в файлы проекта:
+
+```powershell
+./scripts/spacetrack-credentials-windows.ps1 -Action set
+./scripts/test-gui-e2e-windows.ps1 -Mode live
+```
+
+На других ОС те же действия доступны через `python scripts/manage_spacetrack_credentials.py set|status|delete` после установки `requirements-dev.txt`. В VS Code команды доступны в **Terminal → Run Task** как задачи `SpaceTrace`. Живой прогон делает запросы для одного NORAD ID и запускается только вручную. Наличие записи проверяется командой `./scripts/spacetrack-credentials-windows.ps1 -Action status`, удаление — `-Action delete`.
 
 ---
 

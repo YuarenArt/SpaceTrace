@@ -2,9 +2,9 @@ from datetime import datetime, timedelta
 from typing import List, Tuple
 import numpy as np
 from pyorbital.orbital import Orbital
-from poliastro.twobody.angles import M_to_nu
 
 from .orbital_data_processor import OrbitalDataProcessorInterface
+from .anomaly import mean_to_true_anomaly
 
 class PyOrbitalDataProcessor(OrbitalDataProcessorInterface):
     """
@@ -89,7 +89,7 @@ class PyOrbitalDataProcessor(OrbitalDataProcessorInterface):
             # Convert mean motion from rev/day to rad/sec
             n_rad_per_sec = n * 2 * np.pi / (24 * 3600)
             M = M0_rad + n_rad_per_sec * times_sec
-            true_anomaly = (np.degrees(M_to_nu(M, e)) + 360) % 360
+            true_anomaly = (np.degrees(mean_to_true_anomaly(M, e)) + 360) % 360
 
             results = []
             for i, t in enumerate(times):
@@ -133,4 +133,3 @@ class PyOrbitalDataProcessor(OrbitalDataProcessorInterface):
             
         self._log(f"Generated {len(times)} time steps", "DEBUG")
         return self.compute_orbital_parameters(times)
-    

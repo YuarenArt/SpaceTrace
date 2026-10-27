@@ -1,34 +1,47 @@
-import unittest
-from unittest.mock import Mock, patch
-from Space_trace.orbital.facade import OrbitalTrackFacade
-from datetime import date
+from unittest.mock import Mock
+import pytest
+from SpaceTrace.src.Space_trace.orbital.facade import OrbitalTrackFacade
+from SpaceTrace.src.config.orbital import OrbitalConfig
+from test.conftest import START, TLE_LINE1, TLE_LINE2
 
-class OrbitalOrchestratorTest(unittest.TestCase):
-    def setUp(self):
-        self.orchestrator = OrbitalTrackFacade("test@example.com", "password")
-        self.config = Mock(
-            sat_id=25544,
-            track_day=date(2025, 3, 28),
-            data_format='TLE',
-            step_minutes=1,
-            output_path='test_output.shp',
-            file_format='shp',
-            create_line_layer=True,
-            save_data=False,
-            data_file_path=None,
-            save_data_path=None
-        )
+@pytest.mark.unit
+def test_facade_passes_config_and_data_to_handler(tmp_path):
+    data = (TLE_LINE1, TLE_LINE2, 51.6386)
+    retriever = Mock()
+    retriever.retrieve_data.return_value = data
+    facade = OrbitalTrackFacade(retriever)
+    facade.logic_handler = Mock()
+    facade.logic_handler.create_persistent_orbital_track.return_value = ("points.gpkg", None)
+    config = OrbitalConfig(sat_id=25544, start_datetime=START, duration_hours=1,
+                           step_minutes=10, output_path=str(tmp_path / "points.gpkg"), file_format="gpkg")
+    assert facade.process_persistent_track(config) == ("points.gpkg", None)
+    retriever.retrieve_data.assert_called_once_with(config)
+    facade.logic_handler.create_persistent_orbital_track.assert_called_once_with(
+        data, "TLE", START, 1, 10, config.output_path, "gpkg", True, 25544)
 
-    @patch('src.orbital.spacetrack_client.SpacetrackClientWrapper')
-    @patch('src.orbital.handler.OrbitalLogicHandler')
-    def test_process_persistent_track(self, mock_logic_handler, mock_client):
-        mock_client.return_value.get_tle.return_value = (
-            "TLE1", "TLE2", 51.6448
-        )
-        mock_logic_handler.return_value.create_persistent_orbital_track.return_value = (
-            'test_output.shp', 'test_output_line.shp'
-        )
+@pytest.mark.unit
+def test_memory_track_does_not_write_plugin_directory():
+    retriever = Mock()
+    retriever.retrieve_data.return_value = (TLE_LINE1, TLE_LINE2, 51.6386)
+    facade = OrbitalTrackFacade(retriever)
+    facade.logic_handler = Mock()
+    facade.logic_handler.create_in_memory_layers.return_value = ("points", None)
+    config = OrbitalConfig(start_datetime=START, save_data=False)
+    assert facade.process_in_memory_track(config) == ("points", None)
+    assert config.save_data_path == ""
 
-        result = self.orchestrator.process_persistent_track(self.config)
-        mock_client.return_value.get_tle.assert_called_once_with(25544, date(2025, 3, 28), latest=False)
-        self.assertEqual(result, ('test_output.shp', 'test_output_line.shp'))
+
+@pytest.mark.unit
+def test_api_response_for_wrong_norad_id_is_rejected_before_saving(tmp_path):
+    retriever = Mock()
+    retriever.retrieve_data.return_value = (TLE_LINE1, TLE_LINE2, 51.6386)
+    facade = OrbitalTrackFacade(retriever)
+    facade.logic_handler = Mock()
+    config = OrbitalConfig(
+        sat_id=40000, start_datetime=START, data_format="TLE",
+        save_data=True, save_data_path=str(tmp_path / "wrong.tle"),
+    )
+    with pytest.raises(ValueError, match="requested ID 40000"):
+        facade.process_in_memory_track(config)
+    facade.logic_handler.create_in_memory_layers.assert_not_called()
+    assert list(tmp_path.iterdir()) == []

@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import QCoreApplication
 
 from datetime import datetime
+import math
 
 # Dictionary mapping satellite catalog fields to their data types
 field_types = {
@@ -151,7 +152,7 @@ class CustomQueryDialog(QDialog):
 
         field_combo = QComboBox()
         field_combo.addItems(field_types.keys())
-        field_combo.currentIndexChanged.connect(lambda index, r=row: self._update_field_related_widgets(r))
+        field_combo.currentIndexChanged.connect(lambda _, combo=field_combo: self._on_field_changed(combo))
         self.ui.table.setCellWidget(row, 1, field_combo)
 
         operator_combo = QComboBox()
@@ -159,8 +160,24 @@ class CustomQueryDialog(QDialog):
 
         value_edit = QLineEdit()
         self.ui.table.setCellWidget(row, 3, value_edit)
+        operator_combo.currentTextChanged.connect(
+            lambda operator, editor=value_edit: self._on_operator_changed(editor, operator)
+        )
 
         self._update_field_related_widgets(row)
+
+    def _on_field_changed(self, field_combo):
+        """Resolve the current row after rows have been inserted or removed."""
+        for row in range(self.ui.table.rowCount()):
+            if self.ui.table.cellWidget(row, 1) is field_combo:
+                self._update_field_related_widgets(row)
+                return
+
+    def _on_operator_changed(self, value_edit, operator):
+        has_value = operator not in ('IS NULL', 'IS NOT NULL')
+        value_edit.setEnabled(has_value)
+        if not has_value:
+            value_edit.clear()
 
     def _update_field_related_widgets(self, row):
         """Update operator options and value placeholder based on selected field."""
@@ -193,11 +210,7 @@ class CustomQueryDialog(QDialog):
         }
         value_edit.setPlaceholderText(placeholders.get(field_type, ""))
 
-        if operator_combo.currentText() in ('IS NULL', 'IS NOT NULL'):
-            value_edit.setText("")
-            value_edit.setDisabled(True)
-        else:
-            value_edit.setDisabled(False)
+        self._on_operator_changed(value_edit, operator_combo.currentText())
 
     def remove_condition(self):
         """Remove the selected condition row or the last one if none selected."""
@@ -209,7 +222,6 @@ class CustomQueryDialog(QDialog):
             self.ui.table.removeRow(self.ui.table.rowCount() - 1)
         else:
             self._warn("No conditions to remove.")
-        self._update_saved_conditions_silent()
 
     def get_conditions(self, silent=False):
         """Retrieve and validate conditions from the table."""
@@ -269,8 +281,7 @@ class CustomQueryDialog(QDialog):
     def _is_valid_decimal(self, value):
         """Check if the value is a valid decimal."""
         try:
-            float(value)
-            return True
+            return math.isfinite(float(value))
         except ValueError:
             return False
 
@@ -295,7 +306,7 @@ class CustomQueryDialog(QDialog):
             field_combo = QComboBox()
             field_combo.addItems(field_types.keys())
             field_combo.setCurrentText(field)
-            field_combo.currentIndexChanged.connect(lambda index, r=row: self._update_field_related_widgets(r))
+            field_combo.currentIndexChanged.connect(lambda _, combo=field_combo: self._on_field_changed(combo))
             self.ui.table.setCellWidget(row, 1, field_combo)
 
             operator_combo = QComboBox()
@@ -305,24 +316,26 @@ class CustomQueryDialog(QDialog):
             if value is not None:
                 value_edit.setText(value)
             self.ui.table.setCellWidget(row, 3, value_edit)
+            operator_combo.currentTextChanged.connect(
+                lambda selected, editor=value_edit: self._on_operator_changed(editor, selected)
+            )
 
             self._update_field_related_widgets(row)
             operator_combo.setCurrentText(operator)
-
-    def _update_saved_conditions_silent(self):
-        """Update saved conditions without triggering validation."""
-        self.saved_conditions = self.get_conditions(silent=True)
+            self._on_operator_changed(value_edit, operator)
 
     def accept(self):
         """Accept the dialog if conditions are valid."""
+        if not self.ui.table.rowCount():
+            self._warn("Add at least one condition.")
+            return
         conditions = self.get_conditions()
-        if conditions or not self.ui.table.rowCount():
+        if conditions:
             self.saved_conditions = conditions
             super().accept()
 
     def reject(self):
-        """Reject the dialog and update saved conditions."""
-        self._update_saved_conditions_silent()
+        """Reject changes and preserve the last confirmed conditions."""
         super().reject()
 
     def _translate(self, context, text):

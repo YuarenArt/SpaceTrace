@@ -120,38 +120,34 @@ class Ui_SpaceTrackDialog:
         self.main_layout.addWidget(self.error_label)
 
     def _on_search_text_changed(self, text: str) -> None:
-        """Handle real-time validation of search input."""
-        if not text.strip():
-            return
-
-        # Get current search type
+        """Show non-blocking guidance while the user is still typing."""
+        message = ""
         if self.radio_country.isChecked():
-            if not text.isalpha() or len(text) != 2:
-                QMessageBox.warning(
-                    None,
-                    self._translate("Validation Error"),
-                    self._translate("Country code must be 2 letters (e.g., US)")
-                )
+            if text and (not text.isalpha() or len(text) != 2):
+                message = self._translate("Country code must be 2 letters (e.g., US)")
         elif self.radio_norad.isChecked():
-            if not self._is_valid_norad_input(text):
-                QMessageBox.warning(
-                    None,
-                    self._translate("Validation Error"),
-                    self._translate("Invalid NORAD ID format. Use single ID, range (e.g., 25544-25550), or list (e.g., 25544,25545)")
+            if text and not self._is_valid_norad_input(text):
+                message = self._translate(
+                    "Invalid NORAD ID format. Use single ID, range (e.g., 25544-25550), or list (e.g., 25544,25545)"
                 )
+        self.error_label.setText(message)
+        self.error_label.setVisible(bool(message))
 
     def _is_valid_norad_input(self, text: str) -> bool:
         if text.isdigit():
-            return True
+            return int(text) > 0
         
         if '-' in text:
             parts = text.split('-')
             if len(parts) == 2 and all(p.isdigit() for p in parts):
-                return True
+                start, end = map(int, parts)
+                return 0 < start <= end and end - start < 1000
         
         if ',' in text:
             parts = text.split(',')
-            return all(p.strip().isdigit() for p in parts)
+            return len(parts) <= 1000 and all(
+                p.strip().isdigit() and int(p.strip()) > 0 for p in parts
+            )
         
         return False
 
@@ -260,6 +256,9 @@ class SpaceTrackDialog(QtWidgets.QDialog):
     ):
         super().__init__(parent)
         self.translator = translator 
+        self._secrets = tuple(sorted(
+            (value for value in (password, login) if value), key=len, reverse=True
+        ))
         self._init_logger()
         self.client = SpacetrackClientWrapper(login, password)
         self.selected_ids = []
@@ -294,11 +293,12 @@ class SpaceTrackDialog(QtWidgets.QDialog):
 
     def _log(self, message: str, level: str = "INFO") -> None:
         """Log message using log_callback and internal logger."""
-        
+        for secret in self._secrets:
+            message = message.replace(secret, "<redacted>")
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         formatted_message = f"[{timestamp}] {message}"
         
-        if self.log_callback and level.upper() in ["INFO", "WARNING", "DEBUG"]:
+        if self.log_callback:
             self.log_callback(formatted_message)
         
         if level.upper() == "DEBUG":
@@ -336,16 +336,15 @@ class SpaceTrackDialog(QtWidgets.QDialog):
         text = self.ui.line_edit_search.text().strip()
         limit = int(self.ui.combo_limit.currentText())
         self.ui.table_result.setRowCount(0)
+        self.selected_ids = []
 
         try:
-            # Validate input before search
-            if self.ui.radio_name.isChecked() and len(text) < 2:
-                raise ValueError(self._translate("Satellite name must be at least 2 characters long"))
-            elif self.ui.radio_country.isChecked() and (not text.isalpha() or len(text) != 2):
-                raise ValueError(self._translate("Country code must be 2 letters (e.g., US)"))
-            elif self.ui.radio_norad.isChecked() and not self.ui._is_valid_norad_input(text):
-                raise ValueError(self._translate("Invalid NORAD ID format"))
+            self._validate_search_text(text)
+        except ValueError as err:
+            self._handle_validation_error(str(err))
+            return
 
+        try:
             results = self._get_results(text, limit)
             if not results:
                 QMessageBox.information(
@@ -355,22 +354,34 @@ class SpaceTrackDialog(QtWidgets.QDialog):
                 )
             else:
                 self._display_results(results)
-        except ValueError as err:
-            self._handle_validation_error(str(err))
         except Exception as err:
-            self._handle_error(f"Search error: {err}")
+            if type(err).__name__ == "AuthenticationError":
+                self._handle_error(
+                    "SpaceTrack authentication failed.",
+                    self._translate("SpaceTrack authentication failed. Check the account credentials.")
+                )
+            else:
+                self._handle_error(f"Search error ({type(err).__name__}): {err}")
+
+    def _validate_search_text(self, text: str) -> None:
+        if self.ui.radio_name.isChecked() and len(text) < 2:
+            raise ValueError(self._translate("Satellite name must be at least 2 characters long"))
+        if self.ui.radio_country.isChecked() and (not text.isalpha() or len(text) != 2):
+            raise ValueError(self._translate("Country code must be 2 letters (e.g., US)"))
+        if self.ui.radio_norad.isChecked() and not self.ui._is_valid_norad_input(text):
+            raise ValueError(self._translate("Invalid NORAD ID format"))
 
     def _handle_validation_error(self, message: str) -> None:
         """Handle validation errors with user-friendly messages."""
         QMessageBox.warning(self, self._translate("Validation Error"), message)
         self._log(f"Validation error: {message}", "WARNING")
 
-    def _handle_error(self, message: str) -> None:
+    def _handle_error(self, message: str, user_message: str = None) -> None:
         """Handle general errors with user-friendly messages."""
         QMessageBox.critical(
             self,
             self._translate("Error"),
-            self._translate("An error occurred during the search. Please try again.")
+            user_message or self._translate("An error occurred during the search. Please try again.")
         )
         self._log(message, "ERROR")
 
@@ -387,8 +398,9 @@ class SpaceTrackDialog(QtWidgets.QDialog):
                 return self.client.get_active_satellites(limit)
             case _ if ui.radio_country.isChecked():
                 self._ensure_text(text, "Please enter a country code (e.g., US).")
-                self._log(f"Searching by country: {text}, limit: {limit}", "DEBUG")
-                return self.client.search_by_country(text, limit)
+                country = text.upper()
+                self._log(f"Searching by country: {country}, limit: {limit}", "DEBUG")
+                return self.client.search_by_country(country, limit)
             case _ if ui.radio_norad.isChecked():
                 self._ensure_text(text, "Please enter a NORAD ID, range, or list.")
                 self._log(f"Searching by NORAD ID: {text}, limit: {limit}", "DEBUG")
@@ -408,27 +420,37 @@ class SpaceTrackDialog(QtWidgets.QDialog):
 
     def perform_custom_search(self, conditions: list) -> None:
         """Run custom conditions query and display results."""
+        if not conditions:
+            self._handle_validation_error(self._translate("Add at least one condition."))
+            return
         self._log("Initiating custom query...")
         limit = int(self.ui.combo_limit.currentText())
         self.ui.table_result.setRowCount(0)
+        self.selected_ids = []
 
         try:
             results = self.client.search_by_custom_query(conditions, limit)
             self._display_results(results)
         except Exception as err:
-            self._handle_error(f"Custom query error: {err}")
+            if type(err).__name__ == "AuthenticationError":
+                self._handle_error(
+                    "SpaceTrack authentication failed.",
+                    self._translate("SpaceTrack authentication failed. Check the account credentials.")
+                )
+            else:
+                self._handle_error(f"Custom query error ({type(err).__name__}): {err}")
 
     def _display_results(self, results: list) -> None:
         """Populate table with search results."""
-        if not results:
-            self.ui.table_result.setRowCount(1)
-            self.ui.table_result.setItem(0, 0, QtWidgets.QTableWidgetItem("No results"))
+        valid_results = [record for record in results if isinstance(record, dict)
+                         and str(record.get("NORAD_CAT_ID", "")).isdigit()]
+        valid_results = valid_results[:int(self.ui.combo_limit.currentText())]
+        if not valid_results:
             self._log("No results found.")
             return
-        self._log(f"Found {len(results)} items.")
-        for record in results:
-            if isinstance(record, dict):
-                self._add_row(record)
+        self._log(f"Found {len(valid_results)} items.")
+        for record in valid_results:
+            self._add_row(record)
 
     def _add_row(self, record: dict) -> None:
         """Insert a single satellite record into the table."""
@@ -549,7 +571,10 @@ class SpaceTrackDialog(QtWidgets.QDialog):
         bar.setVisible(False)
 
         if failures:
-            self._handle_error(f"Failed to save IDs: {', '.join(failures)}.")
+            self._handle_error(
+                f"Failed to save IDs: {', '.join(failures)}.",
+                self._translate("An error occurred while saving satellite data.")
+            )
         else:
             QtWidgets.QMessageBox.information(self, self._translate("Success"), self._translate("All data saved."))
             self._log("Save complete.")
