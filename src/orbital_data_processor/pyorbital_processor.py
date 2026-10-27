@@ -125,6 +125,8 @@ class PyOrbitalDataProcessor(OrbitalDataProcessorInterface):
 
         end = start + timedelta(hours=duration_hours)
         step = timedelta(minutes=step_minutes)
+        if step <= timedelta(0):
+            raise ValueError("step_minutes must produce a positive time step")
         times = []
         current = start
         while current <= end:
