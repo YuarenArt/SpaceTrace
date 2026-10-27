@@ -304,6 +304,30 @@ class SpaceTracePlugin:
             "save_data": inputs["save_data"],
         }
 
+    @staticmethod
+    def _local_output_base_names(file_paths: list[str]) -> list[str]:
+        """Assign distinct output names without taking another input's original name."""
+        from collections import Counter
+
+        bases = [os.path.splitext(os.path.basename(path))[0] for path in file_paths]
+        keys = [os.path.normcase(base) for base in bases]
+        counts = Counter(keys)
+        reserved = set(keys)
+        used = set()
+        result = []
+        for index, (base, key) in enumerate(zip(bases, keys)):
+            preferred = f"{base}_{index + 1}" if counts[key] > 1 else base
+            candidate = preferred
+            suffix = 2
+            while os.path.normcase(candidate) in used or (
+                os.path.normcase(candidate) in reserved and os.path.normcase(candidate) != key
+            ):
+                candidate = f"{preferred}_{suffix}"
+                suffix += 1
+            used.add(os.path.normcase(candidate))
+            result.append(candidate)
+        return result
+
     def _create_config_for_local_file(self, inputs: dict, file_index: int, file_format: str) -> OrbitalConfig:
         """Create config for a local file.
 
@@ -316,10 +340,7 @@ class SpaceTracePlugin:
             OrbitalConfig: Configuration object.
         """
         file_path = inputs["data_file_paths"][file_index]
-        base_name = os.path.splitext(os.path.basename(file_path))[0]
-        if sum(os.path.splitext(os.path.basename(path))[0] == base_name
-               for path in inputs["data_file_paths"]) > 1:
-            base_name = f"{base_name}_{file_index + 1}"
+        base_name = self._local_output_base_names(inputs["data_file_paths"])[file_index]
         output_path = inputs["output_path"]
         save_data_path = inputs["save_data_path"]
 
