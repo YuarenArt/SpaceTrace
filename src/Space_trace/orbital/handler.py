@@ -218,7 +218,8 @@ class OrbitalLogicHandler:
 
         if data_format == "TLE":
             if not isinstance(data, (list, tuple)) or len(data) < 3:
-                error_msg = f"Incorrect TLE data: expected at least 3 elements (got {type(data)} of length {len(data)})"
+                actual = f"{type(data)} of length {len(data)}" if isinstance(data, (list, tuple)) else str(type(data))
+                error_msg = f"Incorrect TLE data: expected at least 3 elements (got {actual})"
                 self._log(f"[_get_processor] {error_msg}", "ERROR")
                 raise ValueError(error_msg)
             
