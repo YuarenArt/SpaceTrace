@@ -222,7 +222,7 @@ class OrbitalLogicHandler:
                 self._log(f"[_get_processor] {error_msg}", "ERROR")
                 raise ValueError(error_msg)
             
-            tle1, tle2, inc = data[0], data[1], data[2]
+            tle1, tle2 = data[0], data[1]
             validate_tle_lines(tle1, tle2)
 
             self._log(f"[_get_processor] TLE_LINE1 is {'not empty' if tle1 else 'EMPTY'}", 
@@ -230,16 +230,14 @@ class OrbitalLogicHandler:
             self._log(f"[_get_processor] TLE_LINE2 is {'not empty' if tle2 else 'EMPTY'}", 
                       "WARNING" if not tle2 else "DEBUG")
 
-            return SkyfieldOrbitalDataProcessor("N", tle1, tle2, self.log_callback)
-        
         elif data_format == "OMM":
             if not isinstance(data, list) or not data or not isinstance(data[0], dict):
                 raise ValueError("OMM data must be a non-empty list of records.")
             record = data[0]
-            tle_1 = record.get("TLE_LINE1")
-            tle_2 = record.get("TLE_LINE2")
-            validate_tle_lines(tle_1, tle_2)
-            inc = record.get("INCLINATION")
-            return SkyfieldOrbitalDataProcessor("N", tle_1, tle_2, self.log_callback)
+            tle1 = record.get("TLE_LINE1")
+            tle2 = record.get("TLE_LINE2")
+            validate_tle_lines(tle1, tle2)
         else:
             raise ValueError(f"Unsupported data format: {data_format}")
+
+        return SkyfieldOrbitalDataProcessor("N", tle1, tle2, self.log_callback)

@@ -1,4 +1,4 @@
-from PyQt5 import QtWidgets, QtCore
+from PyQt5 import QtCore
 from PyQt5.QtWidgets import (
     QVBoxLayout, QTableWidget, QLineEdit, QPushButton, QHeaderView,
     QDialog, QComboBox, QMessageBox, QTableWidgetItem, QGroupBox, QHBoxLayout

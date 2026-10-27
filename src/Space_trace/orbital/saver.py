@@ -10,7 +10,7 @@ from qgis.core import (
     QgsCoordinateTransform,
     QgsCoordinateReferenceSystem,
 )
-from PyQt5.QtCore import QVariant, QDateTime, Qt
+from PyQt5.QtCore import QMetaType, QDateTime, Qt
 from typing import Optional, Callable
 from abc import ABC, abstractmethod
 
@@ -21,16 +21,16 @@ class FileSaver(ABC):
     Works directly in the project CRS unless a different input CRS is specified.
     """
     point_fields = [
-        ("Point_ID", QVariant.Int),
+        ("Point_ID", QMetaType.Int),
         ("Date_Time", None),
-        ("Latitude", QVariant.Double),
-        ("Longitude", QVariant.Double),
-        ("Altitude", QVariant.Double),
-        ("Velocity", QVariant.Double),
-        ("Azimuth", QVariant.Double),
-        ("TrajectoryArc", QVariant.Double),
-        ("TrueAnomaly", QVariant.Double),
-        ("Inclination", QVariant.Double),
+        ("Latitude", QMetaType.Double),
+        ("Longitude", QMetaType.Double),
+        ("Altitude", QMetaType.Double),
+        ("Velocity", QMetaType.Double),
+        ("Azimuth", QMetaType.Double),
+        ("TrajectoryArc", QMetaType.Double),
+        ("TrueAnomaly", QMetaType.Double),
+        ("Inclination", QMetaType.Double),
     ]
 
     def __init__(
@@ -81,7 +81,7 @@ class FileSaver(ABC):
     @property
     @abstractmethod
     def date_field_type(self):
-        """Return the QVariant type for the Date_Time field."""
+        """Return the QMetaType for the Date_Time field."""
         pass
 
     @abstractmethod
@@ -112,6 +112,27 @@ class FileSaver(ABC):
             )
             geometry.transform(transform)
         return geometry
+
+    def _write_layer(self, layer: QgsVectorLayer, output_path: str, kind: str) -> None:
+        """Write either point or line features with the selected QGIS driver."""
+        self._log(
+            f"Saving {kind} to file: {output_path} "
+            f"in CRS {self.project_crs.authid()}",
+            "DEBUG"
+        )
+        options = QgsVectorFileWriter.SaveVectorOptions()
+        options.driverName = self.format_name
+        options.fileEncoding = "UTF-8"
+        write_result, error_message, _, _ = QgsVectorFileWriter.writeAsVectorFormatV3(
+            layer, output_path, QgsProject.instance().transformContext(), options
+        )
+        if write_result != QgsVectorFileWriter.NoError:
+            self._log(
+                f"Failed to save {kind} to {output_path}: {error_message}",
+                "ERROR"
+            )
+            raise RuntimeError(f"Failed to save {self.format_name}: {error_message}")
+        self._log(f"Successfully saved {kind} to {output_path}", "INFO")
 
     def save_points(
         self,
@@ -193,27 +214,7 @@ class FileSaver(ABC):
             self._log(f"Added {len(feats)} features to point layer", "DEBUG")
 
             if not self.is_memory():
-                self._log(
-                    f"Saving points to file: {output_path_or_layername} "
-                    f"in CRS {self.project_crs.authid()}",
-                    "DEBUG"
-                )
-                write_result, error_message = QgsVectorFileWriter.writeAsVectorFormat(
-                    layer,
-                    output_path_or_layername,
-                    "UTF-8",
-                    self.project_crs,
-                    self.format_name
-                )
-                if write_result != QgsVectorFileWriter.NoError:
-                    self._log(
-                        f"Failed to save points to {output_path_or_layername}: {error_message}",
-                        "ERROR"
-                    )
-                    raise RuntimeError(
-                        f"Failed to save {self.format_name}: {error_message}"
-                    )
-                self._log(f"Successfully saved points to {output_path_or_layername}", "INFO")
+                self._write_layer(layer, output_path_or_layername, "points")
             else:
                 layer.updateExtents()
                 self._log("Updated extents for in-memory point layer", "DEBUG")
@@ -264,7 +265,7 @@ class FileSaver(ABC):
 
         # Define and add a single ID field
         fields = QgsFields()
-        fields.append(QgsField("ID", QVariant.Int))
+        fields.append(QgsField("ID", QMetaType.Int))
         prov.addAttributes(fields)
         layer.updateFields()
         self._log(f"Fields added to line layer: {[f.name() for f in fields]}", "DEBUG")
@@ -300,27 +301,7 @@ class FileSaver(ABC):
             self._log(f"Added {len(feats)} features to line layer", "DEBUG")
 
             if not self.is_memory():
-                self._log(
-                    f"Saving lines to file: {output_path_or_layername} "
-                    f"in CRS {self.project_crs.authid()}",
-                    "DEBUG"
-                )
-                write_result, error_message = QgsVectorFileWriter.writeAsVectorFormat(
-                    layer,
-                    output_path_or_layername,
-                    "UTF-8",
-                    self.project_crs,
-                    self.format_name
-                )
-                if write_result != QgsVectorFileWriter.NoError:
-                    self._log(
-                        f"Failed to save lines to {output_path_or_layername}: {error_message}",
-                        "ERROR"
-                    )
-                    raise RuntimeError(
-                        f"Failed to save {self.format_name}: {error_message}"
-                    )
-                self._log(f"Successfully saved lines to {output_path_or_layername}", "INFO")
+                self._write_layer(layer, output_path_or_layername, "lines")
             else:
                 layer.updateExtents()
                 self._log("Updated extents for in-memory line layer", "DEBUG")
@@ -333,7 +314,7 @@ class FileSaver(ABC):
 class ShpSaver(FileSaver):
     """Saver for ESRI Shapefile format (disk)."""
     format_name = "ESRI Shapefile"
-    date_field_type = QVariant.String
+    date_field_type = QMetaType.QString
 
     def prepare_date(self, dt):
         """Convert datetime to ISO string for shapefiles."""
@@ -349,7 +330,7 @@ class ShpSaver(FileSaver):
 class GpkgSaver(FileSaver):
     """Saver for GeoPackage format (disk)."""
     format_name = "GPKG"
-    date_field_type = QVariant.DateTime
+    date_field_type = QMetaType.QDateTime
 
     def prepare_date(self, dt):
         """Convert datetime to QDateTime for GeoPackage."""
@@ -365,7 +346,7 @@ class GpkgSaver(FileSaver):
 class GeoJsonSaver(FileSaver):
     """Saver for GeoJSON format (disk)."""
     format_name = "GeoJSON"
-    date_field_type = QVariant.DateTime
+    date_field_type = QMetaType.QDateTime
 
     def prepare_date(self, dt):
         """Convert datetime to QDateTime for GeoJSON."""
@@ -381,7 +362,7 @@ class GeoJsonSaver(FileSaver):
 class MemorySaver(FileSaver):
     """Saver for in-memory QGIS layers."""
     format_name = "memory"
-    date_field_type = QVariant.DateTime
+    date_field_type = QMetaType.QDateTime
 
     def prepare_date(self, dt):
         """Convert datetime to QDateTime for in-memory layers."""

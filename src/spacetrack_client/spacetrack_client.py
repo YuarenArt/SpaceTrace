@@ -28,6 +28,11 @@ class SpacetrackClientWrapper:
         """
         self.client = SpaceTrackClient(identity=username, password=password)
 
+    @staticmethod
+    def _decode_json(data):
+        """Accept both JSON text and already decoded responses from SpaceTrack."""
+        return json.loads(data) if isinstance(data, str) else data
+
     def _get_elements(self, sat_id, start_datetime, output_format):
         """Use current GP for a current track and history for a past track."""
         instant = start_datetime.replace(tzinfo=timezone.utc) if start_datetime.tzinfo is None else start_datetime.astimezone(timezone.utc)
@@ -79,7 +84,7 @@ class SpacetrackClientWrapper:
         data = self._get_elements(sat_id, start_datetime, 'json')
         if not data:
             raise Exception(f'No OMM data found for satellite {sat_id} before {start_datetime}')
-        return json.loads(data) if isinstance(data, str) else data
+        return self._decode_json(data)
 
     def search_by_name(self, name, limit=100):
         """
@@ -91,7 +96,7 @@ class SpacetrackClientWrapper:
             limit=limit,
             format='json'
         )
-        return json.loads(results) if isinstance(results, str) else results
+        return self._decode_json(results)
 
     def get_active_satellites(self, limit=100):
         """
@@ -105,7 +110,7 @@ class SpacetrackClientWrapper:
             limit=limit,
             format='json'
         )
-        return json.loads(results) if isinstance(results, str) else results
+        return self._decode_json(results)
 
     def search_by_country(self, country_code, limit=100):
         """
@@ -117,7 +122,7 @@ class SpacetrackClientWrapper:
             limit=limit,
             format='json'
         )
-        return json.loads(results) if isinstance(results, str) else results
+        return self._decode_json(results)
 
     def search_by_norad_id(self, norad_input, limit=100):
         """
@@ -158,7 +163,7 @@ class SpacetrackClientWrapper:
             limit=limit,
             format='json'
         )
-        return json.loads(results) if isinstance(results, str) else results
+        return self._decode_json(results)
 
     def search_by_custom_query(self, conditions, limit=100):
         """
@@ -188,10 +193,7 @@ class SpacetrackClientWrapper:
                     predicate = None
                 else:
                     predicate = op.not_equal(None)
-                predicates_by_field.setdefault(api_field, []).append(predicate)
-                continue
-
-            if operator == '=' and isinstance(value, str) and value.upper() == 'NULL':
+            elif operator == '=' and isinstance(value, str) and value.upper() == 'NULL':
                 predicate = None
             elif operator == '!=' and isinstance(value, str) and value.upper() == 'NULL':
                 predicate = op.not_equal(None)
@@ -235,8 +237,7 @@ class SpacetrackClientWrapper:
                     predicate = op.like(value_converted)
                 else:
                     raise ValueError(f"Invalid operator for {field}: {operator}")
-                predicates_by_field.setdefault(api_field, []).append(predicate)
-                continue
+            predicates_by_field.setdefault(api_field, []).append(predicate)
 
         query_params = {}
         for api_field, predicates in predicates_by_field.items():
@@ -252,6 +253,6 @@ class SpacetrackClientWrapper:
                 limit=limit,
                 format='json'
             )
-            return json.loads(results) if isinstance(results, str) else results
+            return self._decode_json(results)
         except Exception as e:
             raise Exception(f"Failed to execute satcat query: {str(e)}")

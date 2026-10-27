@@ -9,7 +9,7 @@ import time
 from datetime import datetime
 import logging
 
-from ...resources import *
+from ... import resources as _resources  # Registers the QGIS icon resource.
 from .Space_trace_dialog import SpaceTracePluginDialog
 from .orbital.facade import OrbitalTrackFacade
 from ..config.orbital import OrbitalConfig
@@ -290,6 +290,20 @@ class SpaceTracePlugin:
 
         return sat_ids, file_format, output_path
 
+    @staticmethod
+    def _common_config_fields(inputs: dict, file_format: str) -> dict:
+        """Fields shared by local-file and SpaceTrack track requests."""
+        return {
+            "start_datetime": inputs["start_datetime"],
+            "duration_hours": inputs["duration_hours"],
+            "step_minutes": inputs["step_minutes"],
+            "file_format": file_format,
+            "add_layer": inputs["add_layer"],
+            "data_format": inputs["data_format"],
+            "create_line_layer": inputs["create_line_layer"],
+            "save_data": inputs["save_data"],
+        }
+
     def _create_config_for_local_file(self, inputs: dict, file_index: int, file_format: str) -> OrbitalConfig:
         """Create config for a local file.
 
@@ -316,19 +330,12 @@ class SpaceTracePlugin:
 
         return OrbitalConfig(
             sat_id=file_index,
-            start_datetime=inputs["start_datetime"],
-            duration_hours=inputs["duration_hours"],
-            step_minutes=inputs["step_minutes"],
             output_path=output_path,
-            file_format=file_format,
-            add_layer=inputs["add_layer"],
             login=None,
             password=None,
-            data_format=inputs["data_format"],
-            create_line_layer=inputs["create_line_layer"],
-            save_data=inputs["save_data"],
             data_file_path=file_path,
-            save_data_path=save_data_path
+            save_data_path=save_data_path,
+            **self._common_config_fields(inputs, file_format),
         )
 
     def _create_config_for_spacetrack(self, inputs: dict, sat_id: int, file_format: str) -> OrbitalConfig:
@@ -353,19 +360,12 @@ class SpaceTracePlugin:
 
         return OrbitalConfig(
             sat_id=sat_id,
-            start_datetime=inputs["start_datetime"],
-            duration_hours=inputs["duration_hours"],
-            step_minutes=inputs["step_minutes"],
             output_path=output_path,
-            file_format=file_format,
-            add_layer=inputs["add_layer"],
             login=inputs["login"],
             password=inputs["password"],
-            data_format=inputs["data_format"],
-            create_line_layer=inputs["create_line_layer"],
-            save_data=inputs["save_data"],
             data_file_path="",
-            save_data_path=save_data_path
+            save_data_path=save_data_path,
+            **self._common_config_fields(inputs, file_format),
         )
 
     def _load_layer(self, file_path: str, layer_type: str) -> None:

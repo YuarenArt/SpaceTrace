@@ -280,17 +280,6 @@ class SpaceTrackDialog(QtWidgets.QDialog):
         """Initialize the logger."""
         self.logger = logging.getLogger("SpaceTracePlugin")
 
-    def _log_to_file(self, message: str, level: str = "INFO"):
-        """Log message to file with specified level."""
-        if level.upper() == "DEBUG":
-            self.logger.debug(message)
-        elif level.upper() == "WARNING":
-            self.logger.warning(message)
-        elif level.upper() == "ERROR":
-            self.logger.error(message)
-        else:
-            self.logger.info(message)
-
     def _log(self, message: str, level: str = "INFO") -> None:
         """Log message using log_callback and internal logger."""
         for secret in self._secrets:
@@ -335,8 +324,7 @@ class SpaceTrackDialog(QtWidgets.QDialog):
         """Search satellites based on selected criteria and display results."""
         text = self.ui.line_edit_search.text().strip()
         limit = int(self.ui.combo_limit.currentText())
-        self.ui.table_result.setRowCount(0)
-        self.selected_ids = []
+        self._clear_results()
 
         try:
             self._validate_search_text(text)
@@ -355,13 +343,20 @@ class SpaceTrackDialog(QtWidgets.QDialog):
             else:
                 self._display_results(results)
         except Exception as err:
-            if type(err).__name__ == "AuthenticationError":
-                self._handle_error(
-                    "SpaceTrack authentication failed.",
-                    self._translate("SpaceTrack authentication failed. Check the account credentials.")
-                )
-            else:
-                self._handle_error(f"Search error ({type(err).__name__}): {err}")
+            self._handle_search_error(err, "Search")
+
+    def _clear_results(self) -> None:
+        self.ui.table_result.setRowCount(0)
+        self.selected_ids = []
+
+    def _handle_search_error(self, error: Exception, operation: str) -> None:
+        if type(error).__name__ == "AuthenticationError":
+            self._handle_error(
+                "SpaceTrack authentication failed.",
+                self._translate("SpaceTrack authentication failed. Check the account credentials.")
+            )
+        else:
+            self._handle_error(f"{operation} error ({type(error).__name__}): {error}")
 
     def _validate_search_text(self, text: str) -> None:
         if self.ui.radio_name.isChecked() and len(text) < 2:
@@ -425,20 +420,13 @@ class SpaceTrackDialog(QtWidgets.QDialog):
             return
         self._log("Initiating custom query...")
         limit = int(self.ui.combo_limit.currentText())
-        self.ui.table_result.setRowCount(0)
-        self.selected_ids = []
+        self._clear_results()
 
         try:
             results = self.client.search_by_custom_query(conditions, limit)
             self._display_results(results)
         except Exception as err:
-            if type(err).__name__ == "AuthenticationError":
-                self._handle_error(
-                    "SpaceTrack authentication failed.",
-                    self._translate("SpaceTrack authentication failed. Check the account credentials.")
-                )
-            else:
-                self._handle_error(f"Custom query error ({type(err).__name__}): {err}")
+            self._handle_search_error(err, "Custom query")
 
     def _display_results(self, results: list) -> None:
         """Populate table with search results."""

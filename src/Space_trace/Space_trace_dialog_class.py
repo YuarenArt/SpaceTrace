@@ -1,8 +1,7 @@
-import os
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtWidgets import (
     QDialog, QGroupBox, QRadioButton, QButtonGroup,
-    QDialogButtonBox, QPushButton, QTextBrowser, QFileDialog
+    QDialogButtonBox, QPushButton, QTextBrowser
 )
 
 class SpaceTracePluginDialogBase(QDialog):

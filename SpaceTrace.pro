@@ -11,8 +11,10 @@ SOURCES = \
     src/data_retriver/spacetrack_retriver.py \
     src/orbital_data_processor/__init__.py \
     src/orbital_data_processor/orbital_data_processor.py \
+    src/orbital_data_processor/anomaly.py \
     src/orbital_data_processor/pyorbital_processor.py \
     src/orbital_data_processor/skyfield.py \
+    src/orbital_data_processor/tle_validation.py \
     src/Space_trace/__init__.py \
     src/Space_trace/Space_trace.py \
     src/Space_trace/Space_trace_dialog.py \
@@ -33,4 +35,4 @@ RESOURCES = \
 
 TRANSLATIONS = \
     i18n/af.ts \
-    i18n/SpaceTracePlugin_ru.ts 
+    i18n/SpaceTracePlugin_ru.ts
