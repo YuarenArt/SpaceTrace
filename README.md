@@ -150,7 +150,7 @@
 
 ## Installation
 
-1. Install QGIS 3.44 LTR (Qt5). The plugin requires QGIS 3.40 or newer; QGIS 4 has not been tested.
+1. Install QGIS 3.40 or newer, or QGIS 4.x. The test suite has been run on QGIS 3 for Windows and QGIS 4 for Linux.
 2. Open the **OSGeo4W Shell** from that QGIS installation and install the Python dependencies into its Python environment:
    ```bash
    python3 -m pip install --user skyfield spacetrack numpy
@@ -406,7 +406,7 @@ A: See the Log tab in the plugin or open `SpaceTracePlugin.log` in the plugin di
 
 ## Установка
 
-1. Установите QGIS 3.44 LTR (Qt5). Плагину нужен QGIS 3.40 или новее; совместимость с QGIS 4 пока не проверена.
+1. Установите QGIS 3.40 или новее либо QGIS 4.x. Тесты выполнены в QGIS 3 для Windows и QGIS 4 для Linux.
 2. Откройте **OSGeo4W Shell** установленного QGIS и поставьте зависимости в его окружение Python:
    ```bash
    python3 -m pip install --user skyfield spacetrack numpy
