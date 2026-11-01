@@ -5,6 +5,7 @@ from pyorbital.orbital import Orbital
 
 from .orbital_data_processor import OrbitalDataProcessorInterface
 from .anomaly import mean_to_true_anomaly
+from .kinematics import velocity_angles
 
 class PyOrbitalDataProcessor(OrbitalDataProcessorInterface):
     """
@@ -61,24 +62,7 @@ class PyOrbitalDataProcessor(OrbitalDataProcessorInterface):
             _, velocities = self.orb.get_position(times_np, normalize=False)
             lons, lats, alts = self.get_coord(times_np)
 
-            lons_rad = np.radians(lons)
-            lats_rad = np.radians(lats)
-            vx, vy, vz = velocities
-
-            east = -np.sin(lons_rad) * vx + np.cos(lons_rad) * vy
-            north = (
-                -np.sin(lats_rad) * np.cos(lons_rad) * vx -
-                np.sin(lats_rad) * np.sin(lons_rad) * vy +
-                np.cos(lats_rad) * vz
-            )
-            up = (
-                np.cos(lats_rad) * np.cos(lons_rad) * vx +
-                np.cos(lats_rad) * np.sin(lons_rad) * vy +
-                np.sin(lats_rad) * vz
-            )
-            azimuth = (np.degrees(np.arctan2(east, north)) + 360) % 360
-            horizontal_speed = np.hypot(east, north)
-            trajectory_arc = np.degrees(np.arctan2(up, horizontal_speed))
+            azimuth, trajectory_arc = velocity_angles(lons, lats, velocities)
 
             e = self.orb.tle.excentricity
             M0_deg = self.orb.tle.mean_anomaly

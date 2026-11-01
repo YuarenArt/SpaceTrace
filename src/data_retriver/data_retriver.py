@@ -7,6 +7,11 @@ class DataRetriever(ABC):
     def retrieve_data(self, config):
         pass
 
+    def _log(self, message, level="INFO"):
+        """Log a message using the configured callback, if available."""
+        if self.log_callback:
+            self.log_callback(message, level)
+
 class LocalFileRetriever(DataRetriever):
     """
     Retrieves orbital data from local files.
@@ -18,16 +23,6 @@ class LocalFileRetriever(DataRetriever):
         :param log_callback: Function to handle logging.
         """
         self.log_callback = log_callback
-
-    def _log(self, message, level="INFO"):
-        """
-        Log a message using the provided callback, if available.
-
-        :param message: The message to log.
-        :param level: Log level ("INFO", "DEBUG", "WARNING", "ERROR").
-        """
-        if self.log_callback:
-            self.log_callback(message, level)
 
     def retrieve_data(self, config):
         """

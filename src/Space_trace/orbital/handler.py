@@ -71,7 +71,6 @@ class OrbitalLogicHandler:
                     current_segment = [(180, lat_interp), p2]
             elif cross_pole:
                 # Interpolate crossing at the pole (lat = ±90), longitude undefined, but we use ±180
-                t = (90 - abs(lat1)) / (abs(lat2 - lat1))
                 pole_lat = 90.0 if lat2 > lat1 else -90.0
                 pole_lon = 180.0  # Or any constant, as longitude at pole is degenerate
                 interpolated_point = (pole_lon, pole_lat)
@@ -99,14 +98,10 @@ class OrbitalLogicHandler:
     
 
     def _adjust_output_path(self, output_path, file_format, norad_id=None):
-        base, ext = os.path.splitext(output_path)
+        base, _ = os.path.splitext(output_path)
         suffix = f"_line_{norad_id}" if norad_id else "_line"
-        if file_format == 'shp':
-            return f"{base}{suffix}.shp"
-        elif file_format == 'gpkg':
-            return f"{base}{suffix}.gpkg"
-        elif file_format == 'geojson':
-            return f"{base}{suffix}.geojson"
+        if file_format in ('shp', 'gpkg', 'geojson'):
+            return f"{base}{suffix}.{file_format}"
 
     def create_track_from_points(self, points, output_path, file_format, create_line, norad_id=None):
         """

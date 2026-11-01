@@ -313,3 +313,38 @@ def test_invalid_project_crs_falls_back_for_persistent_file(qgis_app, tle_file, 
     points = QgsVectorLayer(point_file, "points", "ogr")
     assert points.isValid() and points.crs().authid() == "EPSG:4326"
     del points
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("method,kind", [("save_points", "point"), ("save_lines", "line")])
+def test_savers_preserve_empty_layer_behavior(qgis_app, tmp_path, method, kind):
+    from SpaceTrace.src.Space_trace.orbital.saver import FactoryProvider
+
+    messages = []
+    callback = lambda message, level="INFO": messages.append((message, level))
+    memory = FactoryProvider.get_factory("memory").get_saver(log_callback=callback)
+    layer = getattr(memory, method)([], norad_id=25544)
+    assert layer.isValid() and layer.featureCount() == 0
+    assert layer.name() == ("Points_25544" if kind == "point" else "line_25544")
+    assert (f"No {kind} features were created", "WARNING") in messages
+
+    disk = FactoryProvider.get_factory("gpkg").get_saver(log_callback=callback)
+    path = tmp_path / f"empty_{kind}.gpkg"
+    assert getattr(disk, method)([], str(path)) is None
+    assert not path.exists()
+    with pytest.raises(ValueError, match="Output path is required"):
+        getattr(disk, method)([])
+
+
+@pytest.mark.unit
+def test_velocity_angles_for_east_up_and_south_vectors():
+    import numpy as np
+    from SpaceTrace.src.orbital_data_processor.kinematics import velocity_angles
+
+    azimuth, arc = velocity_angles(
+        np.array([0.0, 0.0, 0.0]),
+        np.array([0.0, 0.0, 0.0]),
+        np.array([[0.0, 1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, -1.0]]),
+    )
+    assert azimuth == pytest.approx([90.0, 0.0, 180.0])
+    assert arc == pytest.approx([0.0, 90.0, 0.0])

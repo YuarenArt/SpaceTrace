@@ -5,6 +5,7 @@ import numpy as np
 
 from .orbital_data_processor import OrbitalDataProcessorInterface
 from .anomaly import mean_to_true_anomaly
+from .kinematics import velocity_angles
 
 class SkyfieldOrbitalDataProcessor(OrbitalDataProcessorInterface):
     """
@@ -90,27 +91,7 @@ class SkyfieldOrbitalDataProcessor(OrbitalDataProcessorInterface):
             alts = subpoints.elevation.km
             velocities = geocentrics.velocity.km_per_s
 
-            lons_rad = np.radians(lons)
-            lats_rad = np.radians(lats)
-            vx, vy, vz = velocities
-
-            # Compute azimuth
-            east = -np.sin(lons_rad) * vx + np.cos(lons_rad) * vy
-            north = (
-                -np.sin(lats_rad) * np.cos(lons_rad) * vx -
-                np.sin(lats_rad) * np.sin(lons_rad) * vy +
-                np.cos(lats_rad) * vz
-            )
-            azimuth = (np.degrees(np.arctan2(east, north)) + 360) % 360
-
-            # Compute trajectory arc
-            up = (
-                np.cos(lats_rad) * np.cos(lons_rad) * vx +
-                np.cos(lats_rad) * np.sin(lons_rad) * vy +
-                np.sin(lats_rad) * vz
-            )
-            horizontal_speed = np.hypot(east, north)
-            trajectory_arc = np.degrees(np.arctan2(up, horizontal_speed))
+            azimuth, trajectory_arc = velocity_angles(lons, lats, velocities)
 
             # Compute true anomaly
             e = self.satellite.model.ecco  # Eccentricity

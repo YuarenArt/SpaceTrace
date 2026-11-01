@@ -16,16 +16,6 @@ class SpaceTrackRetriever(DataRetriever):
         self.client = SpacetrackClientWrapper(username, password)
         self.log_callback = log_callback
 
-    def _log(self, message, level="INFO"):
-        """
-        Log a message using the provided callback, if available.
-
-        :param message: The message to log.
-        :param level: Log level ("INFO", "DEBUG", "WARNING", "ERROR").
-        """
-        if self.log_callback:
-            self.log_callback(message, level)
-
     def retrieve_data(self, config):
         """
         Retrieve data from SpaceTrack API.

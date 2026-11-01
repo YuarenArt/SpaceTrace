@@ -10,7 +10,7 @@ from qgis.core import (
     QgsCoordinateTransform,
     QgsCoordinateReferenceSystem,
 )
-from PyQt5.QtCore import QMetaType, QDateTime, Qt
+from qgis.PyQt.QtCore import QMetaType, QDateTime, Qt
 from typing import Optional, Callable
 from abc import ABC, abstractmethod
 
@@ -21,16 +21,16 @@ class FileSaver(ABC):
     Works directly in the project CRS unless a different input CRS is specified.
     """
     point_fields = [
-        ("Point_ID", QMetaType.Int),
+        ("Point_ID", QMetaType.Type.Int),
         ("Date_Time", None),
-        ("Latitude", QMetaType.Double),
-        ("Longitude", QMetaType.Double),
-        ("Altitude", QMetaType.Double),
-        ("Velocity", QMetaType.Double),
-        ("Azimuth", QMetaType.Double),
-        ("TrajectoryArc", QMetaType.Double),
-        ("TrueAnomaly", QMetaType.Double),
-        ("Inclination", QMetaType.Double),
+        ("Latitude", QMetaType.Type.Double),
+        ("Longitude", QMetaType.Type.Double),
+        ("Altitude", QMetaType.Type.Double),
+        ("Velocity", QMetaType.Type.Double),
+        ("Azimuth", QMetaType.Type.Double),
+        ("TrajectoryArc", QMetaType.Type.Double),
+        ("TrueAnomaly", QMetaType.Type.Double),
+        ("Inclination", QMetaType.Type.Double),
     ]
 
     def __init__(
@@ -126,13 +126,51 @@ class FileSaver(ABC):
         write_result, error_message, _, _ = QgsVectorFileWriter.writeAsVectorFormatV3(
             layer, output_path, QgsProject.instance().transformContext(), options
         )
-        if write_result != QgsVectorFileWriter.NoError:
+        if write_result != QgsVectorFileWriter.WriterError.NoError:
             self._log(
                 f"Failed to save {kind} to {output_path}: {error_message}",
                 "ERROR"
             )
             raise RuntimeError(f"Failed to save {self.format_name}: {error_message}")
         self._log(f"Successfully saved {kind} to {output_path}", "INFO")
+
+    def _create_layer(self, geometry_type, kind, output_path_or_layername, norad_id):
+        if not self.is_memory() and not output_path_or_layername:
+            self._log(
+                f"Output path is required for {self.format_name} format but was None",
+                "ERROR"
+            )
+            raise ValueError(f"Output path is required for {self.format_name} format")
+
+        if self.is_memory():
+            prefix, default = ("Points", "Points") if kind == "point" else ("line", "Lines")
+            layer_name = output_path_or_layername or (f"{prefix}_{norad_id}" if norad_id else default)
+        else:
+            layer_name = output_path_or_layername
+
+        self._log(
+            f"Creating {kind} layer '{layer_name}' in CRS {self.project_crs.authid()}",
+            "DEBUG"
+        )
+        layer = QgsVectorLayer(
+            f"{geometry_type}?crs={self.project_crs.authid()}",
+            layer_name,
+            "memory"
+        )
+        return layer, layer.dataProvider()
+
+    def _finish_layer(self, layer, provider, features, output_path, kind):
+        if features:
+            provider.addFeatures(features)
+            self._log(f"Added {len(features)} features to {kind} layer", "DEBUG")
+            if not self.is_memory():
+                self._write_layer(layer, output_path, f"{kind}s")
+            else:
+                layer.updateExtents()
+                self._log(f"Updated extents for in-memory {kind} layer", "DEBUG")
+        else:
+            self._log(f"No {kind} features were created", "WARNING")
+        return layer if self.is_memory() else None
 
     def save_points(
         self,
@@ -150,30 +188,7 @@ class FileSaver(ABC):
         """
         self._log(f"Starting save_points for format: {self.format_name}", "DEBUG")
 
-        if not self.is_memory() and not output_path_or_layername:
-            self._log(
-                f"Output path is required for {self.format_name} format but was None",
-                "ERROR"
-            )
-            raise ValueError(f"Output path is required for {self.format_name} format")
-        
-        if self.is_memory():
-            layer_name = output_path_or_layername or (f"Points_{norad_id}" if norad_id else "Points")
-        else:
-            layer_name = output_path_or_layername
-
-        self._log(
-            f"Creating point layer '{layer_name}' in CRS {self.project_crs.authid()}",
-            "DEBUG"
-        )
-
-        # Create a vector layer for points with the project's CRS
-        layer = QgsVectorLayer(
-            f"Point?crs={self.project_crs.authid()}",
-            layer_name,
-            "memory"
-        )
-        prov = layer.dataProvider()
+        layer, prov = self._create_layer("Point", "point", output_path_or_layername, norad_id)
 
         # Define and add fields
         fields = QgsFields()
@@ -209,19 +224,7 @@ class FileSaver(ABC):
 
         self._log(f"Created {len(feats)} point features", "DEBUG")
 
-        if feats:
-            prov.addFeatures(feats)
-            self._log(f"Added {len(feats)} features to point layer", "DEBUG")
-
-            if not self.is_memory():
-                self._write_layer(layer, output_path_or_layername, "points")
-            else:
-                layer.updateExtents()
-                self._log("Updated extents for in-memory point layer", "DEBUG")
-        else:
-            self._log("No point features were created", "WARNING")
-
-        return layer if self.is_memory() else None
+        return self._finish_layer(layer, prov, feats, output_path_or_layername, "point")
 
     def save_lines(
         self,
@@ -238,34 +241,11 @@ class FileSaver(ABC):
         """
         self._log(f"Starting save_lines for format: {self.format_name}", "DEBUG")
 
-        if not self.is_memory() and not output_path_or_layername:
-            self._log(
-                f"Output path is required for {self.format_name} format but was None",
-                "ERROR"
-            )
-            raise ValueError(f"Output path is required for {self.format_name} format")
-
-        if self.is_memory():
-            layer_name = output_path_or_layername or (f"line_{norad_id}" if norad_id else "Lines")
-        else:
-            layer_name = output_path_or_layername
-
-        self._log(
-            f"Creating line layer '{layer_name}' in CRS {self.project_crs.authid()}",
-            "DEBUG"
-        )
-
-        # Create a vector layer for lines with the project's CRS
-        layer = QgsVectorLayer(
-            f"LineString?crs={self.project_crs.authid()}",
-            layer_name,
-            "memory"
-        )
-        prov = layer.dataProvider()
+        layer, prov = self._create_layer("LineString", "line", output_path_or_layername, norad_id)
 
         # Define and add a single ID field
         fields = QgsFields()
-        fields.append(QgsField("ID", QMetaType.Int))
+        fields.append(QgsField("ID", QMetaType.Type.Int))
         prov.addAttributes(fields)
         layer.updateFields()
         self._log(f"Fields added to line layer: {[f.name() for f in fields]}", "DEBUG")
@@ -296,32 +276,20 @@ class FileSaver(ABC):
 
         self._log(f"Created {len(feats)} line features", "DEBUG")
 
-        if feats:
-            prov.addFeatures(feats)
-            self._log(f"Added {len(feats)} features to line layer", "DEBUG")
-
-            if not self.is_memory():
-                self._write_layer(layer, output_path_or_layername, "lines")
-            else:
-                layer.updateExtents()
-                self._log("Updated extents for in-memory line layer", "DEBUG")
-        else:
-            self._log("No line features were created", "WARNING")
-
-        return layer if self.is_memory() else None
+        return self._finish_layer(layer, prov, feats, output_path_or_layername, "line")
 
 
 class ShpSaver(FileSaver):
     """Saver for ESRI Shapefile format (disk)."""
     format_name = "ESRI Shapefile"
-    date_field_type = QMetaType.QString
+    date_field_type = QMetaType.Type.QString
 
     def prepare_date(self, dt):
         """Convert datetime to ISO string for shapefiles."""
         return QDateTime(
             dt.year, dt.month, dt.day,
             dt.hour, dt.minute, dt.second
-        ).toString(Qt.ISODate)
+        ).toString(Qt.DateFormat.ISODate)
 
     def is_memory(self) -> bool:
         return False
@@ -330,7 +298,7 @@ class ShpSaver(FileSaver):
 class GpkgSaver(FileSaver):
     """Saver for GeoPackage format (disk)."""
     format_name = "GPKG"
-    date_field_type = QMetaType.QDateTime
+    date_field_type = QMetaType.Type.QDateTime
 
     def prepare_date(self, dt):
         """Convert datetime to QDateTime for GeoPackage."""
@@ -346,7 +314,7 @@ class GpkgSaver(FileSaver):
 class GeoJsonSaver(FileSaver):
     """Saver for GeoJSON format (disk)."""
     format_name = "GeoJSON"
-    date_field_type = QMetaType.QDateTime
+    date_field_type = QMetaType.Type.QDateTime
 
     def prepare_date(self, dt):
         """Convert datetime to QDateTime for GeoJSON."""
@@ -362,7 +330,7 @@ class GeoJsonSaver(FileSaver):
 class MemorySaver(FileSaver):
     """Saver for in-memory QGIS layers."""
     format_name = "memory"
-    date_field_type = QMetaType.QDateTime
+    date_field_type = QMetaType.Type.QDateTime
 
     def prepare_date(self, dt):
         """Convert datetime to QDateTime for in-memory layers."""

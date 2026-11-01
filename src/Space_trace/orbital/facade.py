@@ -15,10 +15,9 @@ class OrbitalTrackFacade:
 
     def __init__(self, retriever, log_callback=None):
         """
-        Initialize with a data retriever and computation engine.
+        Initialize with a data retriever and an optional log callback.
 
         :param retriever: Instance of DataRetriever.
-        :param engine: Instance of ComputationEngine.
         :param log_callback: Function to handle logging.
         """
         self.retriever = retriever
