@@ -62,6 +62,7 @@ def main():
             "SPACETRACE_LOG_PATH": str(work / "plugin.log"),
             "SPACETRACE_REPO_ROOT": str(ROOT),
             "SPACETRACE_E2E_MODE": args.mode,
+            "SPACETRACE_EXPECT_PLUGIN_DIR": str(plugins / "SpaceTrace"),
             "QGIS_PLUGINPATH": str(plugins),
             "QT_QPA_PLATFORM": "offscreen",
             "DISPLAY": env.get("DISPLAY", ":99"),
@@ -82,6 +83,11 @@ def main():
                                         errors="replace", timeout=180, check=False)
                 output = redact(result.stdout + result.stderr)
             except subprocess.TimeoutExpired as error:
+                parts = (error.stdout or b"", error.stderr or b"")
+                partial = "".join(part.decode("utf-8", errors="replace") if isinstance(part, bytes)
+                                  else part for part in parts)
+                if args.reports_dir:
+                    (args.reports_dir / f"{script}.log").write_text(redact(partial), encoding="utf-8")
                 raise RuntimeError(f"QGIS timed out running {script}") from error
             if args.reports_dir:
                 (args.reports_dir / f"{script}.log").write_text(output, encoding="utf-8")

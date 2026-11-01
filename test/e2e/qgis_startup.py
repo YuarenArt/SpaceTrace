@@ -29,6 +29,9 @@ def run():
             assert qgis.utils.loadPlugin("SpaceTrace"), "Plugin did not load"
             assert qgis.utils.startPlugin("SpaceTrace"), "Plugin did not start"
         plugin = qgis.utils.plugins["SpaceTrace"]
+        expected_plugin_dir = os.environ.get("SPACETRACE_EXPECT_PLUGIN_DIR")
+        if expected_plugin_dir:
+            assert Path(plugin.plugin_dir).resolve() == Path(expected_plugin_dir).resolve()
         assert len(plugin.actions) == 1
 
         # Real QGIS toolbar action, real dialog, real Qt clicks, real processing.
