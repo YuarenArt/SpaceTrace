@@ -1,0 +1,7 @@
+[flake8]
+# QGIS 3 rules; QGS2 is experimental and QGS4 targets Qt6/QGIS 4.
+select = QGS1
+# QGIS documents passing iface to the plugin.
+ignore = QGS105
+require-plugins = flake8-qgis
+exclude = .git, venv, __pycache__, resources.py

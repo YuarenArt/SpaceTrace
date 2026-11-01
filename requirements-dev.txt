@@ -1,4 +1,5 @@
 -r requirements.txt
+-r requirements-lint.txt
 pyorbital
 pytest
 pytest-benchmark

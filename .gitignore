@@ -4,6 +4,7 @@
 /.qtcreator/
 /.vscode/
 __pycache__/
+.ruff_cache/
 *.log
 *.db
 .env

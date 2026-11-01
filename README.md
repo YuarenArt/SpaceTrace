@@ -36,6 +36,7 @@
 - [Installation](#installation)
 - [Usage Example](#usage-example)
 - [Project Structure](#project-structure)
+- [Architecture](#architecture)
 - [FAQ](#faq)
 - [Feedback & Contribution](#feedback--contribution)
 
@@ -67,7 +68,7 @@
   - Generates both point and line layers for each satellite's orbit.
   - Option to add layers directly to the QGIS project or keep them temporary.
 - **Technical:**
-  - Uses both `pyorbital` and `skyfield` engines for accurate propagation (deep space supported).
+  - Uses `skyfield` for orbit propagation, including deep-space objects.
   - Computes not just position, but also velocity, azimuth, trajectory arc, true anomaly, and inclination for each time step.
 
 ### 3. Export & Output Options
@@ -119,7 +120,7 @@
   - If no output path is specified, layers are created in memory.
   - You can add these layers to your QGIS project or discard them after viewing.
 - **Engines:**
-  - Both `pyorbital` and `skyfield` are used for orbit propagation, supporting a wide range of satellites (including deep space).
+  - `skyfield` is used for orbit propagation, including deep-space objects. `pyorbital` is retained for optional benchmarks.
 - **Quick Duration Buttons:**
   - Instantly set duration to 1 hour, 1 day, or 1 week.
 - **Data Validation:**
@@ -149,7 +150,7 @@
 
 ## Installation
 
-1. Install QGIS 3.44 LTR (Qt5). The plugin requires QGIS 3.40 or newer and uses PyQt5 directly; QGIS 4 has not been tested.
+1. Install QGIS 3.44 LTR (Qt5). The plugin requires QGIS 3.40 or newer; QGIS 4 has not been tested.
 2. Open the **OSGeo4W Shell** from that QGIS installation and install the Python dependencies into its Python environment:
    ```bash
    python3 -m pip install --user skyfield spacetrack numpy
@@ -158,6 +159,29 @@
 4. Restart QGIS and enable **Space Trace** in Plugins > Manage and Install Plugins.
 
 For development, install the optional test dependencies with `python3 -m pip install -r requirements-dev.txt` in the same OSGeo4W Shell. Qt Designer and Qt Linguist are included with the OSGeo4W QGIS installation.
+
+### Linting
+
+Lint tools can run with Python 3.10 or newer without starting QGIS. Install only the lint dependencies with `python -m pip install -r requirements-lint.txt`, or install them together with the other development dependencies above. From the repository root, run:
+
+```bash
+python -m ruff check --no-cache src scripts test __init__.py
+python -m flake8 src
+```
+
+On Windows, an isolated lint environment can be created with `python -m venv venv` and populated with `venv\Scripts\python.exe -m pip install -r requirements-lint.txt`. To use it, replace `python` in the commands above with `venv\Scripts\python.exe`. QGIS tests still use the QGIS Python environment.
+
+Ruff checks Python errors; flake8-qgis checks QGIS 3 conventions. QGS105 is disabled because passing `iface` follows the QGIS plugin lifecycle. Experimental QGS2 and QGIS 4 migration rules are outside the flake8 check.
+
+GitHub Actions also runs the official [PyQGIS 4 Checker](https://github.com/qgis/pyqgis4-checker) on `src`, `test`, `scripts`, `__init__.py` and `resources.py`. It uploads a `qgis4-compatibility-report` artifact for seven days and fails when the checker finds incompatibilities. A passing report does not replace tests in QGIS 4. The checker runs against a temporary copy and does not edit the checkout.
+
+To inspect `src` locally with Docker Desktop running, execute from the repository root in PowerShell:
+
+```powershell
+docker run --rm --mount "type=bind,source=$((Get-Location).Path),target=/workspace,readonly" ghcr.io/qgis/pyqgis4-checker:main-ubuntu pyqt5_to_pyqt6.py --dry_run /workspace/src
+```
+
+This local command only checks `src`; the CI report also covers tests, scripts and the two Python files in the plugin root. The checker requires Docker and its image, not the Python packages in `requirements-lint.txt`. Its dry-run mode reports findings but does not fail merely because findings exist.
 
 ---
 
@@ -190,6 +214,14 @@ SpaceTrace/
   ├── requirements.txt           # Dependencies
   └── README.md
 ```
+
+### Architecture
+
+QGIS loads the plugin through `classFactory` in `__init__.py`. The main dialog collects settings; `SpaceTracePlugin` validates them, creates an `OrbitalConfig` for each input, and invokes `OrbitalTrackFacade`.
+
+The facade retrieves TLE/OMM data from a local file or SpaceTrack. `OrbitalLogicHandler` uses the Skyfield processor to calculate positions, then builds QGIS point and line layers through the saver for the requested format. The SpaceTrack search and custom-query dialogs use `SpacetrackClientWrapper` to query the API and return selected NORAD IDs to the main dialog.
+
+Tests cover individual components, PyQGIS layer creation, Qt widget interactions, and full plugin scenarios in a QGIS process. See [the test matrix](test/TEST_MATRIX.md) for the coverage and its limits.
 
 ---
 
@@ -260,6 +292,7 @@ A: See the Log tab in the plugin or open `SpaceTracePlugin.log` in the plugin di
 - [Установка](#установка)
 - [Пример использования](#пример-использования)
 - [Структура проекта](#структура-проекта)
+- [Архитектура](#архитектура)
 - [FAQ](#faq)
 - [Обратная связь и вклад](#обратная-связь-и-вклад)
 
@@ -291,7 +324,7 @@ A: See the Log tab in the plugin or open `SpaceTracePlugin.log` in the plugin di
   - Генерация точечных и линейных слоев для каждой орбиты.
   - Можно добавить слои в проект QGIS или оставить временными.
 - **Технически:**
-  - Используются движки `pyorbital` и `skyfield` (поддержка глубокого космоса).
+  - Используется `skyfield`, в том числе для объектов дальнего космоса.
   - Вычисляются не только координаты, но и скорость, азимут, дуга траектории, истинная аномалия, наклонение.
 
 ### 3. Экспорт и вывод
@@ -343,7 +376,7 @@ A: See the Log tab in the plugin or open `SpaceTracePlugin.log` in the plugin di
   - Если путь вывода не указан, слои создаются во временной памяти.
   - Можно добавить такие слои в проект или удалить после просмотра.
 - **Движки:**
-  - Используются `pyorbital` и `skyfield` для расчета орбит (поддержка глубокого космоса).
+  - Для расчёта орбит используется `skyfield`, в том числе для объектов дальнего космоса. `pyorbital` сохранён для необязательных бенчмарков.
 - **Быстрые кнопки длительности:**
   - Мгновенно выставляют длительность на 1 час, 1 день или 1 неделю.
 - **Валидация данных:**
@@ -373,7 +406,7 @@ A: See the Log tab in the plugin or open `SpaceTracePlugin.log` in the plugin di
 
 ## Установка
 
-1. Установите QGIS 3.44 LTR (Qt5). Плагину нужен QGIS 3.40 или новее; совместимость с QGIS 4 пока не проверена из-за прямых импортов PyQt5.
+1. Установите QGIS 3.44 LTR (Qt5). Плагину нужен QGIS 3.40 или новее; совместимость с QGIS 4 пока не проверена.
 2. Откройте **OSGeo4W Shell** установленного QGIS и поставьте зависимости в его окружение Python:
    ```bash
    python3 -m pip install --user skyfield spacetrack numpy
@@ -382,6 +415,29 @@ A: See the Log tab in the plugin or open `SpaceTracePlugin.log` in the plugin di
 4. Перезапустите QGIS и включите **Space Trace** через «Плагины» → «Управление и установка плагинов».
 
 Для разработки установите инструменты тестирования командой `python3 -m pip install -r requirements-dev.txt` в той же OSGeo4W Shell. Qt Designer и Qt Linguist входят в установку QGIS через OSGeo4W.
+
+### Проверка линтерами
+
+Линтеры работают с Python 3.10 или новее без запуска QGIS. Чтобы установить только их, выполните `python -m pip install -r requirements-lint.txt`; они также входят в `requirements-dev.txt`. Из корня репозитория запустите:
+
+```powershell
+python -m ruff check --no-cache src scripts test __init__.py
+python -m flake8 src
+```
+
+В Windows можно создать отдельное окружение линтеров командами `python -m venv venv` и `venv\Scripts\python.exe -m pip install -r requirements-lint.txt`. Для запуска замените `python` в командах выше на `venv\Scripts\python.exe`. Тесты QGIS по-прежнему запускаются в окружении Python из QGIS.
+
+Ruff проверяет ошибки Python, flake8-qgis — правила для QGIS 3. Правило QGS105 отключено: передача `iface` соответствует жизненному циклу плагина QGIS. Экспериментальные правила QGS2 и правила перехода на QGIS 4 не входят в проверку flake8.
+
+GitHub Actions также запускает официальный [PyQGIS 4 Checker](https://github.com/qgis/pyqgis4-checker) для `src`, `test`, `scripts`, `__init__.py` и `resources.py`. Отчёт `qgis4-compatibility-report` сохраняется как артефакт на семь дней, а найденные несовместимости приводят к ошибке CI. Отсутствие замечаний не заменяет тестирование в QGIS 4. Проверка работает с временной копией и не изменяет исходники.
+
+Чтобы локально проверить `src`, запустите Docker Desktop и выполните в PowerShell из корня репозитория:
+
+```powershell
+docker run --rm --mount "type=bind,source=$((Get-Location).Path),target=/workspace,readonly" ghcr.io/qgis/pyqgis4-checker:main-ubuntu pyqt5_to_pyqt6.py --dry_run /workspace/src
+```
+
+Эта команда проверяет только `src`; отчёт CI дополнительно охватывает тесты, скрипты и два Python-файла в корне плагина. Для проверки нужны Docker и образ проверяющего инструмента, а не пакеты из `requirements-lint.txt`. В режиме `--dry_run` найденные замечания сами по себе не приводят к ошибке команды.
 
 ### Автоматические тесты на Windows
 
@@ -440,6 +496,14 @@ SpaceTrace/
   ├── requirements.txt           # Зависимости
   └── README.md
 ```
+
+### Архитектура
+
+QGIS загружает плагин через `classFactory` в `__init__.py`. Главное окно собирает настройки; `SpaceTracePlugin` проверяет их, создаёт `OrbitalConfig` для каждого входного объекта и передаёт задачу в `OrbitalTrackFacade`.
+
+Фасад получает TLE/OMM из локального файла или SpaceTrack. `OrbitalLogicHandler` рассчитывает положения через Skyfield, затем создаёт точечные и линейные слои QGIS с помощью обработчика выбранного формата. Окна поиска и конструктора запросов используют `SpacetrackClientWrapper` для обращения к API и передают выбранные NORAD ID в главное окно.
+
+Тесты проверяют отдельные компоненты, создание слоёв через PyQGIS, действия с виджетами Qt и полные сценарии в процессе QGIS. Покрытие и его границы описаны в [матрице тестов](test/TEST_MATRIX.md).
 
 ---
 
