@@ -24,8 +24,9 @@ jobs:
           $installer = Join-Path $env:RUNNER_TEMP 'osgeo4w-setup.exe'
           $root = Join-Path $env:RUNNER_TEMP 'OSGeo4W'
           $cache = Join-Path $env:RUNNER_TEMP 'osgeo4w-packages'
+          New-Item -ItemType Directory -Path $cache -Force | Out-Null
           Invoke-WebRequest 'https://download.osgeo.org/osgeo4w/v2/osgeo4w-setup.exe' -OutFile $installer
-          $p = Start-Process -FilePath $installer -ArgumentList @('-q', '-A', '-R', $root, '-s', 'https://download.osgeo.org/osgeo4w/', '-l', $cache, '-P', 'qgis-ltr,python3-pip') -Wait -PassThru -WindowStyle Hidden
+          $p = Start-Process -FilePath $installer -ArgumentList @('-q', '-k', '-r', '-A', '-R', $root, '-s', 'https://download.osgeo.org/osgeo4w/v2/', '-l', $cache, '-P', 'qgis-ltr,python3-pip') -Wait -PassThru -WindowStyle Hidden
           if ($p.ExitCode -ne 0) { throw "OSGeo4W setup failed: $($p.ExitCode)" }
           if (-not (Test-Path (Join-Path $root 'bin\python-qgis-ltr.bat'))) { throw 'QGIS LTR Python launcher not found' }
       - name: Install test dependencies
