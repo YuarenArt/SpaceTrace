@@ -95,6 +95,11 @@ def main():
                         (args.reports_dir / "plugin.log").write_text(
                             redact(plugin_log.read_text(encoding="utf-8", errors="replace")), encoding="utf-8"
                         )
+                    pending_report = work / report_name
+                    if pending_report.exists():
+                        (args.reports_dir / report_name).write_text(
+                            redact(pending_report.read_text(encoding="utf-8", errors="replace")), encoding="utf-8"
+                        )
                 raise RuntimeError(f"QGIS timed out running {script}") from error
             if args.reports_dir:
                 (args.reports_dir / f"{script}.log").write_text(output, encoding="utf-8")

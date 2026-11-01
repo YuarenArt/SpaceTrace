@@ -13,6 +13,14 @@ if os.environ.get("SPACETRACE_E2E_DEBUG_HANGS"):
     import faulthandler
     faulthandler.dump_traceback_later(45, repeat=True)
 
+    def report_visible_windows():
+        windows = [(type(widget).__name__, widget.windowTitle())
+                   for widget in QApplication.topLevelWidgets() if widget.isVisible()]
+        print(f"Visible QGIS windows: {windows}", flush=True)
+        QTimer.singleShot(15000, report_visible_windows)
+
+    QTimer.singleShot(15000, report_visible_windows)
+
 
 def run():
     output_dir = Path(os.environ["SPACETRACE_E2E_DIR"])
@@ -31,6 +39,7 @@ def run():
         report["error"] = traceback.format_exc()
     finally:
         QgsProject.instance().clear()
+        QgsProject.instance().setDirty(False)
         (output_dir / "reopen_result.json").write_text(json.dumps(report), encoding="utf-8")
         QTimer.singleShot(0, QApplication.quit)
 

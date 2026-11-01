@@ -46,7 +46,7 @@ jobs:
       matrix:
         include:
           - qgis: '3.40'
-            image: qgis/qgis:3.40.15-noble
+            image: qgis/qgis:3.40.0-noble
           - qgis: '3.44'
             image: qgis/qgis:3.44.15-noble
           - qgis: '4.2'
@@ -94,10 +94,10 @@ jobs:
       matrix:
         include:
           - qgis: '3.40'
-            image: qgis/qgis:3.40.15-noble
+            image: qgis/qgis:3.40.0-noble
             mode: offline
           - qgis: '3.40'
-            image: qgis/qgis:3.40.15-noble
+            image: qgis/qgis:3.40.0-noble
             mode: mock-api
           - qgis: '3.44'
             image: qgis/qgis:3.44.15-noble
