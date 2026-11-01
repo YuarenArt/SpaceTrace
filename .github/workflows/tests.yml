@@ -1,0 +1,149 @@
+name: QGIS tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: Build and validate plugin ZIP
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Build and validate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/build_plugin.py --output-dir "$RUNNER_TEMP/plugin-zip"
+          python scripts/check_plugin_zip.py "$RUNNER_TEMP"/plugin-zip/SpaceTrace-*.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: spacetrace-plugin-zip
+          path: ${{ runner.temp }}/plugin-zip/SpaceTrace-*.zip
+          if-no-files-found: error
+          retention-days: 7
+
+  pytest:
+    name: Pytest QGIS ${{ matrix.qgis }}
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ matrix.image }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - qgis: '3.44'
+            image: qgis/qgis:3.44.15-noble
+          - qgis: '4.2'
+            image: qgis/qgis:4.2.3-resolute
+    env:
+      PYTHONPATH: /tmp/spacetrace-deps:/usr/share/qgis/python:/usr/lib/python3/dist-packages
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONOPTIMIZE: '0'
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install test dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          extras=()
+          if [ '${{ matrix.qgis }}' = '3.44' ]; then extras=('numpy<2' 'pyorbital==1.10.2'); fi
+          python3 -m pip install --target /tmp/spacetrace-deps -r requirements-dev.txt pytest-cov "${extras[@]}"
+      - name: Run unit, integration and Qt tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -c 'import sys; assert __debug__ and not sys.flags.optimize'
+          python3 -m pytest -q --junitxml="$RUNNER_TEMP/pytest.xml" --cov=src --cov-report="xml:$RUNNER_TEMP/coverage.xml" --basetemp="$RUNNER_TEMP/pytest-temp" --benchmark-storage="$RUNNER_TEMP/benchmarks" test
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-qgis-${{ matrix.qgis }}
+          path: |
+            ${{ runner.temp }}/pytest.xml
+            ${{ runner.temp }}/coverage.xml
+          if-no-files-found: warn
+          retention-days: 7
+
+  gui:
+    name: QGIS ${{ matrix.qgis }} UI ${{ matrix.mode }}
+    needs: package
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ matrix.image }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - qgis: '3.44'
+            image: qgis/qgis:3.44.15-noble
+            mode: offline
+          - qgis: '3.44'
+            image: qgis/qgis:3.44.15-noble
+            mode: mock-api
+          - qgis: '4.2'
+            image: qgis/qgis:4.2.3-resolute
+            mode: offline
+          - qgis: '4.2'
+            image: qgis/qgis:4.2.3-resolute
+            mode: mock-api
+    env:
+      PYTHONPATH: /tmp/spacetrace-deps:/usr/share/qgis/python:/usr/lib/python3/dist-packages
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONOPTIMIZE: '0'
+      QT_QPA_PLATFORM: offscreen
+      DISPLAY: ':99'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: spacetrace-plugin-zip
+          path: ${{ runner.temp }}/plugin-zip
+      - name: Install test dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          extras=()
+          if [ '${{ matrix.qgis }}' = '3.44' ]; then extras=('numpy<2' 'pyorbital==1.10.2'); fi
+          python3 -m pip install --target /tmp/spacetrace-deps -r requirements-dev.txt "${extras[@]}"
+      - name: Run interface scenarios from the ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/check_plugin_zip.py "$RUNNER_TEMP"/plugin-zip/SpaceTrace-*.zip
+          python3 scripts/test_qgis_gui.py --mode '${{ matrix.mode }}' --plugin-zip "$RUNNER_TEMP"/plugin-zip/SpaceTrace-*.zip --reports-dir "$RUNNER_TEMP/gui-report"
+      - name: Upload interface reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gui-qgis-${{ matrix.qgis }}-${{ matrix.mode }}
+          path: ${{ runner.temp }}/gui-report
+          if-no-files-found: warn
+          retention-days: 7
+
+  security:
+    name: Security and secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install security tools
+        run: python -m pip install bandit detect-secrets
+      - name: Scan plugin source
+        shell: bash
+        run: |
+          set -euo pipefail
+          bandit -q -r src __init__.py
+          detect-secrets scan --all-files src __init__.py > "$RUNNER_TEMP/secrets.json"
+          python -c 'import json,sys; findings=json.load(open(sys.argv[1], encoding="utf-8"))["results"]; print("Secret findings:", sum(map(len, findings.values()))); sys.exit(bool(findings))' "$RUNNER_TEMP/secrets.json"

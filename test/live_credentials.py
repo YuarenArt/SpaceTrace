@@ -1,5 +1,7 @@
 """Credentials for opt-in live tests, stored in the OS keyring."""
 
+import os
+
 import keyring
 from keyring.errors import PasswordDeleteError
 
@@ -8,6 +10,13 @@ SERVICE = "SpaceTrace.SpaceTrack.LiveTests.v2"
 
 
 def load_credentials():
+    login = os.environ.get("SPACETRACE_LOGIN")
+    password = os.environ.get("SPACETRACE_PASSWORD")
+    if login is not None or password is not None:
+        if not login or not password:
+            raise RuntimeError("Both SPACETRACE_LOGIN and SPACETRACE_PASSWORD are required.")
+        return login, password
+
     login = keyring.get_password(SERVICE, "login")
     password = keyring.get_password(SERVICE, "password")
     if not login or not password:

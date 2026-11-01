@@ -1,0 +1,48 @@
+name: SpaceTrack live
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 6 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  spacetrack-live:
+    name: Real SpaceTrack API and QGIS UI
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    container:
+      image: qgis/qgis:4.2.3-resolute
+    env:
+      PYTHONPATH: /tmp/spacetrace-deps:/usr/share/qgis/python:/usr/lib/python3/dist-packages
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONOPTIMIZE: '0'
+      QT_QPA_PLATFORM: offscreen
+      DISPLAY: ':99'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - name: Install test dependencies
+        run: python3 -m pip install --target /tmp/spacetrace-deps -r requirements-dev.txt
+      - name: Build plugin ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/build_plugin.py --output-dir "$RUNNER_TEMP/plugin-zip"
+          python3 scripts/check_plugin_zip.py "$RUNNER_TEMP"/plugin-zip/SpaceTrace-*.zip
+      - name: Run live scenarios
+        shell: bash
+        env:
+          SPACETRACE_LOGIN: ${{ secrets.SPACETRACE_LOGIN }}
+          SPACETRACE_PASSWORD: ${{ secrets.SPACETRACE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "$SPACETRACE_LOGIN" ] || [ -z "$SPACETRACE_PASSWORD" ]; then
+            echo '::error::Configure SPACETRACE_LOGIN and SPACETRACE_PASSWORD in GitHub Actions secrets.'
+            exit 1
+          fi
+          python3 scripts/test_qgis_gui.py --mode live --plugin-zip "$RUNNER_TEMP"/plugin-zip/SpaceTrace-*.zip

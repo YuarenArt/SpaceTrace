@@ -1,0 +1,76 @@
+name: Extended checks
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '41 5 * * 0'
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    name: Windows QGIS tests and UI
+    runs-on: windows-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install QGIS LTR
+        shell: pwsh
+        run: |
+          $installer = Join-Path $env:RUNNER_TEMP 'osgeo4w-setup.exe'
+          $root = Join-Path $env:RUNNER_TEMP 'OSGeo4W'
+          $cache = Join-Path $env:RUNNER_TEMP 'osgeo4w-packages'
+          Invoke-WebRequest 'https://download.osgeo.org/osgeo4w/v2/osgeo4w-setup.exe' -OutFile $installer
+          $p = Start-Process -FilePath $installer -ArgumentList @('-q', '-A', '-R', $root, '-s', 'https://download.osgeo.org/osgeo4w/', '-l', $cache, '-P', 'qgis-ltr,python3-pip') -Wait -PassThru -WindowStyle Hidden
+          if ($p.ExitCode -ne 0) { throw "OSGeo4W setup failed: $($p.ExitCode)" }
+          if (-not (Test-Path (Join-Path $root 'bin\python-qgis-ltr.bat'))) { throw 'QGIS LTR Python launcher not found' }
+      - name: Install test dependencies
+        shell: pwsh
+        run: |
+          & (Join-Path $env:RUNNER_TEMP 'OSGeo4W\bin\python-qgis-ltr.bat') -m pip install -r requirements-dev.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Run unit, integration and Qt tests
+        shell: pwsh
+        run: |
+          & ./scripts/test-windows.ps1 -QgisRoot (Join-Path $env:RUNNER_TEMP 'OSGeo4W')
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Run offline QGIS UI scenarios
+        shell: pwsh
+        run: |
+          & ./scripts/test-gui-e2e-windows.ps1 -QgisRoot (Join-Path $env:RUNNER_TEMP 'OSGeo4W') -Mode offline
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Run mock SpaceTrack QGIS UI scenarios
+        shell: pwsh
+        run: |
+          & ./scripts/test-gui-e2e-windows.ps1 -QgisRoot (Join-Path $env:RUNNER_TEMP 'OSGeo4W') -Mode mock-api
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  benchmarks:
+    name: Orbit benchmarks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    container:
+      image: qgis/qgis:3.44.15-noble
+    env:
+      PYTHONPATH: /tmp/spacetrace-deps:/usr/share/qgis/python:/usr/lib/python3/dist-packages
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONOPTIMIZE: '0'
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install test dependencies
+        run: python3 -m pip install --target /tmp/spacetrace-deps -r requirements-dev.txt 'numpy<2' 'pyorbital==1.10.2'
+      - name: Run benchmarks
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pytest -q test/benchmark --basetemp="$RUNNER_TEMP/benchmark-temp" --benchmark-storage="$RUNNER_TEMP/benchmarks" --benchmark-json="$RUNNER_TEMP/benchmark.json" --benchmark-min-rounds=3 --benchmark-max-time=1
+      - name: Upload benchmark report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: orbit-benchmark
+          path: ${{ runner.temp }}/benchmark.json
+          if-no-files-found: warn
+          retention-days: 7

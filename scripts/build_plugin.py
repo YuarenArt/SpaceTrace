@@ -1,5 +1,6 @@
 """Build a QGIS plugin ZIP from the current working tree."""
 
+import argparse
 from configparser import ConfigParser
 from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile
@@ -20,6 +21,9 @@ ROOT_FILES = (
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--output-dir", type=Path, default=ROOT / "zip_build")
+    args = parser.parse_args()
     metadata = ConfigParser()
     metadata.read(ROOT / "metadata.txt", encoding="utf-8")
     version = metadata["general"]["version"].strip()
@@ -34,8 +38,8 @@ def main():
         if not path.is_file() or not path.resolve().is_relative_to(ROOT.resolve()):
             raise ValueError(f"Missing or unsafe plugin file: {path}")
 
-    output = ROOT / "zip_build" / f"{PACKAGE_NAME}-{version}.zip"
-    output.parent.mkdir(exist_ok=True)
+    output = args.output_dir / f"{PACKAGE_NAME}-{version}.zip"
+    output.parent.mkdir(parents=True, exist_ok=True)
     with ZipFile(output, "x", compression=ZIP_DEFLATED) as archive:
         for path in sorted(files):
             archive.write(path, (Path(PACKAGE_NAME) / path.relative_to(ROOT)).as_posix())
