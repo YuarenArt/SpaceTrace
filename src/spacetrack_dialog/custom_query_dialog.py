@@ -1,22 +1,14 @@
-from PyQt5 import QtCore
-from PyQt5.QtWidgets import (
+from qgis.PyQt import QtCore
+from qgis.PyQt.QtWidgets import (
     QVBoxLayout, QTableWidget, QLineEdit, QPushButton, QHeaderView,
     QDialog, QComboBox, QMessageBox, QTableWidgetItem, QGroupBox, QHBoxLayout
 )
-from PyQt5.QtCore import QCoreApplication
+from qgis.PyQt.QtCore import QCoreApplication
 
 from datetime import datetime
 import math
 
-# Dictionary mapping satellite catalog fields to their data types
-field_types = {
-    'INTLDES': 'string', 'NORAD_CAT_ID': 'int', 'OBJECT_TYPE': 'string', 'SATNAME': 'string',
-    'COUNTRY': 'string', 'LAUNCH': 'date', 'SITE': 'string', 'DECAY': 'date',
-    'PERIOD': 'decimal', 'INCLINATION': 'decimal', 'APOGEE': 'int', 'PERIGEE': 'int',
-    'COMMENT': 'string', 'COMMENTCODE': 'int', 'RCSVALUE': 'int', 'RCS_SIZE': 'string',
-    'FILE': 'int', 'LAUNCH_YEAR': 'int', 'LAUNCH_NUM': 'int', 'LAUNCH_PIECE': 'string',
-    'CURRENT': 'enum', 'OBJECT_NAME': 'string', 'OBJECT_ID': 'string', 'OBJECT_NUMBER': 'int'
-}
+from ..spacetrack_client.query_fields import field_types, operators_by_type
 
 # Dictionary mapping field names to translatable labels
 field_labels = {
@@ -53,7 +45,7 @@ class Ui_CustomQueryDialog:
         """Set up UI components for the custom query dialog."""
         dialog.setWindowTitle(QtCore.QCoreApplication.translate("CustomQueryDialog", "Custom Query"))
         dialog.resize(800, 600)  # Increased size for better visibility
-        dialog.setWindowFlags(dialog.windowFlags() & ~QtCore.Qt.WindowContextHelpButtonHint)  # Remove help button
+        dialog.setWindowFlags(dialog.windowFlags() & ~QtCore.Qt.WindowType.WindowContextHelpButtonHint)  # Remove help button
         
         self.layout = QVBoxLayout(dialog)
         self.layout.setSpacing(10)
@@ -72,7 +64,7 @@ class Ui_CustomQueryDialog:
             QtCore.QCoreApplication.translate("CustomQueryDialog", "Operator"),
             QtCore.QCoreApplication.translate("CustomQueryDialog", "Value")
         ])
-        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.table.setAlternatingRowColors(True)
         self.table.verticalHeader().setVisible(False)
         table_layout.addWidget(self.table)
@@ -143,15 +135,22 @@ class CustomQueryDialog(QDialog):
 
     def add_condition(self):
         """Add a new condition row to the table."""
+        self._append_condition()
+
+    def _append_condition(self, field=None, operator=None, value=None, *, restoring=False):
+        """Create a row, optionally restoring a previously saved condition."""
         row = self.ui.table.rowCount()
         self.ui.table.insertRow(row)
 
-        label_item = QTableWidgetItem("")
-        label_item.setFlags(label_item.flags() & ~QtCore.Qt.ItemIsEditable)
+        label = self._translate("CustomQueryDialog", field_labels.get(field, field)) if restoring else ""
+        label_item = QTableWidgetItem(label)
+        label_item.setFlags(label_item.flags() & ~QtCore.Qt.ItemFlag.ItemIsEditable)
         self.ui.table.setItem(row, 0, label_item)
 
         field_combo = QComboBox()
         field_combo.addItems(field_types.keys())
+        if restoring:
+            field_combo.setCurrentText(field)
         field_combo.currentIndexChanged.connect(lambda _, combo=field_combo: self._on_field_changed(combo))
         self.ui.table.setCellWidget(row, 1, field_combo)
 
@@ -159,12 +158,17 @@ class CustomQueryDialog(QDialog):
         self.ui.table.setCellWidget(row, 2, operator_combo)
 
         value_edit = QLineEdit()
+        if value is not None:
+            value_edit.setText(value)
         self.ui.table.setCellWidget(row, 3, value_edit)
         operator_combo.currentTextChanged.connect(
             lambda operator, editor=value_edit: self._on_operator_changed(editor, operator)
         )
 
         self._update_field_related_widgets(row)
+        if restoring:
+            operator_combo.setCurrentText(operator)
+            self._on_operator_changed(value_edit, operator)
 
     def _on_field_changed(self, field_combo):
         """Resolve the current row after rows have been inserted or removed."""
@@ -191,13 +195,7 @@ class CustomQueryDialog(QDialog):
         label = field_labels.get(field, field)
         label_item.setText(self._translate("CustomQueryDialog", label))
 
-        operators = {
-            'int': ['=', '!=', '<', '>'],
-            'decimal': ['=', '!=', '<', '>'],
-            'date': ['=', '!=', '<', '>', 'IS NULL', 'IS NOT NULL'],
-            'string': ['=', '!=', 'LIKE'],
-            'enum': ['=', '!='],
-        }.get(field_type, [])
+        operators = operators_by_type.get(field_type, ())
         operator_combo.clear()
         operator_combo.addItems(operators)
 
@@ -297,32 +295,7 @@ class CustomQueryDialog(QDialog):
         """Restore saved conditions into the table."""
         self.ui.table.setRowCount(0)
         for field, operator, value in self.saved_conditions:
-            row = self.ui.table.rowCount()
-            self.ui.table.insertRow(row)
-            label_item = QTableWidgetItem(self._translate("CustomQueryDialog", field_labels.get(field, field)))
-            label_item.setFlags(label_item.flags() & ~QtCore.Qt.ItemIsEditable)
-            self.ui.table.setItem(row, 0, label_item)
-
-            field_combo = QComboBox()
-            field_combo.addItems(field_types.keys())
-            field_combo.setCurrentText(field)
-            field_combo.currentIndexChanged.connect(lambda _, combo=field_combo: self._on_field_changed(combo))
-            self.ui.table.setCellWidget(row, 1, field_combo)
-
-            operator_combo = QComboBox()
-            self.ui.table.setCellWidget(row, 2, operator_combo)
-
-            value_edit = QLineEdit()
-            if value is not None:
-                value_edit.setText(value)
-            self.ui.table.setCellWidget(row, 3, value_edit)
-            operator_combo.currentTextChanged.connect(
-                lambda selected, editor=value_edit: self._on_operator_changed(editor, selected)
-            )
-
-            self._update_field_related_widgets(row)
-            operator_combo.setCurrentText(operator)
-            self._on_operator_changed(value_edit, operator)
+            self._append_condition(field, operator, value, restoring=True)
 
     def accept(self):
         """Accept the dialog if conditions are valid."""

@@ -1,5 +1,5 @@
-from PyQt5 import QtCore, QtWidgets
-from PyQt5.QtWidgets import (
+from qgis.PyQt import QtCore, QtWidgets
+from qgis.PyQt.QtWidgets import (
     QDialog, QGroupBox, QRadioButton, QButtonGroup,
     QDialogButtonBox, QPushButton, QTextBrowser
 )
@@ -22,7 +22,7 @@ class SpaceTracePluginDialogBase(QDialog):
         """Create and arrange all widgets and layouts."""
         self.resize(600, 450)
         self.setObjectName("SpaceTracePluginDialog")
-        self.setWindowFlags(self.windowFlags() & ~QtCore.Qt.WindowContextHelpButtonHint)  # Remove help button
+        self.setWindowFlags(self.windowFlags() & ~QtCore.Qt.WindowType.WindowContextHelpButtonHint)  # Remove help button
 
         # Main layout
         self.verticalLayout = QtWidgets.QVBoxLayout(self)
@@ -96,7 +96,7 @@ class SpaceTracePluginDialogBase(QDialog):
         
         self.lineEditPassword = QtWidgets.QLineEdit(self.groupBoxSpaceTrack)
         self.lineEditPassword.setPlaceholderText("Enter your SpaceTrack account password")
-        self.lineEditPassword.setEchoMode(QtWidgets.QLineEdit.Password)
+        self.lineEditPassword.setEchoMode(QtWidgets.QLineEdit.EchoMode.Password)
         st_layout.addWidget(self.lineEditPassword)
         
         self.comboBoxDataFormatSpaceTrack = QtWidgets.QComboBox(self.groupBoxSpaceTrack)
@@ -198,11 +198,11 @@ class SpaceTracePluginDialogBase(QDialog):
         self.tabWidget.addTab(self.tabHelp, "")
 
         # Dialog buttons
-        self.buttonBox = QDialogButtonBox(QtCore.Qt.Horizontal, self)
+        self.buttonBox = QDialogButtonBox(QtCore.Qt.Orientation.Horizontal, self)
         self.pushButtonExecute = QPushButton("Execute", self)
         self.pushButtonClose = QPushButton("Close", self)
-        self.buttonBox.addButton(self.pushButtonExecute, QDialogButtonBox.AcceptRole)
-        self.buttonBox.addButton(self.pushButtonClose, QDialogButtonBox.RejectRole)
+        self.buttonBox.addButton(self.pushButtonExecute, QDialogButtonBox.ButtonRole.AcceptRole)
+        self.buttonBox.addButton(self.pushButtonClose, QDialogButtonBox.ButtonRole.RejectRole)
         self.verticalLayout.addWidget(self.buttonBox)
 
     def retranslate_ui(self):

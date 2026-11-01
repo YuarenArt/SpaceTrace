@@ -1,5 +1,5 @@
-from PyQt5 import QtWidgets, QtCore
-from PyQt5.QtWidgets import (
+from qgis.PyQt import QtWidgets, QtCore
+from qgis.PyQt.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QGroupBox, QRadioButton, QLabel, QLineEdit,
     QPushButton, QComboBox, QTableWidget, QDialogButtonBox, QFileDialog, QDialog,
     QMessageBox
@@ -18,7 +18,7 @@ class Ui_SpaceTrackDialog:
 
     def setup_ui(self, dialog: QDialog) -> None:
         dialog.resize(900, 600)  # Increased size for better visibility
-        dialog.setWindowFlags(dialog.windowFlags() & ~QtCore.Qt.WindowContextHelpButtonHint)  # Remove help button
+        dialog.setWindowFlags(dialog.windowFlags() & ~QtCore.Qt.WindowType.WindowContextHelpButtonHint)  # Remove help button
         self._create_main_layout(dialog)
         self._create_search_type_group(dialog)
         self._create_search_inputs(dialog)
@@ -82,7 +82,7 @@ class Ui_SpaceTrackDialog:
         
         for widget in (self.radio_name, self.radio_active, self.radio_country, self.radio_norad):
             layout.addWidget(widget)
-            layout.setAlignment(widget, QtCore.Qt.AlignLeft)
+            layout.setAlignment(widget, QtCore.Qt.AlignmentFlag.AlignLeft)
         
         self.main_layout.addWidget(self.group_box)
 
@@ -198,8 +198,8 @@ class Ui_SpaceTrackDialog:
             QtCore.QCoreApplication.translate("SpaceTrackDialog", "Inclination (°)")
         ]
         self.table_result.setHorizontalHeaderLabels(display_headers)
-        self.table_result.setSelectionMode(QTableWidget.MultiSelection)
-        self.table_result.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.table_result.setSelectionMode(QTableWidget.SelectionMode.MultiSelection)
+        self.table_result.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.table_result.horizontalHeader().setStretchLastSection(True)
         self.table_result.setSortingEnabled(True)
         self.table_result.setAlternatingRowColors(True)
@@ -232,14 +232,14 @@ class Ui_SpaceTrackDialog:
         self.progress_bar = QtWidgets.QProgressBar(dialog)
         self.progress_bar.setVisible(False)
         self.progress_bar.setTextVisible(True)
-        self.progress_bar.setAlignment(QtCore.Qt.AlignCenter)
+        self.progress_bar.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.main_layout.addWidget(self.progress_bar)
 
     def _create_bottom_buttons(self, dialog: QDialog) -> None:
         button_layout = QHBoxLayout()
         button_layout.setSpacing(5)
         
-        self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, parent=dialog)
+        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, parent=dialog)
         
         button_layout.addStretch()
         button_layout.addWidget(self.button_box)
@@ -408,7 +408,7 @@ class SpaceTrackDialog(QtWidgets.QDialog):
         self._log("Opening custom query dialog", "DEBUG")
         dialog = CustomQueryDialog(self)
         dialog.set_saved_conditions(self.custom_conds)
-        if dialog.exec_() == QDialog.Accepted:
+        if dialog.exec() == QDialog.DialogCode.Accepted:
             self.custom_conds = dialog.get_saved_conditions()
             self._log(f"Custom query conditions: {self.custom_conds}", "DEBUG")
             self.perform_custom_search(self.custom_conds)
@@ -451,7 +451,7 @@ class SpaceTrackDialog(QtWidgets.QDialog):
             text = self._format_cell(key, record)
             item = QtWidgets.QTableWidgetItem(text)
             if key == "NORAD_CAT_ID" and text.isdigit():
-                item.setData(QtCore.Qt.UserRole, int(text))
+                item.setData(QtCore.Qt.ItemDataRole.UserRole, int(text))
             self.ui.table_result.setItem(row, col, item)
 
     def _format_cell(self, key: str, rec: dict) -> str:
@@ -520,7 +520,7 @@ class SpaceTrackDialog(QtWidgets.QDialog):
             self._log("Save cancelled.")
             return []
 
-        dir_path = QFileDialog.getExistingDirectory(self, self._translate("Select directory to save data"), "", QFileDialog.ShowDirsOnly)
+        dir_path = QFileDialog.getExistingDirectory(self, self._translate("Select directory to save data"), "", QFileDialog.Option.ShowDirsOnly)
         if not dir_path:
             self._log("Save cancelled.")
             return []

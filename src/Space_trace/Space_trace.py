@@ -2,14 +2,14 @@
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QApplication
-from qgis.core import QgsVectorLayer, QgsProject
+from qgis.core import Qgis, QgsVectorLayer, QgsProject
 
 import os.path
 import time
 from datetime import datetime
 import logging
 
-from ... import resources as _resources  # Registers the QGIS icon resource.
+from ... import resources as _resources  # noqa: F401  # Registers the QGIS icon resource.
 from .Space_trace_dialog import SpaceTracePluginDialog
 from .orbital.facade import OrbitalTrackFacade
 from ..config.orbital import OrbitalConfig
@@ -203,35 +203,31 @@ class SpaceTracePlugin:
             return None, None
 
         if '|' in output_path:
-            directory, fmt = output_path.split('|', 1)
-            directory = directory.strip()
+            output_dir, fmt = output_path.split('|', 1)
+            output_dir = output_dir.strip()
             fmt = fmt.strip().lower()
-            if fmt not in {"shp", "gpkg", "geojson"}:
-                raise Exception(self.tr("Unsupported format. Use shp, gpkg, or geojson."))
-            if not os.path.isdir(directory) or not os.access(directory, os.W_OK):
-                raise Exception(self.tr("Output directory does not exist or is not writable."))
-            return directory, fmt
-
-        if num_items > 1:
-            output_dir = os.path.dirname(output_path)
-            if not output_dir:
-                output_dir = os.getcwd()
+            result_path = output_dir
+            directory_required = True
+        elif num_items > 1:
+            output_dir = os.path.dirname(output_path) or os.getcwd()
             _, ext = os.path.splitext(output_path)
             fmt = ext[1:].lower() if ext else "shp"
-            if fmt not in {"shp", "gpkg", "geojson"}:
-                raise Exception(self.tr("Unsupported format. Use shp, gpkg, or geojson."))
-            if not os.path.isdir(output_dir) or not os.access(output_dir, os.W_OK):
-                raise Exception(self.tr("Output directory does not exist or is not writable."))
-            return output_dir, fmt
+            result_path = output_dir
+            directory_required = True
+        else:
+            _, ext = os.path.splitext(output_path)
+            fmt = ext[1:].lower()
+            output_dir = os.path.dirname(output_path)
+            result_path = output_path
+            directory_required = False
 
-        _, ext = os.path.splitext(output_path)
-        fmt = ext[1:].lower()
         if fmt not in {"shp", "gpkg", "geojson"}:
             raise Exception(self.tr("Unsupported format. Use shp, gpkg, or geojson."))
-        output_dir = os.path.dirname(output_path)
-        if output_dir and (not os.path.isdir(output_dir) or not os.access(output_dir, os.W_OK)):
+        if (directory_required or output_dir) and (
+            not os.path.isdir(output_dir) or not os.access(output_dir, os.W_OK)
+        ):
             raise Exception(self.tr("Output directory does not exist or is not writable."))
-        return output_path, fmt
+        return result_path, fmt
 
     def _validate_save_data_path(self, save_data_path: str, save_data: bool, num_items: int) -> None:
         """Validate save data path.
@@ -405,7 +401,7 @@ class SpaceTracePlugin:
             self.log_message(f"{layer_type.capitalize()} layer loaded with {layer.featureCount()} features.", "INFO")
         else:
             self.log_message(f"Failed to load {layer_type} layer: {file_path}", "ERROR")
-            self.iface.messageBar().pushMessage("Error", f"Failed to load {layer_type} layer", level=3)
+            self.iface.messageBar().pushMessage("Error", f"Failed to load {layer_type} layer", level=Qgis.MessageLevel.Critical)
 
     def _process_track(self, config: OrbitalConfig, facade: OrbitalTrackFacade) -> None:
         """Generate an orbital track based on configuration.
@@ -423,7 +419,7 @@ class SpaceTracePlugin:
             self.iface.messageBar().pushMessage(
                 self.tr("Success"),
                 self.tr(f"{config.file_format.capitalize()} created"),
-                level=0
+                level=Qgis.MessageLevel.Success
             )
         else:
             point_layer, line_layer = facade.process_in_memory_track(config)
@@ -435,7 +431,7 @@ class SpaceTracePlugin:
             self.iface.messageBar().pushMessage(
                 self.tr("Success"),
                 self.tr("Temporary layers created"),
-                level=0
+                level=Qgis.MessageLevel.Success
             )
 
     def _process_item(self, item_id: int, inputs: dict, file_format: str, facade: OrbitalTrackFacade) -> bool:
@@ -467,7 +463,7 @@ class SpaceTracePlugin:
             self.iface.messageBar().pushMessage(
                 self.tr("Warning"),
                 f"Failed to process {'file' if is_local else 'satellite'} {item_name}: {error}",
-                level=2
+                level=Qgis.MessageLevel.Warning
             )
             return False
 
@@ -535,13 +531,13 @@ class SpaceTracePlugin:
             self.iface.messageBar().pushMessage(
                 self.tr("Processing Complete"),
                 f"Processed {len(successful)}/{total} {item_type}. {len(failed)} failed.",
-                level=1
+                level=Qgis.MessageLevel.Warning
             )
         else:
             self.iface.messageBar().pushMessage(
                 self.tr("Success"),
                 f"All {total} {item_type} processed successfully.",
-                level=0
+                level=Qgis.MessageLevel.Success
             )
 
     def execute_logic(self):
@@ -560,7 +556,7 @@ class SpaceTracePlugin:
         except Exception as e:
             message = self._redact_error(e, locals().get("inputs", {}))
             self.log_message(f"Error: {message}", "ERROR")
-            self.iface.messageBar().pushMessage("Error", message, level=3)
+            self.iface.messageBar().pushMessage("Error", message, level=Qgis.MessageLevel.Critical)
 
     def run(self):
         """Display the plugin dialog."""

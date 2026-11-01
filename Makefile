@@ -89,6 +89,7 @@ compile: $(COMPILED_RESOURCE_FILES)
 
 %.py : %.qrc $(RESOURCES_SRC)
 	pyrcc5 -o $*.py  $<
+	python3 -c "from pathlib import Path; p = Path('$*.py'); s = p.read_text(encoding='utf-8'); assert 'from PyQt5 import QtCore' in s; p.write_text(s.replace('from PyQt5 import QtCore', 'from qgis.PyQt import QtCore'), encoding='utf-8')"
 
 %.qm : %.ts
 	$(LRELEASE) $<

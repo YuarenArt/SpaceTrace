@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 import os
-from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import (
+from qgis.PyQt import QtWidgets
+from qgis.PyQt.QtWidgets import (
     QDialog, QFileDialog, QDialogButtonBox
 )
-from PyQt5.QtCore import QUrl
+from qgis.PyQt.QtCore import QUrl
 from .Space_trace_dialog_class import SpaceTracePluginDialogBase
 
 class SpaceTracePluginDialog(SpaceTracePluginDialogBase):
@@ -75,11 +75,18 @@ class SpaceTracePluginDialog(SpaceTracePluginDialogBase):
         self.lineEditSaveDataPath.setEnabled(enabled)
         self.pushButtonBrowseSaveData.setEnabled(enabled)
 
+    def _selected_data_format(self):
+        combo = (self.comboBoxDataFormatLocal if self.radioLocalFile.isChecked()
+                 else self.comboBoxDataFormatSpaceTrack)
+        return combo.currentText()
+
+    @staticmethod
+    def _split_data_paths(value):
+        return [path.strip() for path in value.split(';') if path.strip()]
+
     def _on_browse_data_file(self):
         """Select input data file(s) (TLE or JSON)."""
-        fmt = (self.comboBoxDataFormatLocal.currentText()
-               if self.radioLocalFile.isChecked()
-               else self.comboBoxDataFormatSpaceTrack.currentText())
+        fmt = self._selected_data_format()
         filter_ = "Text Files (*.txt)" if fmt == "TLE" else "JSON Files (*.json)"
         
         # Allow multiple file selection for local files
@@ -99,7 +106,7 @@ class SpaceTracePluginDialog(SpaceTracePluginDialogBase):
         data_source_local = self.radioLocalFile.isChecked()
         if data_source_local:
             data_file_path = self.lineEditDataPath.text().strip()
-            num_items = len([path.strip() for path in data_file_path.split(';') if path.strip()]) if data_file_path else 1
+            num_items = len(self._split_data_paths(data_file_path)) if data_file_path else 1
         else:
             sat_ids = self._parse_satellite_ids(self.lineEditSatID.text())
             num_items = len(sat_ids) if sat_ids else 1
@@ -134,17 +141,15 @@ class SpaceTracePluginDialog(SpaceTracePluginDialogBase):
         combo = QtWidgets.QComboBox(dlg)
         combo.addItems(["shp", "gpkg", "geojson"])
         layout.addWidget(combo)
-        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, dlg)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, dlg)
         buttons.accepted.connect(dlg.accept)
         buttons.rejected.connect(dlg.reject)
         layout.addWidget(buttons)
-        return combo.currentText() if dlg.exec_() == QDialog.Accepted else ""
+        return combo.currentText() if dlg.exec() == QDialog.DialogCode.Accepted else ""
 
     def _on_browse_save_data(self):
         """Select save path for downloaded data, file or folder based on mode."""
-        fmt = (self.comboBoxDataFormatLocal.currentText()
-               if self.radioLocalFile.isChecked()
-               else self.comboBoxDataFormatSpaceTrack.currentText())
+        fmt = self._selected_data_format()
         ext = ".txt" if fmt == "TLE" else ".json"
 
         if self.checkBoxSaveData.isChecked() and self.radioSpaceTrack.isChecked():
@@ -183,7 +188,7 @@ class SpaceTracePluginDialog(SpaceTracePluginDialogBase):
 
         dlg = SpaceTrackDialog(self, login=login, password=password,
                                log_callback=self.appendLog, translator=self.translator)
-        if dlg.exec_() == QDialog.Accepted:
+        if dlg.exec() == QDialog.DialogCode.Accepted:
             ids = sorted(int(i) for i in dlg.get_selected_norad_ids())
             self.lineEditSatID.setText(self._format_id_ranges(ids))
 
@@ -248,7 +253,7 @@ class SpaceTracePluginDialog(SpaceTracePluginDialogBase):
         data_file_path = self.lineEditDataPath.text().strip()
         if data_source_local and data_file_path:
             # Split multiple file paths by semicolon
-            data_file_paths = [path.strip() for path in data_file_path.split(';') if path.strip()]
+            data_file_paths = self._split_data_paths(data_file_path)
         else:
             data_file_paths = []
         
@@ -264,11 +269,7 @@ class SpaceTracePluginDialog(SpaceTracePluginDialogBase):
             "add_layer": self.checkBoxAddLayer.isChecked(),
             "login": "" if data_source_local else self.lineEditLogin.text().strip(),
             "password": "" if data_source_local else self.lineEditPassword.text().strip(),
-            "data_format": (
-                self.comboBoxDataFormatLocal.currentText()
-                if data_source_local
-                else self.comboBoxDataFormatSpaceTrack.currentText()
-            ),
+            "data_format": self._selected_data_format(),
             "create_line_layer": self.checkBoxCreateLineLayer.isChecked(),
             "save_data": save_data,
             "save_data_path": self.lineEditSaveDataPath.text().strip() if save_data else ""

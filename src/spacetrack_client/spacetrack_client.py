@@ -9,7 +9,7 @@ from spacetrack import SpaceTrackClient
 import json
 import math
 
-from ..spacetrack_dialog.custom_query_dialog import field_types
+from .query_fields import field_types, operators_by_type
 from ..orbital_data_processor.tle_validation import validate_tle_lines
 
 class SpacetrackClientWrapper:
@@ -177,14 +177,7 @@ class SpacetrackClientWrapper:
             if field not in field_types:
                 raise ValueError(f"Unknown field: {field}")
             field_type = field_types[field]
-            valid_operators = {
-                'int': {'=', '!=', '<', '>'},
-                'decimal': {'=', '!=', '<', '>'},
-                'date': {'=', '!=', '<', '>', 'IS NULL', 'IS NOT NULL'},
-                'string': {'=', '!=', 'LIKE'},
-                'enum': {'=', '!='},
-            }
-            if operator not in valid_operators[field_type]:
+            if operator not in operators_by_type[field_type]:
                 raise ValueError(f"Invalid operator for {field}: {operator}")
             api_field = field.lower()
 

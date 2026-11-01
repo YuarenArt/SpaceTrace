@@ -12,6 +12,7 @@ SOURCES = \
     src/orbital_data_processor/__init__.py \
     src/orbital_data_processor/orbital_data_processor.py \
     src/orbital_data_processor/anomaly.py \
+    src/orbital_data_processor/kinematics.py \
     src/orbital_data_processor/pyorbital_processor.py \
     src/orbital_data_processor/skyfield.py \
     src/orbital_data_processor/tle_validation.py \
@@ -24,6 +25,7 @@ SOURCES = \
     src/Space_trace/orbital/handler.py \
     src/Space_trace/orbital/saver.py \
     src/spacetrack_client/__init__.py \
+    src/spacetrack_client/query_fields.py \
     src/spacetrack_client/spacetrack_client.py \
     src/spacetrack_dialog/__init__.py \
     src/spacetrack_dialog/spacetrack_dialog.py \

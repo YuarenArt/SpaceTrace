@@ -14,8 +14,8 @@ from qgis.core import QgsProject
 
 
 def click(widget):
-    pos = QPoint(16, widget.height() // 2) if widget.inherits("QCheckBox") else widget.rect().center()
-    QTest.mouseClick(widget, Qt.LeftButton, pos=pos)
+    pos = QPoint(16, widget.height() // 2) if widget.inherits("QCheckBox") or widget.inherits("QRadioButton") else widget.rect().center()
+    QTest.mouseClick(widget, Qt.MouseButton.LeftButton, pos=pos)
     QApplication.processEvents()
 
 
@@ -56,9 +56,25 @@ def run():
             class FakeClient:
                 fail_next_search = False
                 fail_id = None
+                search_calls = []
+                custom_calls = []
 
                 def __init__(self, *args):
                     pass
+
+                def search_by_name(self, name, limit):
+                    FakeClient.search_calls.append(("name", name, limit))
+                    if name == "MISSING":
+                        return []
+                    return [{"NORAD_CAT_ID": 25544, "SATNAME": "ISS"}]
+
+                def search_by_country(self, country, limit):
+                    FakeClient.search_calls.append(("country", country, limit))
+                    return [{"NORAD_CAT_ID": 25544, "SATNAME": "ISS"}]
+
+                def get_active_satellites(self, limit):
+                    FakeClient.search_calls.append(("active", limit))
+                    return [{"NORAD_CAT_ID": 25544, "SATNAME": "ISS"}]
 
                 def search_by_norad_id(self, text, limit):
                     if FakeClient.fail_next_search:
@@ -72,10 +88,19 @@ def run():
                     return [{"NORAD_CAT_ID": 25544, "SATNAME": "ISS"}]
 
                 def search_by_custom_query(self, conditions, limit):
-                    assert conditions == [
+                    basic = [
                         ("NORAD_CAT_ID", "=", "25544"),
                         ("CURRENT", "=", "Y"),
                     ]
+                    mixed = [
+                        ("SATNAME", "LIKE", "%ISS%"),
+                        ("LAUNCH", ">", "2020-01-01"),
+                        ("INCLINATION", ">", "51.5"),
+                        ("DECAY", "IS NULL", None),
+                        ("CURRENT", "=", "Y"),
+                    ]
+                    assert conditions in (basic, mixed), conditions
+                    FakeClient.custom_calls.append((conditions, limit))
                     return [{"NORAD_CAT_ID": 25544, "SATNAME": "ISS"}]
 
                 def get_omm(self, sat_id, start):
@@ -95,9 +120,9 @@ def run():
             )
 
         # Avoid a modal warning blocking unattended QGIS when the live API fails.
-        QMessageBox.warning = lambda *args: messages.append("warning") or QMessageBox.Ok
-        QMessageBox.information = lambda *args: messages.append("information") or QMessageBox.Ok
-        QMessageBox.critical = lambda *args: messages.append("critical") or QMessageBox.Ok
+        QMessageBox.warning = lambda *args: messages.append("warning") or QMessageBox.StandardButton.Ok
+        QMessageBox.information = lambda *args: messages.append("information") or QMessageBox.StandardButton.Ok
+        QMessageBox.critical = lambda *args: messages.append("critical") or QMessageBox.StandardButton.Ok
 
         plugin.actions[0].trigger()
         dialog = plugin.dlg
@@ -122,7 +147,7 @@ def run():
                     modal.ui.combo_save_format.setCurrentText("OMM")
                     click(modal.ui.push_button_save)
                     assert (output_dir / "search_omm.json").exists()
-                click(modal.ui.button_box.button(QDialogButtonBox.Ok))
+                click(modal.ui.button_box.button(QDialogButtonBox.StandardButton.Ok))
             except Exception:
                 callback_errors.append(traceback.format_exc())
                 if modal is not None:
@@ -177,7 +202,7 @@ def run():
                     click(modal.ui.push_button_custom)
                     assert modal.ui.table_result.rowCount() == 1
                     modal.ui.table_result.selectRow(0)
-                    click(modal.ui.button_box.button(QDialogButtonBox.Ok))
+                    click(modal.ui.button_box.button(QDialogButtonBox.StandardButton.Ok))
                 except Exception:
                     callback_errors.append(traceback.format_exc())
                     if modal is not None:
@@ -188,6 +213,117 @@ def run():
             assert not callback_errors, callback_errors
             assert dialog.lineEditSatID.text() == "25544"
             report["scenarios"].append({"id": "E2E-05", "custom_query": True})
+
+            def search_modes_and_empty_result():
+                modal = QApplication.activeModalWidget()
+                try:
+                    assert modal is not None
+                    modal.ui.combo_limit.setCurrentText("1")
+                    click(modal.ui.radio_name)
+                    modal.ui.line_edit_search.setText("ISS")
+                    click(modal.ui.push_button_search)
+                    assert modal.ui.table_result.rowCount() == 1
+
+                    click(modal.ui.radio_country)
+                    assert not modal.ui.line_edit_search.text()
+                    modal.ui.line_edit_search.setText("us")
+                    click(modal.ui.push_button_search)
+                    assert modal.ui.table_result.rowCount() == 1
+
+                    click(modal.ui.radio_active)
+                    assert not modal.ui.line_edit_search.text()
+                    click(modal.ui.push_button_search)
+                    assert modal.ui.table_result.rowCount() == 1
+                    assert FakeClient.search_calls == [
+                        ("name", "ISS", 1), ("country", "US", 1), ("active", 1)
+                    ]
+
+                    click(modal.ui.radio_name)
+                    modal.ui.line_edit_search.setText("X")
+                    click(modal.ui.push_button_search)
+                    assert messages[-1] == "warning"
+                    assert len(FakeClient.search_calls) == 3
+                    modal.ui.line_edit_search.setText("MISSING")
+                    click(modal.ui.push_button_search)
+                    assert modal.ui.table_result.rowCount() == 0
+                    assert messages[-1] == "information"
+                    assert FakeClient.search_calls[-1] == ("name", "MISSING", 1)
+                    click(modal.ui.button_box.button(QDialogButtonBox.StandardButton.Cancel))
+                except Exception:
+                    callback_errors.append(traceback.format_exc())
+                    if modal is not None:
+                        modal.reject()
+
+            QTimer.singleShot(0, search_modes_and_empty_result)
+            click(dialog.pushButtonSearchSatellites)
+            assert not callback_errors, callback_errors
+            assert dialog.lineEditSatID.text() == "25544"
+            report["scenarios"].append({"id": "E2E-19", "name_country_active_search": True})
+            report["scenarios"].append({"id": "E2E-20", "validation_empty_and_cancel": True})
+
+            def search_with_mixed_filters():
+                modal = QApplication.activeModalWidget()
+                try:
+                    assert modal is not None
+                    expected = [
+                        ("SATNAME", "LIKE", "%ISS%"),
+                        ("LAUNCH", ">", "2020-01-01"),
+                        ("INCLINATION", ">", "51.5"),
+                        ("DECAY", "IS NULL", None),
+                        ("CURRENT", "=", "Y"),
+                    ]
+
+                    def fill_filters():
+                        custom = QApplication.activeModalWidget()
+                        try:
+                            assert custom is not None and custom is not modal
+                            for row, (field, operator, value) in enumerate(expected):
+                                click(custom.ui.button_add)
+                                custom.ui.table.cellWidget(row, 1).setCurrentText(field)
+                                custom.ui.table.cellWidget(row, 2).setCurrentText(operator)
+                                if value is not None:
+                                    custom.ui.table.cellWidget(row, 3).setText(value)
+                            assert not custom.ui.table.cellWidget(3, 3).isEnabled()
+                            click(custom.ui.button_search)
+                        except Exception:
+                            callback_errors.append(traceback.format_exc())
+                            if custom is not None:
+                                custom.reject()
+
+                    QTimer.singleShot(0, fill_filters)
+                    click(modal.ui.push_button_custom)
+                    assert not callback_errors, callback_errors
+                    assert modal.ui.table_result.rowCount() == 1
+                    assert FakeClient.custom_calls[-1] == (expected, 10)
+
+                    def cancel_filter_edit():
+                        custom = QApplication.activeModalWidget()
+                        try:
+                            assert custom is not None and custom is not modal
+                            assert custom.get_conditions() == expected
+                            custom.ui.table.cellWidget(0, 3).setText("%CHANGED%")
+                            click(custom.ui.button_cancel)
+                        except Exception:
+                            callback_errors.append(traceback.format_exc())
+                            if custom is not None:
+                                custom.reject()
+
+                    QTimer.singleShot(0, cancel_filter_edit)
+                    click(modal.ui.push_button_custom)
+                    assert not callback_errors, callback_errors
+                    assert modal.custom_conds == expected
+                    assert len(FakeClient.custom_calls) == 2
+                    click(modal.ui.button_box.button(QDialogButtonBox.StandardButton.Cancel))
+                except Exception:
+                    callback_errors.append(traceback.format_exc())
+                    if modal is not None:
+                        modal.reject()
+
+            QTimer.singleShot(0, search_with_mixed_filters)
+            click(dialog.pushButtonSearchSatellites)
+            assert not callback_errors, callback_errors
+            assert dialog.lineEditSatID.text() == "25544"
+            report["scenarios"].append({"id": "E2E-21", "mixed_filters_and_cancel": True})
 
             def retry_and_multi_select():
                 modal = QApplication.activeModalWidget()
@@ -201,7 +337,7 @@ def run():
                     click(modal.ui.push_button_search)
                     assert modal.ui.table_result.rowCount() == 2
                     modal.ui.table_result.selectAll()
-                    click(modal.ui.button_box.button(QDialogButtonBox.Ok))
+                    click(modal.ui.button_box.button(QDialogButtonBox.StandardButton.Ok))
                 except Exception:
                     callback_errors.append(traceback.format_exc())
                     if modal is not None:
@@ -248,7 +384,7 @@ def run():
                     click(modal.ui.push_button_search)
                     modal.ui.table_result.selectRow(0)
                     click(modal.ui.push_button_save)
-                    click(modal.ui.button_box.button(QDialogButtonBox.Cancel))
+                    click(modal.ui.button_box.button(QDialogButtonBox.StandardButton.Cancel))
                 except Exception:
                     callback_errors.append(traceback.format_exc())
                     if modal is not None:

@@ -37,6 +37,23 @@ def test_output_validation(plugin, tmp_path):
 
 
 @pytest.mark.unit
+def test_output_validation_preserves_batch_and_relative_path_rules(plugin, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    assert plugin._validate_output_path("", 1) == (None, None)
+    assert plugin._validate_output_path("track.GPKG", 1) == ("track.GPKG", "gpkg")
+    assert plugin._validate_output_path("track", 2) == (str(tmp_path), "shp")
+    assert plugin._validate_output_path("track.GEOJSON", 2) == (str(tmp_path), "geojson")
+    assert plugin._validate_output_path(f" {tmp_path} | GPKG ", 1) == (str(tmp_path), "gpkg")
+
+    with pytest.raises(Exception, match="Output directory does not exist or is not writable"):
+        plugin._validate_output_path("|shp", 1)
+    with pytest.raises(Exception, match="Unsupported format"):
+        plugin._validate_output_path(f"{tmp_path / 'missing'}|csv", 1)
+    with pytest.raises(Exception, match="Unsupported format"):
+        plugin._validate_output_path("track", 1)
+
+
+@pytest.mark.unit
 def test_output_and_raw_data_paths_must_be_writable(plugin, tmp_path, monkeypatch):
     with pytest.raises(Exception, match="Choose a path"):
         plugin._validate_save_data_path("", True, 1)
@@ -59,4 +76,33 @@ def test_validation_rejects_missing_file_and_credentials(plugin, tmp_path):
     base["data_file_paths"] = [str(tmp_path / "missing.txt")]
     with pytest.raises(Exception, match="not readable"):
         plugin._validate_inputs(base)
+
+
+@pytest.mark.ui
+def test_main_dialog_uses_selected_format_and_normalizes_local_paths(qgis_app, monkeypatch):
+    from SpaceTrace.src.Space_trace import Space_trace_dialog as module
+
+    dialog = module.SpaceTracePluginDialog()
+    filters = []
+    monkeypatch.setattr(
+        module.QFileDialog, "getOpenFileNames",
+        lambda *args: (filters.append(args[3]) or [], ""),
+    )
+    try:
+        dialog.radioLocalFile.setChecked(True)
+        dialog.comboBoxDataFormatLocal.setCurrentText("OMM")
+        dialog.comboBoxDataFormatSpaceTrack.setCurrentText("TLE")
+        dialog.lineEditDataPath.setText(" first.json ; ; second.json ; ")
+        assert dialog.get_inputs()["data_file_paths"] == ["first.json", "second.json"]
+        assert dialog.get_inputs()["data_format"] == "OMM"
+        dialog._on_browse_data_file()
+        assert filters[-1] == "JSON Files (*.json)"
+
+        dialog.radioSpaceTrack.setChecked(True)
+        assert dialog.get_inputs()["data_file_paths"] == []
+        assert dialog.get_inputs()["data_format"] == "TLE"
+        dialog._on_browse_data_file()
+        assert filters[-1] == "Text Files (*.txt)"
+    finally:
+        dialog.close()
 

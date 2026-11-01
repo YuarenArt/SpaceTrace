@@ -13,8 +13,8 @@ from qgis.core import QgsProject, QgsVectorLayer
 
 
 def click(widget):
-    pos = QPoint(16, widget.height() // 2) if widget.inherits("QCheckBox") else widget.rect().center()
-    QTest.mouseClick(widget, Qt.LeftButton, pos=pos)
+    pos = QPoint(16, widget.height() // 2) if widget.inherits("QCheckBox") or widget.inherits("QRadioButton") else widget.rect().center()
+    QTest.mouseClick(widget, Qt.MouseButton.LeftButton, pos=pos)
     QApplication.processEvents()
 
 
@@ -44,7 +44,9 @@ def run():
         click(dialog.pushButtonExecute)
         layers = list(QgsProject.instance().mapLayers().values())
         counts = sorted(layer.featureCount() for layer in layers)
-        assert len(layers) == 2 and 7 in counts, counts
+        assert len(layers) == 2 and 7 in counts, (
+            counts, dialog.radioLocalFile.isChecked(), dialog.textEditLog.toPlainText()
+        )
         report["scenarios"].append({"id": "E2E-01", "layers": counts})
         del layers
         click(dialog.pushButtonClose)
@@ -110,6 +112,56 @@ def run():
         assert "Select at least one local data file" in dialog.textEditLog.toPlainText()
         assert not QgsProject.instance().mapLayers()
         report["scenarios"].append({"id": "E2E-10", "empty_local_rejected": True})
+        click(dialog.pushButtonClose)
+
+        # Validation failure must leave the dialog usable for a corrected run.
+        plugin.actions[0].trigger()
+        dialog.tabWidget.setCurrentWidget(dialog.tabMain)
+        QApplication.processEvents()
+        dialog.comboBoxDataFormatLocal.setCurrentText("TLE")
+        dialog.lineEditDataPath.setText(str(output_dir / "iss.txt"))
+        dialog.lineEditOutputPath.setText(str(output_dir / "unsupported.csv"))
+        if not dialog.checkBoxAddLayer.isChecked():
+            click(dialog.checkBoxAddLayer)
+        if not dialog.checkBoxCreateLineLayer.isChecked():
+            click(dialog.checkBoxCreateLineLayer)
+        click(dialog.pushButtonExecute)
+        assert not QgsProject.instance().mapLayers()
+        assert plugin.tr("Unsupported format. Use shp, gpkg, or geojson.") in dialog.textEditLog.toPlainText()
+        report["scenarios"].append({"id": "E2E-16", "invalid_format_rejected": True})
+
+        tab_bar = dialog.tabWidget.tabBar()
+        main_index = dialog.tabWidget.indexOf(dialog.tabMain)
+        QTest.mouseClick(tab_bar, Qt.MouseButton.LeftButton, pos=tab_bar.tabRect(main_index).center())
+        QApplication.processEvents()
+        assert dialog.tabWidget.currentWidget() is dialog.tabMain
+        dialog.lineEditOutputPath.clear()
+        dialog.spinBoxDuration.setValue(0.1)
+        dialog.spinBoxStepMinutes.setValue(60)
+        click(dialog.pushButtonExecute)
+        layers = list(QgsProject.instance().mapLayers().values())
+        assert len(layers) == 1 and layers[0].featureCount() == 1, (
+            len(layers), dialog.textEditLog.toPlainText()
+        )
+        report["scenarios"].append({"id": "E2E-17", "recovered_single_point": True})
+        del layers
+        QgsProject.instance().clear()
+
+        # A broken local file must not prevent another file in the batch from succeeding.
+        bad_tle = output_dir / "bad_tle.txt"
+        bad_tle.write_text("invalid TLE\n", encoding="ascii")
+        dialog.tabWidget.setCurrentWidget(dialog.tabMain)
+        QApplication.processEvents()
+        dialog.lineEditDataPath.setText(f"{bad_tle};{output_dir / 'iss.txt'}")
+        click(dialog.pushButtonExecute)
+        layers = list(QgsProject.instance().mapLayers().values())
+        assert len(layers) == 1 and layers[0].featureCount() == 1, (
+            len(layers), dialog.textEditLog.toPlainText()
+        )
+        assert "Summary: 1/2 files processed." in dialog.textEditLog.toPlainText()
+        report["scenarios"].append({"id": "E2E-18", "local_partial_failure": True})
+        del layers
+        QgsProject.instance().clear()
         click(dialog.pushButtonClose)
 
         assert qgis.utils.unloadPlugin("SpaceTrace")

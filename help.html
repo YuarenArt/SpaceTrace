@@ -73,10 +73,7 @@
   <ol>
     <li>Open the <strong>OSGeo4W Shell</strong> (included with QGIS).</li>
     <li>Install required Python libraries:
-      <pre><code>python3 -m pip install pyorbital -U --user
-python3 -m pip install spacetrack -U --user
-python3 -m pip install poliastro -U --user
-python3 -m pip install skyfield -U --user</code></pre>
+      <pre><code>python3 -m pip install --user skyfield spacetrack numpy</code></pre>
     </li>
     <li>Restart QGIS after installation.</li>
   </ol>
@@ -152,7 +149,7 @@ python3 -m pip install skyfield -U --user</code></pre>
   <ul>
     <li><strong>Batch Export:</strong> For multiple satellites, output must be a directory with format (e.g., <code>C:/output|geojson</code>).</li>
     <li><strong>Temporary Layers:</strong> If output is blank, layers are created in-memory and can be added to QGIS.</li>
-    <li><strong>Engines:</strong> Uses both <code>pyorbital</code> and <code>skyfield</code> for accurate propagation (deep space supported).</li>
+    <li><strong>Orbit calculation:</strong> Uses <code>skyfield</code>, including for deep-space objects.</li>
     <li><strong>Quick Duration:</strong> Use 1 hour, 1 day, 1 week buttons for fast setup.</li>
     <li><strong>Localization:</strong> Language auto-detected from QGIS settings.</li>
     <li><strong>Logging:</strong> All actions/errors are saved to <code>SpaceTracePlugin.log</code> in the plugin folder.</li>
@@ -228,10 +225,7 @@ python3 -m pip install skyfield -U --user</code></pre>
     <ol>
       <li>Откройте <strong>OSGeo4W Shell</strong> (идет в комплекте с QGIS).</li>
       <li>Установите необходимые библиотеки Python:
-        <pre><code>python3 -m pip install pyorbital -U --user
-python3 -m pip install spacetrack -U --user
-python3 -m pip install poliastro -U --user
-python3 -m pip install skyfield -U --user</code></pre>
+        <pre><code>python3 -m pip install --user skyfield spacetrack numpy</code></pre>
       </li>
       <li>Перезапустите QGIS после установки.</li>
     </ol>
@@ -307,7 +301,7 @@ python3 -m pip install skyfield -U --user</code></pre>
     <ul>
       <li><strong>Пакетный экспорт:</strong> Для нескольких спутников вывод — только в папку с указанием формата (например, <code>C:/output|geojson</code>).</li>
       <li><strong>Временные слои:</strong> Если путь вывода пуст, слои создаются во временной памяти и могут быть добавлены в QGIS.</li>
-      <li><strong>Движки:</strong> Используются <code>pyorbital</code> и <code>skyfield</code> для точного расчета (поддержка глубокого космоса).</li>
+      <li><strong>Расчёт орбит:</strong> Используется <code>skyfield</code>, в том числе для объектов дальнего космоса.</li>
       <li><strong>Быстрый выбор длительности:</strong> Кнопки 1 час, 1 день, 1 неделя для быстрого ввода.</li>
       <li><strong>Локализация:</strong> Язык определяется автоматически по настройкам QGIS.</li>
       <li><strong>Логирование:</strong> Все действия/ошибки сохраняются в <code>SpaceTracePlugin.log</code> в папке плагина.</li>

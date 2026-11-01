@@ -1,5 +1,9 @@
 """API request construction without network traffic or credentials."""
 import json
+import os
+from pathlib import Path
+import subprocess
+import sys
 from datetime import datetime, timezone
 from unittest.mock import Mock
 
@@ -8,6 +12,28 @@ import pytest
 from SpaceTrace.src.spacetrack_client.spacetrack_client import SpacetrackClientWrapper
 from test.conftest import TLE_LINE1, TLE_LINE2
 from SpaceTrace.src.spacetrack_dialog.custom_query_dialog import field_types
+from SpaceTrace.src.spacetrack_client.query_fields import field_types as client_field_types
+
+
+@pytest.mark.unit
+def test_api_fields_preserve_dialog_import_and_require_no_qt():
+    assert field_types is client_field_types
+    script = """
+import builtins
+original_import = builtins.__import__
+def no_qt(name, *args, **kwargs):
+    if name == 'PyQt5' or name.startswith('PyQt5.') or name == 'qgis' or name.startswith('qgis.'):
+        raise AssertionError('API client imported Qt or QGIS: ' + name)
+    return original_import(name, *args, **kwargs)
+builtins.__import__ = no_qt
+from src.spacetrack_client.spacetrack_client import SpacetrackClientWrapper
+"""
+    env = os.environ.copy()
+    env["PYTHONDONTWRITEBYTECODE"] = "1"
+    subprocess.run(
+        [sys.executable, "-c", script],
+        cwd=Path(__file__).resolve().parents[1], env=env, check=True,
+    )
 
 
 @pytest.fixture

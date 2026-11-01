@@ -2,7 +2,7 @@
 from unittest.mock import Mock
 from pathlib import Path
 import pytest
-from qgis.PyQt.QtCore import Qt, QTimer, QUrl
+from qgis.PyQt.QtCore import QPoint, Qt, QTimer, QUrl
 from qgis.PyQt.QtTest import QTest
 from qgis.PyQt.QtWidgets import QApplication, QComboBox, QDialog, QDialogButtonBox
 from SpaceTrace.src.Space_trace.Space_trace_dialog import SpaceTracePluginDialog
@@ -11,7 +11,8 @@ from SpaceTrace.src.spacetrack_dialog.custom_query_dialog import field_types
 from test.conftest import START
 
 def click(widget):
-    QTest.mouseClick(widget, Qt.LeftButton)
+    pos = QPoint(16, widget.height() // 2) if widget.inherits("QCheckBox") or widget.inherits("QRadioButton") else widget.rect().center()
+    QTest.mouseClick(widget, Qt.MouseButton.LeftButton, pos=pos)
 
 @pytest.fixture
 def main_dialog(qgis_app):
@@ -46,7 +47,7 @@ def test_help_tab_and_external_link(main_dialog, monkeypatch):
     d = main_dialog
     index = d.tabWidget.indexOf(d.tabHelp)
     bar = d.tabWidget.tabBar()
-    QTest.mouseClick(bar, Qt.LeftButton, pos=bar.tabRect(index).center())
+    QTest.mouseClick(bar, Qt.MouseButton.LeftButton, pos=bar.tabRect(index).center())
     assert d.tabWidget.currentWidget() is d.tabHelp
     assert d.textBrowserHelp.toPlainText().strip()
     d.textBrowserHelp.anchorClicked.emit(QUrl("https://example.org/help"))
@@ -90,9 +91,9 @@ def test_output_format_modal_ok_and_cancel(main_dialog):
             modal.findChild(QComboBox).setCurrentText(fmt)
         click(modal.findChild(QDialogButtonBox).button(button))
 
-    QTimer.singleShot(0, lambda: choose(QDialogButtonBox.Ok, "gpkg"))
+    QTimer.singleShot(0, lambda: choose(QDialogButtonBox.StandardButton.Ok, "gpkg"))
     assert main_dialog._show_format_selection_dialog() == "gpkg"
-    QTimer.singleShot(0, lambda: choose(QDialogButtonBox.Cancel))
+    QTimer.singleShot(0, lambda: choose(QDialogButtonBox.StandardButton.Cancel))
     assert main_dialog._show_format_selection_dialog() == ""
 
 @pytest.mark.ui
@@ -126,7 +127,7 @@ def test_search_satellites_requires_credentials(main_dialog, monkeypatch):
 def test_search_satellites_returns_selected_ids(main_dialog, monkeypatch):
     from SpaceTrace.src.spacetrack_dialog import spacetrack_dialog as module
     fake = Mock()
-    fake.exec_.return_value = QDialog.Accepted
+    fake.exec.return_value = QDialog.DialogCode.Accepted
     fake.get_selected_norad_ids.return_value = ["3", "1", "2"]
     monkeypatch.setattr(module, "SpaceTrackDialog", lambda *a, **k: fake)
     d = main_dialog
@@ -136,8 +137,8 @@ def test_search_satellites_returns_selected_ids(main_dialog, monkeypatch):
     assert d.lineEditSatID.text() == "1-3"
 
 @pytest.mark.ui
-def test_plugin_execute_and_close_buttons(plugin, qgis_app, monkeypatch, tle_file):
-    from qgis.core import QgsProject
+def test_plugin_execute_and_close_buttons(plugin, qgis_app, monkeypatch, tle_file, iface):
+    from qgis.core import Qgis, QgsProject
     plugin.run()
     d = plugin.dlg
     click(d.radioLocalFile)
@@ -151,6 +152,7 @@ def test_plugin_execute_and_close_buttons(plugin, qgis_app, monkeypatch, tle_fil
     layers = list(QgsProject.instance().mapLayers().values())
     assert len(layers) == 1
     assert layers[0].featureCount() == 7
+    assert all(call.kwargs["level"] == Qgis.MessageLevel.Success for call in iface.messageBar.return_value.pushMessage.call_args_list)
     click(d.pushButtonClose)
     assert not d.isVisible()
 
@@ -248,7 +250,7 @@ def test_execute_can_create_file_without_adding_layer(plugin, qgis_app, tle_file
 
 @pytest.mark.ui
 def test_execute_invalid_output_reports_error(plugin, qgis_app, tle_file, tmp_path, iface):
-    from qgis.core import QgsProject
+    from qgis.core import Qgis, QgsProject
     plugin.run()
     d = plugin.dlg
     click(d.radioLocalFile)
@@ -257,11 +259,11 @@ def test_execute_invalid_output_reports_error(plugin, qgis_app, tle_file, tmp_pa
     click(d.pushButtonExecute)
     assert not QgsProject.instance().mapLayers()
     assert "Unsupported format" in d.textEditLog.toPlainText()
-    assert any(call.kwargs.get("level") == 3 for call in iface.messageBar.return_value.pushMessage.call_args_list)
+    assert any(call.kwargs.get("level") == Qgis.MessageLevel.Critical for call in iface.messageBar.return_value.pushMessage.call_args_list)
 
 @pytest.mark.ui
-def test_execute_continues_after_one_invalid_file(plugin, qgis_app, tle_file, tmp_path):
-    from qgis.core import QgsProject
+def test_execute_continues_after_one_invalid_file(plugin, qgis_app, tle_file, tmp_path, iface):
+    from qgis.core import Qgis, QgsProject
     bad_file = tmp_path / "bad.txt"
     bad_file.write_text("invalid\ninvalid\n", encoding="ascii")
     plugin.run()
@@ -275,6 +277,9 @@ def test_execute_continues_after_one_invalid_file(plugin, qgis_app, tle_file, tm
     click(d.pushButtonExecute)
     assert len(QgsProject.instance().mapLayers()) == 2
     assert "1/2 files processed" in d.textEditLog.toPlainText()
+    levels = [call.kwargs["level"] for call in iface.messageBar.return_value.pushMessage.call_args_list]
+    assert Qgis.MessageLevel.Success in levels
+    assert Qgis.MessageLevel.Warning in levels
 
 @pytest.fixture
 def search_dialog(qgis_app, monkeypatch):
@@ -320,19 +325,19 @@ def test_search_select_accept_save_and_cancel(search_dialog, monkeypatch, tmp_pa
     monkeypatch.setattr(module.QMessageBox, "information", lambda *a: None)
     click(d.ui.push_button_save)
     assert (tmp_path / "download.txt").read_text().startswith("line1")
-    ok = d.ui.button_box.button(QDialogButtonBox.Ok)
+    ok = d.ui.button_box.button(QDialogButtonBox.StandardButton.Ok)
     click(ok)
-    assert d.result() == QDialog.Accepted
+    assert d.result() == QDialog.DialogCode.Accepted
     d.show()
-    click(d.ui.button_box.button(QDialogButtonBox.Cancel))
-    assert d.result() == QDialog.Rejected
+    click(d.ui.button_box.button(QDialogButtonBox.StandardButton.Cancel))
+    assert d.result() == QDialog.DialogCode.Rejected
 
 @pytest.mark.ui
 def test_search_custom_query_button(search_dialog, monkeypatch):
     from SpaceTrace.src.spacetrack_dialog import spacetrack_dialog as module
     d, client = search_dialog
     fake = Mock()
-    fake.exec_.return_value = QDialog.Accepted
+    fake.exec.return_value = QDialog.DialogCode.Accepted
     fake.get_saved_conditions.return_value = [("NORAD_CAT_ID", "=", "25544")]
     monkeypatch.setattr(module, "CustomQueryDialog", lambda *a: fake)
     client.search_by_custom_query.return_value = [{"NORAD_CAT_ID": 25544}]
@@ -376,7 +381,7 @@ def test_search_accept_without_selection_warns(search_dialog, monkeypatch):
     d, _ = search_dialog
     warning = Mock()
     monkeypatch.setattr(module.QMessageBox, "warning", warning)
-    click(d.ui.button_box.button(QDialogButtonBox.Ok))
+    click(d.ui.button_box.button(QDialogButtonBox.StandardButton.Ok))
     warning.assert_called_once()
     assert d.isVisible()
 
@@ -409,13 +414,13 @@ def test_custom_query_add_remove_search_cancel(qgis_app):
     field.setCurrentText("NORAD_CAT_ID")
     d.ui.table.cellWidget(0, 3).setText("25544")
     click(d.ui.button_search)
-    assert d.result() == QDialog.Accepted
+    assert d.result() == QDialog.DialogCode.Accepted
     assert d.get_saved_conditions() == [("NORAD_CAT_ID", "=", "25544")]
     d.show()
     click(d.ui.button_remove)
     assert d.ui.table.rowCount() == 0
     click(d.ui.button_cancel)
-    assert d.result() == QDialog.Rejected
+    assert d.result() == QDialog.DialogCode.Rejected
 
 @pytest.mark.ui
 def test_custom_query_rejects_invalid_value(qgis_app, monkeypatch):
@@ -430,7 +435,7 @@ def test_custom_query_rejects_invalid_value(qgis_app, monkeypatch):
     d.ui.table.cellWidget(0, 3).setText("not-a-number")
     click(d.ui.button_search)
     warning.assert_called_once()
-    assert d.result() != QDialog.Accepted
+    assert d.result() != QDialog.DialogCode.Accepted
     d.close()
 
 @pytest.mark.ui
@@ -522,7 +527,7 @@ def test_repeat_search_clears_old_selection(search_dialog, monkeypatch):
     client.search_by_name.return_value = []
     click(d.ui.push_button_search)
     assert d.get_selected_norad_ids() == []
-    click(d.ui.button_box.button(QDialogButtonBox.Ok))
+    click(d.ui.button_box.button(QDialogButtonBox.StandardButton.Ok))
     warning.assert_called()
     assert d.isVisible()
 
@@ -666,12 +671,12 @@ def test_search_sort_and_multi_selection_keep_norad_ids(search_dialog):
     ]
     d.ui.line_edit_search.setText("SAT")
     click(d.ui.push_button_search)
-    d.ui.table_result.sortItems(1, Qt.DescendingOrder)
+    d.ui.table_result.sortItems(1, Qt.SortOrder.DescendingOrder)
     table = d.ui.table_result
     first = table.visualItemRect(table.item(0, 0)).center()
     last = table.visualItemRect(table.item(2, 0)).center()
-    QTest.mouseClick(table.viewport(), Qt.LeftButton, pos=first)
-    QTest.mouseClick(table.viewport(), Qt.LeftButton, Qt.ControlModifier, pos=last)
+    QTest.mouseClick(table.viewport(), Qt.MouseButton.LeftButton, pos=first)
+    QTest.mouseClick(table.viewport(), Qt.MouseButton.LeftButton, Qt.KeyboardModifier.ControlModifier, pos=last)
     assert set(d.get_selected_norad_ids()) == {
         table.item(0, 0).text(), table.item(2, 0).text()
     }
@@ -749,6 +754,40 @@ def test_custom_query_remove_then_cancel_preserves_confirmed_conditions(qgis_app
 
 
 @pytest.mark.ui
+def test_restored_custom_query_rows_keep_signals_after_removal(qgis_app):
+    d = CustomQueryDialog()
+    original = [
+        ("NORAD_CAT_ID", ">", "25544"),
+        ("DECAY", "IS NULL", None),
+        ("SATNAME", "LIKE", "%ISS%"),
+    ]
+    d.set_saved_conditions(original)
+    d.show()
+    qgis_app.processEvents()
+    assert d.get_conditions() == original
+    assert not d.ui.table.cellWidget(1, 3).isEnabled()
+
+    d.ui.table.selectRow(0)
+    click(d.ui.button_remove)
+    assert d.get_conditions() == original[1:]
+    field = d.ui.table.cellWidget(0, 1)
+    operator = d.ui.table.cellWidget(0, 2)
+    editor = d.ui.table.cellWidget(0, 3)
+    operator.setCurrentText("IS NOT NULL")
+    assert not editor.isEnabled()
+    operator.setCurrentText("=")
+    assert editor.isEnabled()
+    editor.setText("2025-03-28")
+    assert d.get_conditions()[0] == ("DECAY", "=", "2025-03-28")
+
+    field.setCurrentText("NORAD_CAT_ID")
+    assert [operator.itemText(i) for i in range(operator.count())] == ["=", "!=", "<", ">"]
+    editor.setText("40000")
+    assert d.get_conditions() == [("NORAD_CAT_ID", "=", "40000"), original[2]]
+    d.close()
+
+
+@pytest.mark.ui
 def test_main_browse_cancellations_preserve_existing_paths(main_dialog, monkeypatch):
     from SpaceTrace.src.Space_trace import Space_trace_dialog as module
 
@@ -776,7 +815,7 @@ def test_output_format_modal_all_formats(main_dialog, fmt):
     def choose():
         modal = QApplication.activeModalWidget()
         modal.findChild(QComboBox).setCurrentText(fmt)
-        click(modal.findChild(QDialogButtonBox).button(QDialogButtonBox.Ok))
+        click(modal.findChild(QDialogButtonBox).button(QDialogButtonBox.StandardButton.Ok))
 
     QTimer.singleShot(0, choose)
     assert main_dialog._show_format_selection_dialog() == fmt
@@ -786,7 +825,7 @@ def test_output_format_modal_all_formats(main_dialog, fmt):
 def test_main_calendar_value_is_converted_to_utc(main_dialog):
     from qgis.PyQt.QtCore import QDateTime
 
-    local = QDateTime.fromString("2026-01-15T12:00:00", Qt.ISODate)
+    local = QDateTime.fromString("2026-01-15T12:00:00", Qt.DateFormat.ISODate)
     main_dialog.dateTimeEdit.setDateTime(local)
     expected = main_dialog.dateTimeEdit.dateTime().toUTC().toPyDateTime().replace(tzinfo=None)
     assert main_dialog.get_inputs()["start_datetime"] == expected
@@ -801,7 +840,7 @@ def test_calendar_timezone_conversion_across_dst(main_dialog, wall_time, expecte
     from datetime import datetime
     from qgis.PyQt.QtCore import QDateTime
 
-    qdatetime = QDateTime.fromString(wall_time, Qt.ISODate)
+    qdatetime = QDateTime.fromString(wall_time, Qt.DateFormat.ISODate)
     assert qdatetime.isValid()
     assert main_dialog._to_utc_naive(qdatetime) == datetime.fromisoformat(expected)
 
@@ -1180,3 +1219,207 @@ def test_custom_query_rejects_nonfinite_decimal(qgis_app, monkeypatch):
     assert d.isVisible()
     warning.assert_called_once()
     d.close()
+
+
+@pytest.mark.ui
+@pytest.mark.parametrize("field,invalid,corrected", [
+    ("NORAD_CAT_ID", "2.5", "25544"),
+    ("INCLINATION", "inf", "51.6"),
+    ("LAUNCH", "2025-02-29", "2024-02-29"),
+    ("CURRENT", "y", "Y"),
+    ("SATNAME", "   ", "ISS"),
+])
+def test_custom_query_corrects_invalid_value_without_reopening(
+    qgis_app, monkeypatch, field, invalid, corrected
+):
+    from SpaceTrace.src.spacetrack_dialog import custom_query_dialog as module
+
+    warning = Mock()
+    monkeypatch.setattr(module.QMessageBox, "warning", warning)
+    d = CustomQueryDialog()
+    d.show()
+    qgis_app.processEvents()
+    try:
+        click(d.ui.button_add)
+        d.ui.table.cellWidget(0, 1).setCurrentText(field)
+        editor = d.ui.table.cellWidget(0, 3)
+        QTest.keyClicks(editor, invalid)
+        click(d.ui.button_search)
+        warning.assert_called_once()
+        assert d.isVisible()
+        assert d.get_saved_conditions() == []
+
+        QTest.keyClick(editor, Qt.Key.Key_A, Qt.KeyboardModifier.ControlModifier)
+        QTest.keyClicks(editor, corrected)
+        click(d.ui.button_search)
+        assert d.result() == QDialog.DialogCode.Accepted
+        assert d.get_saved_conditions() == [(field, "=", corrected)]
+    finally:
+        d.close()
+
+
+@pytest.mark.ui
+def test_custom_query_modal_submit_and_cancel_restore_last_search(search_dialog, qgis_app):
+    d, client = search_dialog
+    expected = [
+        ("SATNAME", "LIKE", "%ISS%"),
+        ("DECAY", "IS NOT NULL", None),
+        ("CURRENT", "=", "N"),
+    ]
+    client.search_by_custom_query.return_value = [{"NORAD_CAT_ID": 25544}]
+    d.ui.combo_limit.setCurrentText("25")
+    errors = []
+
+    def submit():
+        modal = QApplication.activeModalWidget()
+        try:
+            assert isinstance(modal, CustomQueryDialog)
+            for field, operator, value in expected:
+                click(modal.ui.button_add)
+                row = modal.ui.table.rowCount() - 1
+                modal.ui.table.cellWidget(row, 1).setCurrentText(field)
+                modal.ui.table.cellWidget(row, 2).setCurrentText(operator)
+                if value is not None:
+                    QTest.keyClicks(modal.ui.table.cellWidget(row, 3), value)
+            click(modal.ui.button_search)
+        except Exception as error:
+            errors.append(str(error))
+            if modal:
+                modal.reject()
+
+    QTimer.singleShot(0, submit)
+    click(d.ui.push_button_custom)
+    assert not errors
+    client.search_by_custom_query.assert_called_once_with(expected, 25)
+    assert d.custom_conds == expected
+    assert d.ui.table_result.rowCount() == 1
+
+    def edit_and_cancel():
+        modal = QApplication.activeModalWidget()
+        try:
+            assert isinstance(modal, CustomQueryDialog)
+            assert modal.get_conditions() == expected
+            modal.ui.table.cellWidget(0, 3).setText("%OTHER%")
+            click(modal.ui.button_cancel)
+        except Exception as error:
+            errors.append(str(error))
+            if modal:
+                modal.reject()
+
+    QTimer.singleShot(0, edit_and_cancel)
+    click(d.ui.push_button_custom)
+    assert not errors
+    client.search_by_custom_query.assert_called_once()
+    assert d.custom_conds == expected
+    assert d.ui.table_result.item(0, 0).text() == "25544"
+
+
+@pytest.mark.ui
+def test_source_switch_restores_independent_formats_and_save_settings(main_dialog):
+    d = main_dialog
+    d.lineEditLogin.setText("user@example.invalid")
+    d.lineEditPassword.setText("secret")
+    d.comboBoxDataFormatSpaceTrack.setCurrentText("OMM")
+    click(d.checkBoxSaveData)
+    d.lineEditSaveDataPath.setText("save-directory")
+    click(d.radioLocalFile)
+    d.comboBoxDataFormatLocal.setCurrentText("TLE")
+    d.lineEditDataPath.setText("first.txt;second.txt")
+
+    local = d.get_inputs()
+    assert local["source"] == "local" and local["data_format"] == "TLE"
+    assert local["data_file_paths"] == ["first.txt", "second.txt"]
+    assert not local["save_data"] and local["save_data_path"] == ""
+    assert local["login"] == local["password"] == ""
+    assert not d.groupBoxSpaceTrack.isVisible()
+
+    click(d.radioSpaceTrack)
+    api = d.get_inputs()
+    assert api["source"] == "spacetrack" and api["data_format"] == "OMM"
+    assert api["login"] == "user@example.invalid" and api["password"] == "secret"
+    assert api["save_data"] and api["save_data_path"] == "save-directory"
+    assert api["data_file_paths"] == []
+    click(d.radioLocalFile)
+    assert d.get_inputs()["data_file_paths"] == ["first.txt", "second.txt"]
+
+
+@pytest.mark.ui
+@pytest.mark.parametrize("duration,step", [(0.1, 0.01), (0.1, 60.0), (168.0, 60.0)])
+def test_main_dialog_time_limits_reach_collected_inputs(main_dialog, duration, step):
+    d = main_dialog
+    d.spinBoxDuration.setValue(duration)
+    d.spinBoxStepMinutes.setValue(step)
+    values = d.get_inputs()
+    assert values["duration_hours"] == pytest.approx(duration)
+    assert values["step_minutes"] == pytest.approx(step)
+
+
+@pytest.mark.ui
+def test_search_row_clicks_toggle_selection_and_save_only_selected(search_dialog, monkeypatch, tmp_path):
+    from SpaceTrace.src.spacetrack_dialog import spacetrack_dialog as module
+
+    d, client = search_dialog
+    client.search_by_name.return_value = [
+        {"NORAD_CAT_ID": 25544, "SATNAME": "ISS"},
+        {"NORAD_CAT_ID": 40000, "SATNAME": "OTHER"},
+    ]
+    client.get_tle.return_value = ("line1", "line2", 51.6)
+    d.ui.line_edit_search.setText("ISS")
+    click(d.ui.push_button_search)
+    table = d.ui.table_result
+    rows = {table.item(row, 0).text(): row for row in range(table.rowCount())}
+
+    def click_id(norad_id):
+        item = table.item(rows[norad_id], 0)
+        QTest.mouseClick(table.viewport(), Qt.MouseButton.LeftButton, pos=table.visualItemRect(item).center())
+        QApplication.processEvents()
+
+    click_id("25544")
+    click_id("40000")
+    assert set(d.get_selected_norad_ids()) == {"25544", "40000"}
+    click_id("25544")
+    assert d.get_selected_norad_ids() == ["40000"]
+
+    target = tmp_path / "selected.txt"
+    monkeypatch.setattr(module.QFileDialog, "getSaveFileName", lambda *a, **kw: (str(target), ""))
+    monkeypatch.setattr(module.QMessageBox, "information", Mock())
+    d.ui.combo_save_format.setCurrentText("TLE")
+    click(d.ui.push_button_save)
+    client.get_tle.assert_called_once()
+    assert client.get_tle.call_args.args[0] == "40000"
+    assert target.read_text().splitlines() == ["line1", "line2"]
+
+
+@pytest.mark.ui
+def test_omm_save_recovers_after_file_write_error(search_dialog, monkeypatch, tmp_path):
+    import json
+    from SpaceTrace.src.spacetrack_dialog import spacetrack_dialog as module
+
+    d, client = search_dialog
+    d.ui.line_edit_search.setText("ISS")
+    click(d.ui.push_button_search)
+    d.ui.table_result.selectRow(0)
+    d.ui.combo_save_format.setCurrentText("OMM")
+    client.get_omm.return_value = [{"NORAD_CAT_ID": 25544}]
+
+    existing_dir = tmp_path / "not-a-file"
+    existing_dir.mkdir()
+    target = tmp_path / "recovered.json"
+    choose_file = Mock(side_effect=[(str(existing_dir), ""), (str(target), "")])
+    critical, information = Mock(), Mock()
+    monkeypatch.setattr(module.QFileDialog, "getSaveFileName", choose_file)
+    monkeypatch.setattr(module.QMessageBox, "critical", critical)
+    monkeypatch.setattr(module.QMessageBox, "information", information)
+
+    click(d.ui.push_button_save)
+    critical.assert_called_once()
+    information.assert_not_called()
+    assert existing_dir.is_dir() and not target.exists()
+    assert d.get_selected_norad_ids() == ["25544"]
+    assert not d.ui.progress_bar.isVisible()
+
+    click(d.ui.push_button_save)
+    assert json.loads(target.read_text(encoding="utf-8")) == [{"NORAD_CAT_ID": 25544}]
+    assert client.get_omm.call_count == 2
+    information.assert_called_once()
+    assert not d.ui.progress_bar.isVisible()
