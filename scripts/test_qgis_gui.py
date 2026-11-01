@@ -64,7 +64,7 @@ def main():
             "SPACETRACE_E2E_MODE": args.mode,
             "SPACETRACE_EXPECT_PLUGIN_DIR": str(plugins / "SpaceTrace"),
             "QGIS_PLUGINPATH": str(plugins),
-            "QT_QPA_PLATFORM": "offscreen",
+            "QT_QPA_PLATFORM": env.get("QT_QPA_PLATFORM", "offscreen"),
             "DISPLAY": env.get("DISPLAY", ":99"),
             "PYTHONOPTIMIZE": "0",
             "PYTHONDONTWRITEBYTECODE": "1",
@@ -88,6 +88,11 @@ def main():
                                   else part for part in parts)
                 if args.reports_dir:
                     (args.reports_dir / f"{script}.log").write_text(redact(partial), encoding="utf-8")
+                    plugin_log = work / "plugin.log"
+                    if plugin_log.exists():
+                        (args.reports_dir / "plugin.log").write_text(
+                            redact(plugin_log.read_text(encoding="utf-8", errors="replace")), encoding="utf-8"
+                        )
                 raise RuntimeError(f"QGIS timed out running {script}") from error
             if args.reports_dir:
                 (args.reports_dir / f"{script}.log").write_text(output, encoding="utf-8")

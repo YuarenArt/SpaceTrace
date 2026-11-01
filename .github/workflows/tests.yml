@@ -39,6 +39,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - qgis: '3.40'
+            image: qgis/qgis:3.40.15-noble
           - qgis: '3.44'
             image: qgis/qgis:3.44.15-noble
           - qgis: '4.2'
@@ -55,7 +57,7 @@ jobs:
         run: |
           set -euo pipefail
           extras=()
-          if [ '${{ matrix.qgis }}' = '3.44' ]; then extras=('numpy<2' 'pyorbital==1.10.2'); fi
+          if [[ '${{ matrix.qgis }}' == 3.* ]]; then extras=('numpy<2' 'pyorbital==1.10.2'); fi
           python3 -m pip install --target /tmp/spacetrace-deps -r requirements-dev.txt pytest-cov "${extras[@]}"
       - name: Run unit, integration and Qt tests
         shell: bash
@@ -84,6 +86,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - qgis: '3.40'
+            image: qgis/qgis:3.40.15-noble
+            mode: offline
+          - qgis: '3.40'
+            image: qgis/qgis:3.40.15-noble
+            mode: mock-api
           - qgis: '3.44'
             image: qgis/qgis:3.44.15-noble
             mode: offline
@@ -113,14 +121,14 @@ jobs:
         run: |
           set -euo pipefail
           extras=()
-          if [ '${{ matrix.qgis }}' = '3.44' ]; then extras=('numpy<2' 'pyorbital==1.10.2'); fi
+          if [[ '${{ matrix.qgis }}' == 3.* ]]; then extras=('numpy<2' 'pyorbital==1.10.2'); fi
           python3 -m pip install --target /tmp/spacetrace-deps -r requirements-dev.txt "${extras[@]}"
       - name: Run interface scenarios from the ZIP
         shell: bash
         run: |
           set -euo pipefail
           python3 scripts/check_plugin_zip.py "$RUNNER_TEMP"/plugin-zip/SpaceTrace-*.zip
-          python3 scripts/test_qgis_gui.py --mode '${{ matrix.mode }}' --plugin-zip "$RUNNER_TEMP"/plugin-zip/SpaceTrace-*.zip --reports-dir "$RUNNER_TEMP/gui-report"
+          bash scripts/with_xvfb.sh python3 scripts/test_qgis_gui.py --mode '${{ matrix.mode }}' --plugin-zip "$RUNNER_TEMP"/plugin-zip/SpaceTrace-*.zip --reports-dir "$RUNNER_TEMP/gui-report"
       - name: Upload interface reports
         if: always()
         uses: actions/upload-artifact@v4

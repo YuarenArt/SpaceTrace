@@ -2,9 +2,6 @@ name: Extended checks
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - codex/github-actions-tests
   schedule:
     - cron: '41 5 * * 0'
 

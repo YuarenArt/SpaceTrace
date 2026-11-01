@@ -45,4 +45,4 @@ jobs:
             echo '::error::Configure SPACETRACE_LOGIN and SPACETRACE_PASSWORD in GitHub Actions secrets.'
             exit 1
           fi
-          python3 scripts/test_qgis_gui.py --mode live --plugin-zip "$RUNNER_TEMP"/plugin-zip/SpaceTrace-*.zip
+          bash scripts/with_xvfb.sh python3 scripts/test_qgis_gui.py --mode live --plugin-zip "$RUNNER_TEMP"/plugin-zip/SpaceTrace-*.zip
