@@ -8,10 +8,15 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: qgis-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   package:
     name: Build and validate plugin ZIP
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -33,6 +38,7 @@ jobs:
   pytest:
     name: Pytest QGIS ${{ matrix.qgis }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     container:
       image: ${{ matrix.image }}
     strategy:
@@ -80,6 +86,7 @@ jobs:
     name: QGIS ${{ matrix.qgis }} UI ${{ matrix.mode }}
     needs: package
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     container:
       image: ${{ matrix.image }}
     strategy:
@@ -141,17 +148,28 @@ jobs:
   security:
     name: Security and secret scan
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       - name: Install security tools
-        run: python -m pip install bandit detect-secrets
+        run: python -m pip install bandit==1.9.4 detect-secrets==1.5.0
       - name: Scan plugin source
         shell: bash
         run: |
           set -euo pipefail
           bandit -q -r src __init__.py
           detect-secrets scan --all-files src __init__.py > "$RUNNER_TEMP/secrets.json"
-          python -c 'import json,sys; findings=json.load(open(sys.argv[1], encoding="utf-8"))["results"]; print("Secret findings:", sum(map(len, findings.values()))); sys.exit(bool(findings))' "$RUNNER_TEMP/secrets.json"
+          python - "$RUNNER_TEMP/secrets.json" <<'PY'
+          import json
+          import sys
+          with open(sys.argv[1], encoding="utf-8") as report:
+              findings = json.load(report)["results"]
+          for path, items in findings.items():
+              for item in items:
+                  print(f"{path}:{item['line_number']}: {item['type']}")
+          print("Secret findings:", sum(map(len, findings.values())))
+          sys.exit(bool(findings))
+          PY

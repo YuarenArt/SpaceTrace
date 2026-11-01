@@ -9,6 +9,10 @@ from qgis.PyQt.QtCore import QTimer
 from qgis.PyQt.QtWidgets import QApplication
 from qgis.core import QgsProject
 
+if os.environ.get("SPACETRACE_E2E_DEBUG_HANGS"):
+    import faulthandler
+    faulthandler.dump_traceback_later(45, repeat=True)
+
 
 def run():
     output_dir = Path(os.environ["SPACETRACE_E2E_DIR"])

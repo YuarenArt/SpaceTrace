@@ -11,6 +11,10 @@ from qgis.PyQt.QtTest import QTest
 from qgis.PyQt.QtWidgets import QApplication
 from qgis.core import QgsProject, QgsVectorLayer
 
+if os.environ.get("SPACETRACE_E2E_DEBUG_HANGS"):
+    import faulthandler
+    faulthandler.dump_traceback_later(45, repeat=True)
+
 
 def click(widget):
     pos = QPoint(16, widget.height() // 2) if widget.inherits("QCheckBox") or widget.inherits("QRadioButton") else widget.rect().center()

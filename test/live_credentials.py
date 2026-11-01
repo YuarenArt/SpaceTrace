@@ -1,4 +1,4 @@
-"""Credentials for opt-in live tests, stored in the OS keyring."""
+"""Credentials for opt-in live tests from the environment or OS keyring."""
 
 import os
 

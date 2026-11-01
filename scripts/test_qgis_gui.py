@@ -63,6 +63,7 @@ def main():
             "SPACETRACE_REPO_ROOT": str(ROOT),
             "SPACETRACE_E2E_MODE": args.mode,
             "SPACETRACE_EXPECT_PLUGIN_DIR": str(plugins / "SpaceTrace"),
+            "SPACETRACE_E2E_DEBUG_HANGS": "1",
             "QGIS_PLUGINPATH": str(plugins),
             "QT_QPA_PLATFORM": env.get("QT_QPA_PLATFORM", "offscreen"),
             "DISPLAY": env.get("DISPLAY", ":99"),
@@ -76,6 +77,7 @@ def main():
 
         seen = set()
         for script, report_name in scenarios:
+            print(f"Running {script} ({args.mode})", flush=True)
             command = ["qgis", "--nologo", "--profiles-path", str(work / "profiles"),
                        "--profile", "test", "--code", str(ROOT / "test" / "e2e" / script)]
             try:
