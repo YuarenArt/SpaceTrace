@@ -1,15 +1,13 @@
 name: QGIS tests
 
 on:
-  push:
   pull_request:
-  workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: qgis-tests-${{ github.event.pull_request.number || github.ref }}
+  group: qgis-tests-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:

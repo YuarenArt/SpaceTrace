@@ -1,12 +1,14 @@
 name: Extended checks
 
 on:
-  workflow_dispatch:
-  schedule:
-    - cron: '41 5 * * 0'
+  pull_request:
 
 permissions:
   contents: read
+
+concurrency:
+  group: qgis-extended-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
   windows:

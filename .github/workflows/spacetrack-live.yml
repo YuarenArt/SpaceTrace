@@ -1,17 +1,22 @@
 name: SpaceTrack live
 
 on:
-  workflow_dispatch:
-  schedule:
-    - cron: '23 6 * * 1'
+  pull_request:
 
 permissions:
   contents: read
 
+concurrency:
+  group: spacetrack-live-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   spacetrack-live:
     name: Real SpaceTrack API and QGIS UI
-    if: github.ref == 'refs/heads/main'
+    # Forks and Dependabot pull requests do not receive repository secrets.
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.login != 'dependabot[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     container:
